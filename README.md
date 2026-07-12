@@ -27,12 +27,14 @@ account, no cloud. See [PRIVACY.md](PRIVACY.md).
 
 ## How to read the face
 
+The face follows your attention in a progression:
+
 | Signal | Meaning |
 |---|---|
-| Eyes | about **you** — open when Claude is in front of you; they look toward your work while you type |
-| Glow (cyan) | AI energy flowing on this machine — yours *or* a background agent's (e.g. a Claude Code session) |
-| Lean | your own request is running right now |
-| Violet + wide eyes + pulse | sensitive content detected (API key, email, card number, NI number, IBAN, phone) on your clipboard or in the composer — *before it leaves your machine*. Click Drippy to acknowledge |
+| Eyes forward | AI is in use — Claude is open in front of you, or your request is running |
+| Eyes on the work | you're actively typing — eyes shift toward the composer, body tips with them |
+| Breathing glow (cyan) | AI energy flowing on this machine — yours *or* a background agent's (e.g. a Claude Code session) |
+| Warning: violet, wide eyes still on the work, pulsing | sensitive content detected (API key, email, card number, NI number, IBAN, phone) on your clipboard or in the composer — *before it leaves your machine*. **Hover Drippy** for what it found and a recommendation; click to acknowledge |
 | Dim + ring | your day's footprint: green environment · amber energy · violet privacy |
 
 The 💧 menu shows live status, today's totals (requests, tokens in/out,

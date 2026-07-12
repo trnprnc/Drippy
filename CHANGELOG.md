@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 — 2026-07-12
+
+- **Attention progression.** The face now tells a coherent story: eyes
+  forward while AI is in use → eyes on the work (with a slight body tilt)
+  while you're actively typing → the warning keeps the eyes locked on the
+  work, because that's where the problem is.
+- **A glow you can actually see.** The AI-energy halo is much stronger and
+  now breathes (2.2s pulse) — peripheral vision catches motion, not static
+  light. The privacy glow got the same treatment. Window enlarged slightly
+  so the halo doesn't clip.
+- **Hover for details on warnings.** During a warning, hovering Drippy opens
+  an attention bubble beside it: what was spotted (category only — never the
+  content), where it was, a recommendation, and an action when one exists
+  ("Clear clipboard"). Warnings stay visible for 15s to give time to hover.
+
 ## 0.2.0 — 2026-07-12
 
 - **Usage history & trends.** Drippy now remembers activity over time — local,

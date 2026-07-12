@@ -32,10 +32,10 @@ process.on('unhandledRejection', (reason) => {
   console.log(`[drippy] unhandled rejection: ${reason}`);
 });
 
-// Window is larger than the 56x52 blob so glow, drop shadow and the
-// 64px footprint ring render without clipping.
-const WIN_W = 140;
-const WIN_H = 150;
+// Window is larger than the 56x52 blob so the breathing glow halo, drop
+// shadow and the 64px footprint ring render without clipping.
+const WIN_W = 160;
+const WIN_H = 170;
 
 let win = null;
 let tray = null;
@@ -117,19 +117,20 @@ function totalInFlight() {
   return inFlightFg + inFlightBg;
 }
 
-// Signal vocabulary — each visual element has exactly one meaning:
-//   eyes = about YOU (Claude is open in front of you, or your request runs)
-//   gaze = eyes look toward the work (you're typing, or your request runs)
-//   glow = AI energy flowing on this machine (any request, yours or not)
-//   lean = your request specifically (body tips toward the work)
+// The attention progression:
+//   eyes forward — AI is in use (Claude open in front of you, or your
+//                  request is running)
+//   eyes on the work (gaze) — you're actively typing/working
+//   warning — privacy concern: eyes STAY on the work (that's where the
+//             problem is); hover Drippy for details and a recommendation
+//   glow — AI energy flowing on this machine (any request, yours or not)
 function visualFlags() {
-  if (privacyActive) return { eyes: false, gaze: false, glow: false, lean: false };
+  if (privacyActive) return { eyes: false, gaze: true, glow: false };
   const fg = inFlightFg > 0 || fgLinger;
   return {
     eyes: userPresent || fg,
-    gaze: userTyping || fg,
+    gaze: userTyping,
     glow: fg || inFlightBg > 0 || bgLinger,
-    lean: fg,
   };
 }
 
@@ -142,9 +143,9 @@ function currentMode() {
 }
 
 function trayStateLabel() {
-  if (privacyActive) return 'privacy event';
+  if (privacyActive) return 'warning — hover Drippy for details';
   const f = visualFlags();
-  if (f.lean) return 'your request is running';
+  if (inFlightFg > 0 || fgLinger) return 'your request is running';
   if (f.glow && f.eyes) return 'attentive · background AI activity';
   if (f.glow) return 'background AI activity';
   if (f.gaze) return 'watching you work';
@@ -179,8 +180,7 @@ function leanDirection() {
 function pushState() {
   if (!win || win.isDestroyed()) return;
   const mode = currentMode();
-  const flags =
-    mode === 'footprint' ? { eyes: false, gaze: false, glow: false, lean: false } : visualFlags();
+  const flags = mode === 'footprint' ? { eyes: false, gaze: false, glow: false } : visualFlags();
   win.webContents.send('drippy:update', {
     mode,
     ...flags,
@@ -244,14 +244,16 @@ function privacyEvent() {
   privacyActive = true;
   privacyStartedAt = Date.now();
   clearTimeout(privacyClearTimer);
-  // Auto-clear if never acknowledged.
-  privacyClearTimer = setTimeout(clearPrivacy, 8000);
+  // Auto-clear if never acknowledged — long enough to notice and hover.
+  privacyClearTimer = setTimeout(clearPrivacy, 15000);
   pushState();
+  updateBubble(); // refresh payload if the user is already hovering
 }
 
 function clearPrivacy() {
   privacyActive = false;
   clearTimeout(privacyClearTimer);
+  updateBubble();
   pushState();
 }
 
@@ -479,6 +481,7 @@ function setDemo(enabled) {
 let dragPoll = null;
 
 function startDrag() {
+  if (bubbleWin) bubbleWin.hide();
   const cursor = screen.getCursorScreenPoint();
   const [wx, wy] = win.getPosition();
   const offX = cursor.x - wx;
@@ -632,6 +635,96 @@ function showWelcome() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Attention bubble — hover Drippy during a warning to see what the problem
+// is and what to do about it. Verdict categories only, never content.
+// ---------------------------------------------------------------------------
+
+const BUBBLE_W = 300;
+const BUBBLE_H = 150;
+
+const RECOMMENDATIONS = {
+  'api key': 'Never paste live keys into a chat — use a placeholder, and rotate this key if it was already sent.',
+  'email address': 'Remove it unless the model truly needs it — text sent to AI services can persist in provider logs.',
+  'card number': 'Never share card numbers with an AI service. Remove it before sending.',
+  'phone number': 'Consider a placeholder unless the number itself matters to the request.',
+  'national insurance number': 'Government IDs should never leave your machine — remove it before sending.',
+  ssn: 'Government IDs should never leave your machine — remove it before sending.',
+  iban: 'Bank details should never be shared with an AI service. Remove them before sending.',
+};
+
+let bubbleWin = null;
+let blobHovered = false;
+let bubbleHovered = false;
+let bubbleHideTimer = null;
+
+function bubblePayload() {
+  if (!lastPrivacy) return null;
+  const cats = lastPrivacy.categories;
+  return {
+    title: `Drippy spotted: ${cats.join(' + ')}`,
+    detail:
+      lastPrivacy.source === 'clipboard'
+        ? 'On your clipboard while a Claude surface is open.'
+        : 'In your Claude composer — it has not been sent yet.',
+    recommendation: RECOMMENDATIONS[cats[0]] || 'Review it before sending.',
+    action: lastPrivacy.source === 'clipboard' ? 'Clear clipboard' : null,
+  };
+}
+
+function positionBubble() {
+  const [wx, wy] = win.getPosition();
+  const display = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H });
+  // Prefer the side toward the screen centre (usually the work side).
+  let x = wx - BUBBLE_W + 20;
+  if (x < display.workArea.x) x = wx + WIN_W - 20;
+  let y = wy + Math.round(WIN_H / 2 - BUBBLE_H / 2);
+  y = Math.max(display.workArea.y, Math.min(y, display.workArea.y + display.workArea.height - BUBBLE_H));
+  bubbleWin.setPosition(Math.round(x), Math.round(y));
+}
+
+function updateBubble() {
+  const shouldShow = privacyActive && (blobHovered || bubbleHovered);
+  if (shouldShow) {
+    clearTimeout(bubbleHideTimer);
+    if (!bubbleWin) {
+      bubbleWin = new BrowserWindow({
+        width: BUBBLE_W,
+        height: BUBBLE_H,
+        frame: false,
+        transparent: true,
+        resizable: false,
+        hasShadow: false,
+        skipTaskbar: true,
+        focusable: false,
+        show: false,
+        webPreferences: {
+          preload: path.join(__dirname, 'bubble-preload.js'),
+          contextIsolation: true,
+        },
+      });
+      bubbleWin.setAlwaysOnTop(true, 'floating');
+      bubbleWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      bubbleWin.loadFile(path.join(__dirname, 'renderer', 'bubble.html'));
+      bubbleWin.webContents.on('did-finish-load', () => {
+        bubbleWin.webContents.send('bubble:data', bubblePayload());
+        positionBubble();
+        bubbleWin.showInactive();
+      });
+    } else {
+      bubbleWin.webContents.send('bubble:data', bubblePayload());
+      positionBubble();
+      bubbleWin.showInactive();
+    }
+  } else if (bubbleWin) {
+    // Grace period so the cursor can travel from blob to bubble.
+    clearTimeout(bubbleHideTimer);
+    bubbleHideTimer = setTimeout(() => {
+      if (bubbleWin && !(privacyActive && (blobHovered || bubbleHovered))) bubbleWin.hide();
+    }, 400);
+  }
+}
+
 let trendsWin = null;
 
 function showTrends() {
@@ -670,6 +763,21 @@ ipcMain.handle('drippy:history', () => ({
   days: history.readDays(60),
   today: { date: currentDay, ...daily },
 }));
+
+ipcMain.on('drippy:hover', (_e, { over }) => {
+  blobHovered = over;
+  updateBubble();
+});
+ipcMain.on('drippy:bubble-hover', (_e, { over }) => {
+  bubbleHovered = over;
+  updateBubble();
+});
+ipcMain.on('drippy:bubble-action', () => {
+  // Only clipboard events offer an action; clearing is the remedy.
+  require('electron').clipboard.clear();
+  console.log('[drippy] clipboard cleared via attention bubble');
+  clearPrivacy();
+});
 
 ipcMain.on('drippy:open-accessibility', () => {
   require('electron').shell.openExternal(

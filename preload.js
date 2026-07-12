@@ -5,4 +5,5 @@ contextBridge.exposeInMainWorld('drippy', {
   dragStart: () => ipcRenderer.send('drippy:drag-start'),
   dragEnd: () => ipcRenderer.send('drippy:drag-end'),
   click: () => ipcRenderer.send('drippy:click'),
+  hover: (over) => ipcRenderer.send('drippy:hover', { over }),
 });

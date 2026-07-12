@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; }
+  #card {
+    margin: 8px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: light-dark(rgba(255,255,255,.96), rgba(29,34,43,.96));
+    color: light-dark(#1a1a1a, #e8e8e8);
+    border: 1px solid oklch(0.72 0.12 300 / .5);
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    font: 12px/1.5 -apple-system, system-ui, sans-serif;
+  }
+  #title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 7px; }
+  #title i {
+    width: 9px; height: 9px; flex: none; border-radius: 50%;
+    background: oklch(0.72 0.12 300);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  #detail { color: light-dark(rgba(0,0,0,.6), rgba(255,255,255,.6)); margin-top: 2px; }
+  #rec { margin-top: 6px; }
+  #act {
+    margin-top: 8px; padding: 4px 12px; border-radius: 7px; cursor: pointer;
+    font: 12px -apple-system, system-ui, sans-serif;
+    border: 1px solid light-dark(rgba(0,0,0,.2), rgba(255,255,255,.25));
+    background: light-dark(#fff, #2c333e); color: inherit;
+    display: none;
+  }
+  #act:hover { background: light-dark(#f0eef8, #3a4250); }
+</style>
+</head>
+<body>
+  <div id="card">
+    <div id="title"><i></i><span id="titleText"></span></div>
+    <div id="detail"></div>
+    <div id="rec"></div>
+    <button id="act" onclick="window.drippyBubble.action()"></button>
+  </div>
+<script>
+  document.body.addEventListener('mouseenter', () => window.drippyBubble.hover(true));
+  document.body.addEventListener('mouseleave', () => window.drippyBubble.hover(false));
+  window.drippyBubble.onData(({ title, detail, recommendation, action }) => {
+    document.getElementById('titleText').textContent = title;
+    document.getElementById('detail').textContent = detail;
+    document.getElementById('rec').textContent = recommendation;
+    const act = document.getElementById('act');
+    act.style.display = action ? 'inline-block' : 'none';
+    act.textContent = action || '';
+  });
+</script>
+</body>
+</html>

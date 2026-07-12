@@ -139,43 +139,58 @@ html, body {
    MODES
    ========================================================================== */
 
-/* Signal vocabulary — each element carries one meaning:
-   eyes = about you · gaze = looking at your work ·
-   glow = AI energy flowing · lean = your request */
+/* The attention progression:
+   eyes forward (AI in use) → eyes on the work (typing) → warning keeps
+   eyes on the work. Glow = AI energy flowing, breathing so peripheral
+   vision catches it. */
 
-/* EYES — Claude is open in front of you, or your request is running */
+/* EYES FORWARD — Claude is open in front of you, or your request runs */
 .has-eyes #eyes {
   opacity: 1;
   transform: scale(1);
 }
 .has-eyes .eye { animation: blinkK 6s ease-in-out infinite; }
 
-/* GAZE — you're typing (or your request runs): eyes look toward the work */
-.has-gaze #eyes,
-.has-lean #eyes { transform: scale(1) translateX(var(--lean-x, 4px)); }
+/* EYES ON THE WORK — you're actively typing: eyes shift toward the
+   composer and the body tips with them */
+.has-gaze #eyes { transform: scale(1) translateX(var(--lean-x, 4px)); }
+.has-gaze #blob { transform: rotate(var(--lean-rot, -5deg)); }
 
 /* GLOW — any AI request on this machine (yours or background agents).
-   Spec's 16px/.3 glow is invisible at true size over a real desktop —
-   layered halo (tight core + wide spread) reads clearly without shouting. */
+   Layered halo that breathes: motion is what the corner of the eye sees. */
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 12px 2px rgba(103, 232, 249, .6),
+      0 0 32px 10px rgba(103, 232, 249, .28),
+      0 10px 20px rgba(0, 0, 0, .45),
+      inset 0 -8px 14px rgba(0, 60, 70, .35),
+      inset 0 3px 6px rgba(255, 255, 255, .45);
+  }
+  50% {
+    box-shadow:
+      0 0 18px 5px rgba(103, 232, 249, .85),
+      0 0 46px 16px rgba(103, 232, 249, .45),
+      0 10px 20px rgba(0, 0, 0, .45),
+      inset 0 -8px 14px rgba(0, 60, 70, .35),
+      inset 0 3px 6px rgba(255, 255, 255, .45);
+  }
+}
 .has-glow #blob {
-  animation-duration: 4s;
-  box-shadow:
-    0 0 10px rgba(103, 232, 249, .55),
-    0 0 26px 8px rgba(103, 232, 249, .3),
-    0 10px 20px rgba(0, 0, 0, .45),
-    inset 0 -8px 14px rgba(0, 60, 70, .35),
-    inset 0 3px 6px rgba(255, 255, 255, .45);
+  animation:
+    morph 4s ease-in-out infinite alternate,
+    glowPulse 2.2s ease-in-out infinite;
 }
 
-/* LEAN — your request specifically: body tips toward the work */
-.has-lean #blob { transform: rotate(var(--lean-rot, -5deg)); }
-
-/* PRIVACY EVENT — violet, near-circle, wide eyes, whole-body pulse */
+/* PRIVACY / WARNING — violet, near-circle, wide eyes, whole-body pulse.
+   Eyes stay ON THE WORK: the problem is there, so Drippy keeps looking
+   there (has-gaze supplies the translate). Hover Drippy for details. */
 .mode-privacyEvent #blob {
   animation: pulse 1.6s ease-in-out infinite; /* replaces morph */
   border-radius: 50% 50% 52% 48% / 52% 52% 48% 48%;
   box-shadow:
-    0 0 18px oklch(0.72 0.12 300 / .45),
+    0 0 22px 4px oklch(0.72 0.12 300 / .55),
+    0 0 44px 14px oklch(0.72 0.12 300 / .3),
     0 10px 20px rgba(0, 0, 0, .45),
     inset 0 3px 6px rgba(255, 255, 255, .4);
 }
@@ -186,6 +201,10 @@ html, body {
   top: 15px;
   gap: 8px;
 }
+.mode-privacyEvent.has-gaze #eyes {
+  transform: scale(1) translateX(var(--lean-x, 4px));
+}
+.mode-privacyEvent.has-gaze #blob { transform: rotate(var(--lean-rot, -5deg)); }
 .mode-privacyEvent .eye {
   width: 8px;
   height: 13px;

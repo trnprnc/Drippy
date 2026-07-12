@@ -3,15 +3,13 @@ const ring = document.getElementById('ring');
 
 const MODES = ['resting', 'privacyEvent', 'footprint'];
 
-// Signal vocabulary: eyes = about you, gaze = looking toward your work,
-// glow = AI energy flowing on this machine, lean = your request
-// specifically. Privacy/footprint remain whole-body modes.
-function applyState({ mode, eyes, gaze, glow, lean, leanDir, arcs }) {
+// The attention progression: eyes forward (AI in use) → eyes on the work
+// (typing) → warning keeps eyes on the work. Glow = AI energy flowing.
+function applyState({ mode, eyes, gaze, glow, leanDir, arcs }) {
   for (const m of MODES) document.body.classList.toggle(`mode-${m}`, m === mode);
   document.body.classList.toggle('has-eyes', !!eyes);
   document.body.classList.toggle('has-gaze', !!gaze);
   document.body.classList.toggle('has-glow', !!glow);
-  document.body.classList.toggle('has-lean', !!lean);
 
   // Lean: body rotates 5° and eyes shift 4px toward the work
   // (leanDir = 1 means the work is to Drippy's right; spec card shows
@@ -49,10 +47,13 @@ function setRing({ env, energy, privacy }) {
 
 // No-op bridge when opened in a plain browser (design preview / dev).
 if (!window.drippy) {
-  window.drippy = { onUpdate: () => {}, dragStart: () => {}, dragEnd: () => {}, click: () => {} };
+  window.drippy = { onUpdate: () => {}, dragStart: () => {}, dragEnd: () => {}, click: () => {}, hover: () => {} };
 }
 
 let downAt = null;
+
+stage.addEventListener('mouseenter', () => window.drippy.hover(true));
+stage.addEventListener('mouseleave', () => window.drippy.hover(false));
 
 stage.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return;
