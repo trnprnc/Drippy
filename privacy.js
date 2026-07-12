@@ -80,10 +80,10 @@ class PrivacySensor extends EventEmitter {
     const hash = crypto.createHash('sha1').update(text).digest('hex');
     if (hash === this.lastClipHash) return; // unchanged since last scan
     this.lastClipHash = hash;
-    const categories = scanText(text);
-    text = ''; // discard content; only categories survive
-    if (categories.length) {
-      this.emit('detected', { source: 'clipboard', categories });
+    const concerns = scanText(text);
+    text = ''; // discard content; only concern descriptors survive
+    if (concerns.length) {
+      this.emit('detected', { source: 'clipboard', concerns });
     }
   }
 
@@ -122,15 +122,15 @@ class PrivacySensor extends EventEmitter {
       }
       let text = stdout || '';
       if (text.trim() === 'missing value') return;
-      const categories = scanText(text);
+      const concerns = scanText(text);
       text = ''; // discard content
 
-      // Rising edge only: fire when a category appears that wasn't already
+      // Rising edge only: fire when a concern appears that wasn't already
       // in the composer, so one typed email = one event, not one per poll.
-      const fresh = categories.filter((c) => !this.lastComposerCategories.has(c));
-      this.lastComposerCategories = new Set(categories);
+      const fresh = concerns.filter((c) => !this.lastComposerCategories.has(c.id));
+      this.lastComposerCategories = new Set(concerns.map((c) => c.id));
       if (fresh.length) {
-        this.emit('detected', { source: 'typing', categories: fresh });
+        this.emit('detected', { source: 'typing', concerns: fresh });
       }
     });
   }

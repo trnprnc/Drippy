@@ -34,7 +34,7 @@ The face follows your attention in a progression:
 | Eyes forward | AI is in use — Claude is open in front of you, or your request is running |
 | Eyes on the work | you're actively typing — eyes shift toward the composer, body tips with them |
 | Breathing glow (cyan) | AI energy flowing on this machine — yours *or* a background agent's (e.g. a Claude Code session) |
-| Warning: violet, wide eyes still on the work, pulsing | sensitive content detected (API key, email, card number, NI number, IBAN, phone) on your clipboard or in the composer — *before it leaves your machine*. **Hover Drippy** for what it found and a recommendation; click to acknowledge |
+| Warning: violet, wide eyes still on the work, pulsing | sensitive content detected on your clipboard or in the composer — *before it leaves your machine*: API keys & tokens (Anthropic, OpenAI, GitHub, AWS, Stripe, Slack, Google, JWTs), private key files, database connection strings, .env-style secrets, cards & bank details, government IDs, emails/phones/DOB. **Hover Drippy** for what it found, why it matters, and the remedy; click to acknowledge |
 | Dim + ring | your day's footprint: green environment · amber energy · violet privacy |
 
 The 💧 menu shows live status, today's totals (requests, tokens in/out,

@@ -313,7 +313,9 @@ function loadState() {
     const s = JSON.parse(fs.readFileSync(stateFile(), 'utf8'));
     if (s.date === currentDay && s.daily) {
       Object.assign(daily, s.daily);
-      if (s.lastPrivacy) lastPrivacy = { ...s.lastPrivacy, at: new Date(s.lastPrivacy.at) };
+      if (s.lastPrivacy && Array.isArray(s.lastPrivacy.concerns)) {
+        lastPrivacy = { ...s.lastPrivacy, at: new Date(s.lastPrivacy.at) };
+      }
     } else if (s.date && s.daily) {
       // Drippy was off over midnight — roll the stale day into history.
       history.finalizeDay({ date: s.date, ...s.daily });
@@ -424,11 +426,13 @@ engagement.on('state', ({ present, typing, app: appName }) => {
   pushState();
 });
 
-privacy.on('detected', ({ source, categories }) => {
-  lastPrivacy = { source, categories, at: new Date() };
-  for (const c of categories) daily.privacyByCat[c] = (daily.privacyByCat[c] || 0) + 1;
-  history.appendPrivacy({ ts: new Date().toISOString(), source, cats: categories });
-  console.log(`[drippy] privacy event — ${categories.join(', ')} (${source})`);
+privacy.on('detected', ({ source, concerns }) => {
+  lastPrivacy = { source, concerns, at: new Date() };
+  for (const c of concerns) daily.privacyByCat[c.label] = (daily.privacyByCat[c.label] || 0) + 1;
+  history.appendPrivacy({ ts: new Date().toISOString(), source, cats: concerns.map((c) => c.id) });
+  console.log(
+    `[drippy] privacy event — ${concerns.map((c) => `${c.label} [${c.severity}]`).join(', ')} (${source})`
+  );
   privacyEvent();
 });
 privacy.on('ax-permission-needed', () => {
@@ -567,7 +571,7 @@ function updateTrayMenu() {
       ...(lastPrivacy
         ? [
             {
-              label: `Privacy: ${lastPrivacy.categories.join(', ')} via ${lastPrivacy.source} · ${lastPrivacy.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+              label: `Privacy: ${lastPrivacy.concerns.map((c) => c.label).join(', ')} via ${lastPrivacy.source} · ${lastPrivacy.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
               enabled: false,
             },
           ]
@@ -643,16 +647,6 @@ function showWelcome() {
 const BUBBLE_W = 300;
 const BUBBLE_H = 150;
 
-const RECOMMENDATIONS = {
-  'api key': 'Never paste live keys into a chat — use a placeholder, and rotate this key if it was already sent.',
-  'email address': 'Remove it unless the model truly needs it — text sent to AI services can persist in provider logs.',
-  'card number': 'Never share card numbers with an AI service. Remove it before sending.',
-  'phone number': 'Consider a placeholder unless the number itself matters to the request.',
-  'national insurance number': 'Government IDs should never leave your machine — remove it before sending.',
-  ssn: 'Government IDs should never leave your machine — remove it before sending.',
-  iban: 'Bank details should never be shared with an AI service. Remove them before sending.',
-};
-
 let bubbleWin = null;
 let blobHovered = false;
 let bubbleHovered = false;
@@ -660,17 +654,21 @@ let bubbleHideTimer = null;
 
 function bubblePayload() {
   if (!lastPrivacy) return null;
-  const cats = lastPrivacy.categories;
+  const concerns = lastPrivacy.concerns; // already sorted most-severe first
+  const top = concerns[0];
   return {
-    title: `Drippy spotted: ${cats.join(' + ')}`,
+    title: `Drippy spotted: ${top.label}${concerns.length > 1 ? ` +${concerns.length - 1} more` : ''}`,
+    severity: top.severity,
     detail:
       lastPrivacy.source === 'clipboard'
         ? 'On your clipboard while a Claude surface is open.'
         : 'In your Claude composer — it has not been sent yet.',
-    recommendation: RECOMMENDATIONS[cats[0]] || 'Review it before sending.',
+    recommendation: impactRecommend(top.id),
     action: lastPrivacy.source === 'clipboard' ? 'Clear clipboard' : null,
   };
 }
+
+const { recommendationFor: impactRecommend } = require('./pii');
 
 function positionBubble() {
   const [wx, wy] = win.getPosition();

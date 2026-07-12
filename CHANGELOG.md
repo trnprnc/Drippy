@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0 — 2026-07-12
+
+- **Privacy concerns catalog** — 21 concerns across three severities, built
+  for people building with Claude Code who may not know the dangers:
+  credentials & secrets (Anthropic/OpenAI/GitHub/AWS/Stripe/Slack/Google
+  keys, private key files, database connection strings, JWTs, bearer
+  tokens, .env-style password lines), financial & government identity
+  (cards, IBAN, UK bank details, NI numbers, SSNs), and personal contact
+  details (email, phone, date of birth). Each has a plain-English
+  recommendation that explains the danger and the remedy (rotate the key,
+  change the DB password, use a placeholder…).
+- Attention bubble shows the most severe concern first; **critical**
+  concerns use the design system's reserved alert color instead of violet.
+- False-positive discipline: rules favour precision (Luhn checks, context
+  keywords, URL-credential exclusion for emails), covered by a 33-case test
+  suite including negative traps.
+
 ## 0.3.0 — 2026-07-12
 
 - **Attention progression.** The face now tells a coherent story: eyes
