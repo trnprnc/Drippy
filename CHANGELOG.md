@@ -1,40 +1,40 @@
 # Changelog
 
-## 0.4.0 — 2026-07-12
+## 0.4.0 (2026-07-12)
 
-- **Privacy concerns catalog** — 21 concerns across three severities, built
+- **Privacy concerns catalogue**: 21 concerns across three severities, built
   for people building with Claude Code who may not know the dangers:
   credentials & secrets (Anthropic/OpenAI/GitHub/AWS/Stripe/Slack/Google
   keys, private key files, database connection strings, JWTs, bearer
-  tokens, .env-style password lines), financial & government identity
+  tokens, .env-style password lines), financial and government identity
   (cards, IBAN, UK bank details, NI numbers, SSNs), and personal contact
   details (email, phone, date of birth). Each has a plain-English
   recommendation that explains the danger and the remedy (rotate the key,
-  change the DB password, use a placeholder…).
+  change the DB password, use a placeholder and so on).
 - Attention bubble shows the most severe concern first; **critical**
   concerns use the design system's reserved alert color instead of violet.
 - False-positive discipline: rules favour precision (Luhn checks, context
   keywords, URL-credential exclusion for emails), covered by a 33-case test
   suite including negative traps.
 
-## 0.3.0 — 2026-07-12
+## 0.3.0 (2026-07-12)
 
 - **Attention progression.** The face now tells a coherent story: eyes
-  forward while AI is in use → eyes on the work (with a slight body tilt)
-  while you're actively typing → the warning keeps the eyes locked on the
-  work, because that's where the problem is.
+  forward while AI is in use, eyes on the work (with a slight body tilt)
+  while you're actively typing, and the warning keeps the eyes locked on
+  the work, because that's where the problem is.
 - **A glow you can actually see.** The AI-energy halo is much stronger and
-  now breathes (2.2s pulse) — peripheral vision catches motion, not static
+  now breathes (2.2s pulse); peripheral vision catches motion, not static
   light. The privacy glow got the same treatment. Window enlarged slightly
   so the halo doesn't clip.
 - **Hover for details on warnings.** During a warning, hovering Drippy opens
-  an attention bubble beside it: what was spotted (category only — never the
+  an attention bubble beside it: what was spotted (category only, never the
   content), where it was, a recommendation, and an action when one exists
   ("Clear clipboard"). Warnings stay visible for 15s to give time to hover.
 
-## 0.2.0 — 2026-07-12
+## 0.2.0 (2026-07-12)
 
-- **Usage history & trends.** Drippy now remembers activity over time — local,
+- **Usage history and trends.** Drippy now remembers activity over time: local,
   append-only day records and per-event logs (app names, token/energy
   estimates, privacy categories; never content). Days survive restarts and
   midnight boundaries, including when Drippy was off at midnight.
@@ -44,14 +44,14 @@
   validated per light/dark mode for contrast and color-vision safety.
 - Privacy events now record category counts per day for trend analysis.
 - Note: sharing any aggregate of this data (the future "community trends")
-  will be strictly opt-in and is not implemented — history never leaves the
+  will be strictly opt-in and is not implemented; history never leaves the
   device. See PRIVACY.md.
 
-## 0.1.0 — 2026-07-12
+## 0.1.0 (2026-07-12)
 
 First downloadable build (macOS, Apple Silicon).
 
-- The companion: always-on-top blob per the "1e Blink" design — resting,
+- The companion: always-on-top blob per the "1e Blink" design: resting,
   attentive (eyes), gaze-toward-work, glow (AI energy), lean (your request),
   privacy (violet pulse), day's footprint ring. Draggable, position persists,
   squish-on-grab.
@@ -65,7 +65,7 @@ First downloadable build (macOS, Apple Silicon).
 - Privacy guard: on-device PII rules (API keys, emails, phones, cards with
   Luhn check, UK NI numbers, IBANs, SSNs) over the clipboard (no permissions)
   and the Claude composer while typing (optional Accessibility grant).
-  Verdicts only — content is never stored, logged, or transmitted.
+  Verdicts only, content is never stored, logged, or transmitted.
 - Menu-bar item: live status, today's totals, Drippy's own CPU use, privacy
   history, simulate/demo tools, day's footprint toggle.
 - First-run welcome window: signal vocabulary and the "what Drippy can see"

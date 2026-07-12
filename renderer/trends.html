@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Drippy — usage trends</title>
+<title>Drippy usage trends</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -112,7 +112,7 @@ async function load() {
   document.querySelectorAll('.bar').forEach((b) => {
     b.addEventListener('mousemove', (e) => {
       const c = charts[+b.dataset.c], d = all[+b.dataset.i];
-      tip.textContent = `${short(d.date)} — ${fmt(d[c.key] || 0)}${c.unit}`;
+      tip.textContent = `${short(d.date)}: ${fmt(d[c.key] || 0)}${c.unit}`;
       tip.style.display = 'block';
       tip.style.left = Math.min(e.clientX + 10, innerWidth - 130) + 'px';
       tip.style.top = e.clientY - 28 + 'px';

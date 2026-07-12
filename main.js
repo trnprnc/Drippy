@@ -143,7 +143,7 @@ function currentMode() {
 }
 
 function trayStateLabel() {
-  if (privacyActive) return 'warning — hover Drippy for details';
+  if (privacyActive) return 'warning: hover Drippy for details';
   const f = visualFlags();
   if (inFlightFg > 0 || fgLinger) return 'your request is running';
   if (f.glow && f.eyes) return 'attentive · background AI activity';
@@ -555,7 +555,7 @@ function updateTrayMenu() {
     : 'No Anthropic traffic';
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: `Drippy v${app.getVersion()} — ${trayStateLabel()}`, enabled: false },
+      { label: `Drippy v${app.getVersion()}: ${trayStateLabel()}`, enabled: false },
       { label: watchLabel, enabled: false },
       { label: `Drippy itself: ~${selfCpuPercent.toFixed(1)}% CPU`, enabled: false },
       { type: 'separator' },
@@ -594,7 +594,7 @@ function updateTrayMenu() {
       { label: 'Demo mode', type: 'checkbox', checked: demoEnabled, click: () => setDemo(!demoEnabled) },
       { type: 'separator' },
       { label: 'Usage trends…', click: showTrends },
-      { label: 'About Drippy — what it can see…', click: showWelcome },
+      { label: 'About Drippy: what it can see…', click: showWelcome },
       { label: 'Reset day', click: resetDay },
       { label: 'Quit Drippy', click: () => app.quit() },
     ])
@@ -604,7 +604,7 @@ function updateTrayMenu() {
 function createTray() {
   tray = new Tray(nativeImage.createEmpty());
   tray.setTitle('💧');
-  tray.setToolTip('Drippy — AI transparency companion');
+  tray.setToolTip('Drippy, your AI transparency companion');
   updateTrayMenu();
 }
 
@@ -662,7 +662,7 @@ function bubblePayload() {
     detail:
       lastPrivacy.source === 'clipboard'
         ? 'On your clipboard while a Claude surface is open.'
-        : 'In your Claude composer — it has not been sent yet.',
+        : 'In your Claude composer. It has not been sent yet.',
     recommendation: impactRecommend(top.id),
     action: lastPrivacy.source === 'clipboard' ? 'Clear clipboard' : null,
   };
@@ -733,7 +733,7 @@ function showTrends() {
   trendsWin = new BrowserWindow({
     width: 660,
     height: 700,
-    title: 'Drippy — usage trends',
+    title: 'Drippy usage trends',
     fullscreenable: false,
     webPreferences: {
       preload: path.join(__dirname, 'trends-preload.js'),

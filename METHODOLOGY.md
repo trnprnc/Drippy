@@ -1,8 +1,8 @@
 # How Drippy estimates AI impact
 
-Honest numbers about AI's footprint don't fully exist yet — no provider
+Honest numbers about AI's footprint don't fully exist yet: no provider
 publishes per-request figures for Claude. Drippy's answer is to estimate
-openly rather than not at all: every number carries an uncertainty band
+openly rather than not at all. Every number carries an uncertainty band
 (currently **±3×**), every assumption lives in a versioned, source-cited
 factor table, and revisions are expected as provider and community data
 improves. If you can improve a factor, we want the correction.
@@ -14,18 +14,18 @@ wire bytes  →  tokens  →  energy (Wh)  →  carbon (gCO₂e) + water (mL)
 ```
 
 1. **Bytes.** The network monitor measures encrypted traffic volume to
-   Anthropic per request — downlink (the streamed response) and uplink (your
+   Anthropic per request: downlink (the streamed response) and uplink (your
    prompt plus re-sent conversation context). No content is read.
 2. **Tokens.** Streaming responses have near-constant wire overhead per
    token, so `bytes ÷ wireBytesPerOutputToken` estimates output tokens;
    uplink bytes similarly estimate input tokens.
 3. **Energy.** Output tokens are priced at `whPer1kOutputTokens`. Input
-   tokens cost `inputTokenEnergyRatio` (~10%) of that — and only
-   `freshInputFraction` (~20%) of them are charged at all, because agentic
-   clients re-send context that providers serve from prompt cache at a small
-   fraction of full-reprocessing cost.
-4. **Carbon & water.** Energy × world-average grid intensity
-   (`gridGCo2PerKwh`) and datacenter water use (`waterMlPerWh`). Both will
+   tokens cost `inputTokenEnergyRatio` (about 10%) of that, and only
+   `freshInputFraction` (about 20%) of them are charged at all, because
+   agentic clients re-send context that providers serve from prompt cache at
+   a small fraction of full-reprocessing cost.
+4. **Carbon and water.** Energy × world-average grid intensity
+   (`gridGCo2PerKwh`) and datacentre water use (`waterMlPerWh`). Both will
    become region-aware.
 
 ## Current factors (v2026.07.2, provisional)
@@ -49,7 +49,7 @@ The machine-readable source of truth is
 - **Byte-based token estimates** are approximate; they'll be calibrated
   against exact counts once the browser extension (L2 adapter) measures real
   token streams.
-- **Model tier is invisible** at the network level — a Haiku token and an
+- **Model tier is invisible** at the network level, so a Haiku token and an
   Opus token are currently priced the same. Tier multipliers arrive with L2.
 - **One flow can span several API calls** (agentic tools make back-to-back
   requests), so "requests" is a lower bound; byte totals remain correct.
@@ -59,13 +59,13 @@ The machine-readable source of truth is
 
 ## What the day's data shows so far
 
-Interactive chat is cheap (≈0.5 Wh per exchange, similar to published
-medians). Agentic coding sessions are 10–30× heavier per minute, dominated by
-re-sent context — visible in Drippy as `in` tokens dwarfing `out`. Making that
-difference visible is the point.
+Interactive chat is cheap (about 0.5 Wh per exchange, similar to published
+medians). Agentic coding sessions are 10 to 30 times heavier per minute,
+dominated by re-sent context, visible in Drippy as `in` tokens dwarfing
+`out`. Making that difference visible is the point.
 
 ## Contributing corrections
 
 Factor changes bump the version and cite a source in
-`impact-factors.json` → `sources`. Disagreements about values are welcome —
+`impact-factors.json` → `sources`. Disagreements about values are welcome:
 bring data, we'll ship the revision.

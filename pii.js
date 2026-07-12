@@ -1,4 +1,4 @@
-// On-device privacy concerns catalog — pure functions, no AI, no network.
+// On-device privacy concerns catalogue: pure functions, no AI, no network.
 // scanText() returns concern descriptors (id, label, severity); the matched
 // text never leaves this module and is never stored or logged.
 //
@@ -72,7 +72,7 @@ const CONCERNS = [
     severity: 'critical',
     test: (t) => /-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(t),
     recommend:
-      'A private key is the master copy of an identity — never share it with any service. Remove it and generate a new key pair if it was sent.',
+      'A private key is the master copy of an identity. Never share it with any service. Remove it and generate a new key pair if it was sent.',
   },
   {
     id: 'db-connection',
@@ -80,7 +80,7 @@ const CONCERNS = [
     severity: 'critical',
     test: (t) => /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp):\/\/[^\s:@]+:[^\s@]+@\S+/i.test(t),
     recommend:
-      'This URL contains your database password — anyone with it can read or delete your data. Remove it and change the database password (e.g. in your Neon/Supabase dashboard).',
+      'This URL contains your database password, and anyone who has it can read or delete your data. Remove it and change the database password (for example in your Neon or Supabase dashboard).',
   },
   {
     id: 'jwt',
@@ -104,7 +104,7 @@ const CONCERNS = [
     test: (t) =>
       /\b\w*(?:key|secret|token|passwd|password)\b\s*[:=]\s*["']?(?=[^\s"']*\d)[A-Za-z0-9_.\-]{8,}/i.test(t),
     recommend:
-      "This looks like a line from a .env or config file. Secrets belong in environment variables, not in chats — paste the code around the secret and replace the value with a placeholder like YOUR_KEY_HERE.",
+      "This looks like a line from a .env or config file. Secrets belong in environment variables, not in chats. Paste the code around the secret and replace the value with a placeholder like YOUR_KEY_HERE.",
   },
   // --- financial & government identity (high) --------------------------
   {
@@ -133,14 +133,14 @@ const CONCERNS = [
     label: 'National Insurance number',
     severity: 'high',
     test: (t) => /\b[A-CEGHJ-PR-TW-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-D]\b/.test(t),
-    recommend: 'Government IDs should never leave your machine — remove it before sending.',
+    recommend: 'Government IDs should never leave your machine. Remove it before sending.',
   },
   {
     id: 'ssn',
     label: 'SSN',
     severity: 'high',
     test: (t) => /\b\d{3}-\d{2}-\d{4}\b/.test(t),
-    recommend: 'Government IDs should never leave your machine — remove it before sending.',
+    recommend: 'Government IDs should never leave your machine. Remove it before sending.',
   },
   // --- personal contact details (medium) --------------------------------
   {
@@ -158,7 +158,7 @@ const CONCERNS = [
       return false;
     },
     recommend:
-      'Remove it unless the model truly needs it — text sent to AI services can persist in provider logs. A placeholder like user@example.com usually works just as well.',
+      'Remove it unless the model truly needs it. Text sent to AI services can persist in provider logs. A placeholder such as user@example.com usually works just as well.',
   },
   {
     id: 'phone',
