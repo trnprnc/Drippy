@@ -1,0 +1,24 @@
+{
+  "version": "2026.07.2",
+  "updated": "2026-07-11",
+  "status": "provisional",
+  "notes": "No AI provider publishes per-request figures for Claude yet. These factors are triangulated from published third-party and provider methodology work, carry wide uncertainty bands (shown in UI), and will be revised continually with provider and open-source community data. Every revision bumps the version.",
+  "sources": [
+    { "id": "google-gemini-2025", "note": "Google Gemini serving methodology: median text prompt 0.24 Wh, 0.26 mL water, 0.03 gCO2e including datacenter overheads" },
+    { "id": "epoch-ai-2025", "note": "Epoch AI estimate ~0.3 Wh per GPT-4o-class text query" },
+    { "id": "openai-2025", "note": "OpenAI stated average 0.34 Wh per query" },
+    { "id": "grid-intensity", "note": "World average grid carbon intensity ~350 gCO2e/kWh; will become region-aware" },
+    { "id": "prompt-caching", "note": "Agentic clients (Claude Code etc.) re-send conversation context on every call but providers serve most of it from prompt cache at a fraction of full-reprocessing cost; freshInputFraction estimates the genuinely recomputed share of uplink tokens" }
+  ],
+  "assumptions": {
+    "whPer1kOutputTokens": 1.0,
+    "inputTokenEnergyRatio": 0.1,
+    "gridGCo2PerKwh": 350,
+    "waterMlPerWh": 1.1,
+    "uncertaintyBand": [0.33, 3.0],
+    "wireBytesPerOutputToken": 110,
+    "wireBytesPerInputToken": 6,
+    "inputTokensPerOutputToken": 2.5,
+    "freshInputFraction": 0.2
+  }
+}

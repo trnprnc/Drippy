@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Drippy — usage trends</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    /* validated per-mode chart colors (dataviz six checks, both surfaces) */
+    --c-activity: light-dark(#099b8f, #01ac9f);
+    --c-energy: light-dark(#a87f09, #b88a01);
+    --c-privacy: light-dark(#8a5fc9, #a278e4);
+    --ink: light-dark(#1a1a1a, #e8e8e8);
+    --ink-2: light-dark(rgba(0,0,0,.55), rgba(255,255,255,.55));
+    --ink-3: light-dark(rgba(0,0,0,.38), rgba(255,255,255,.38));
+    --grid: light-dark(rgba(0,0,0,.08), rgba(255,255,255,.1));
+    --card: light-dark(#ffffff, #1d222b);
+  }
+  body {
+    margin: 0; padding: 24px 28px 20px;
+    font: 13px/1.5 -apple-system, system-ui, sans-serif;
+    color: var(--ink);
+    background: light-dark(#f5f4f0, #16191f);
+    user-select: none;
+  }
+  h1 { font-size: 17px; margin: 0; }
+  .sub { color: var(--ink-3); font-size: 12px; margin: 2px 0 16px; }
+  .tiles { display: flex; gap: 10px; margin-bottom: 18px; }
+  .tile { flex: 1; background: var(--card); border-radius: 10px; padding: 10px 12px; }
+  .tile b { display: block; font-size: 18px; font-weight: 600; }
+  .tile span { font-size: 11px; color: var(--ink-2); }
+  .chart { margin-bottom: 16px; }
+  .chart h2 { font-size: 12px; font-weight: 600; margin: 0 0 6px; color: var(--ink-2); }
+  .chart h2 i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+  .plot { position: relative; height: 64px; border-bottom: 1px solid var(--grid); display: flex; align-items: flex-end; gap: 2px; }
+  .bar { flex: 1; max-width: 14px; border-radius: 4px 4px 0 0; min-height: 0; position: relative; }
+  .bar:hover { filter: brightness(1.18); }
+  .xlab { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-3); margin-top: 3px; }
+  .peak { position: absolute; font-size: 10px; color: var(--ink-2); transform: translate(-50%, -14px); white-space: nowrap; }
+  #tip { position: fixed; pointer-events: none; background: var(--card); color: var(--ink);
+         border: 1px solid var(--grid); border-radius: 6px; padding: 4px 8px; font-size: 11px;
+         box-shadow: 0 4px 12px rgba(0,0,0,.25); display: none; z-index: 9; }
+  details { margin-top: 6px; }
+  summary { font-size: 11px; color: var(--ink-3); cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; margin-top: 6px; font-size: 11px; }
+  th, td { text-align: right; padding: 2px 8px; color: var(--ink-2); }
+  th:first-child, td:first-child { text-align: left; }
+  .apps { font-size: 12px; color: var(--ink-2); margin-top: 4px; }
+  .apps b { color: var(--ink); font-weight: 600; }
+</style>
+</head>
+<body>
+  <h1>Usage trends</h1>
+  <p class="sub">Last 30 days on this Mac · estimates ±3× (see METHODOLOGY) · stored locally, never uploaded</p>
+  <div class="tiles" id="tiles"></div>
+  <div id="charts"></div>
+  <div class="apps" id="apps"></div>
+  <details><summary>Data table</summary><div id="table"></div></details>
+  <div id="tip"></div>
+
+<script>
+const fmt = (n, d = 1) => n >= 100 ? Math.round(n).toLocaleString() : +n.toFixed(d);
+
+async function load() {
+  let data;
+  if (window.drippyTrends) {
+    data = await window.drippyTrends.get();
+  } else {
+    // design-preview fallback: plausible sample data
+    const days = [];
+    for (let i = 29; i >= 1; i--) {
+      const d = new Date(Date.now() - i * 864e5);
+      const busy = d.getDay() % 6 !== 0 ? 1 : 0.25;
+      days.push({ date: d.toDateString(), requests: Math.round(busy * (8 + Math.random() * 30)),
+        wh: busy * (2 + Math.random() * 28), privacyEvents: Math.random() < 0.3 ? Math.ceil(Math.random() * 2) : 0,
+        apps: { claude: { requests: 9, wh: 9 }, Claude: { requests: 5, wh: 2 } } });
+    }
+    data = { days, today: { date: new Date().toDateString(), requests: 14, wh: 11.2, privacyEvents: 1, apps: { claude: { requests: 10, wh: 9.4 }, 'Claude Helper': { requests: 4, wh: 1.8 } } } };
+  }
+
+  const all = [...data.days, data.today].slice(-30);
+  const last7 = all.slice(-7);
+  const sum = (arr, k) => arr.reduce((s, d) => s + (d[k] || 0), 0);
+
+  document.getElementById('tiles').innerHTML = [
+    ['Today', fmt(data.today.wh) + ' Wh'],
+    ['7-day energy', fmt(sum(last7, 'wh')) + ' Wh'],
+    ['7-day requests', fmt(sum(last7, 'requests'), 0)],
+    ['7-day privacy', fmt(sum(last7, 'privacyEvents'), 0)],
+  ].map(([l, v]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
+
+  const tip = document.getElementById('tip');
+  const charts = [
+    { key: 'wh', title: 'Energy (Wh / day)', color: 'var(--c-energy)', unit: ' Wh' },
+    { key: 'requests', title: 'AI requests / day', color: 'var(--c-activity)', unit: '' },
+    { key: 'privacyEvents', title: 'Privacy events / day', color: 'var(--c-privacy)', unit: '' },
+  ];
+  document.getElementById('charts').innerHTML = charts.map((c, ci) => {
+    const max = Math.max(...all.map((d) => d[c.key] || 0), 1e-9);
+    const bars = all.map((d, i) => {
+      const v = d[c.key] || 0;
+      const h = Math.round((v / max) * 56);
+      return `<div class="bar" data-c="${ci}" data-i="${i}" style="height:${v > 0 ? Math.max(h, 3) : 0}px;background:${c.color}"></div>`;
+    }).join('');
+    return `<div class="chart"><h2><i style="background:${c.color}"></i>${c.title}</h2>
+      <div class="plot" data-max="${max}">${bars}</div>
+      <div class="xlab"><span>${short(all[0].date)}</span><span>today</span></div></div>`;
+  }).join('');
+
+  function short(ds) { const d = new Date(ds); return `${d.getDate()} ${d.toLocaleString([], { month: 'short' })}`; }
+
+  document.querySelectorAll('.bar').forEach((b) => {
+    b.addEventListener('mousemove', (e) => {
+      const c = charts[+b.dataset.c], d = all[+b.dataset.i];
+      tip.textContent = `${short(d.date)} — ${fmt(d[c.key] || 0)}${c.unit}`;
+      tip.style.display = 'block';
+      tip.style.left = Math.min(e.clientX + 10, innerWidth - 130) + 'px';
+      tip.style.top = e.clientY - 28 + 'px';
+    });
+    b.addEventListener('mouseleave', () => (tip.style.display = 'none'));
+  });
+
+  // top apps over the shown period
+  const appTotals = {};
+  for (const d of all) for (const [name, a] of Object.entries(d.apps || {})) {
+    appTotals[name] = appTotals[name] || { requests: 0, wh: 0 };
+    appTotals[name].requests += a.requests || 0;
+    appTotals[name].wh += a.wh || 0;
+  }
+  const top = Object.entries(appTotals).sort((a, b) => b[1].wh - a[1].wh).slice(0, 4);
+  if (top.length) {
+    document.getElementById('apps').innerHTML =
+      'By app: ' + top.map(([n, a]) => `<b>${n}</b> ${fmt(a.wh)} Wh · ${a.requests} req`).join(' &nbsp;·&nbsp; ');
+  }
+
+  document.getElementById('table').innerHTML =
+    '<table><tr><th>Date</th><th>Requests</th><th>Wh</th><th>Privacy</th></tr>' +
+    all.slice().reverse().map((d) =>
+      `<tr><td>${short(d.date)}</td><td>${d.requests || 0}</td><td>${fmt(d.wh || 0)}</td><td>${d.privacyEvents || 0}</td></tr>`
+    ).join('') + '</table>';
+}
+load();
+</script>
+</body>
+</html>

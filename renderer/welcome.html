@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Drippy</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; padding: 28px 32px 24px;
+    font: 14px/1.55 -apple-system, system-ui, sans-serif;
+    color: light-dark(#1a1a1a, #e8e8e8);
+    background: light-dark(#f5f4f0, #16191f);
+    user-select: none;
+  }
+  .hero { display: flex; align-items: center; gap: 18px; margin-bottom: 6px; }
+  .blob {
+    width: 56px; height: 52px; flex: none;
+    border-radius: 47% 53% 55% 45%/55% 49% 51% 45%;
+    background: linear-gradient(165deg, oklch(0.85 0.09 195), oklch(0.66 0.11 210));
+    box-shadow: 0 8px 16px rgba(0,0,0,.3),
+      inset 0 -8px 14px rgba(0,60,70,.35), inset 0 3px 6px rgba(255,255,255,.45);
+  }
+  h1 { font-size: 20px; margin: 0; }
+  .tag { color: light-dark(rgba(0,0,0,.55), rgba(255,255,255,.55)); margin: 2px 0 0; font-size: 13px; }
+  h2 { font-size: 13px; letter-spacing: .04em; text-transform: uppercase;
+       color: light-dark(rgba(0,0,0,.45), rgba(255,255,255,.45)); margin: 22px 0 8px; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 4px 10px 4px 0; vertical-align: top; font-size: 13px; }
+  td:first-child { white-space: nowrap; font-weight: 600; width: 96px; }
+  ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
+  li { margin-bottom: 4px; }
+  .btn {
+    display: inline-block; margin-top: 8px; padding: 7px 14px; border-radius: 8px;
+    border: 1px solid light-dark(rgba(0,0,0,.2), rgba(255,255,255,.25));
+    background: light-dark(#fff, #242a33); cursor: pointer; font-size: 13px;
+  }
+  .btn:hover { background: light-dark(#f0f0ee, #2c333e); }
+  .foot { margin-top: 22px; font-size: 11px; color: light-dark(rgba(0,0,0,.4), rgba(255,255,255,.4)); }
+  .violet { color: oklch(0.6 0.15 300); }
+</style>
+</head>
+<body>
+  <div class="hero">
+    <div class="blob"></div>
+    <div>
+      <h1>Drippy</h1>
+      <p class="tag">Your AI transparency companion. Silent by default — it speaks in color and posture, never sound or popups.</p>
+    </div>
+  </div>
+
+  <h2>How to read the face</h2>
+  <table>
+    <tr><td>Eyes</td><td>about <em>you</em> — they open when Claude is in front of you, and look toward your work while you type</td></tr>
+    <tr><td>Glow</td><td>AI energy flowing on this machine — yours or a background agent's</td></tr>
+    <tr><td>Lean</td><td>your own request is running right now</td></tr>
+    <tr><td class="violet">Violet + pulse</td><td>sensitive content spotted (an API key, email, card number…) on your clipboard or in the composer — <em>before</em> it leaves your machine. Click Drippy to acknowledge.</td></tr>
+    <tr><td>Dim + ring</td><td>your day's footprint: green environment · amber energy · violet privacy</td></tr>
+  </table>
+
+  <h2>What Drippy can see — and what it can't</h2>
+  <ul>
+    <li>It watches <b>traffic patterns</b> to Anthropic (timing and volume) — it does not decrypt or read your conversations.</li>
+    <li>It knows <b>that</b> you're typing (system idle timer), never <b>what</b> you type — except the optional privacy scan below, which checks text on-device and instantly discards it. Only the category ("email address") is kept.</li>
+    <li>Everything stays on this Mac. Drippy has no account, no cloud, no analytics, and its only network activity is looking up Anthropic's addresses.</li>
+  </ul>
+
+  <h2>One optional permission</h2>
+  <p style="font-size:13px;margin:0">To warn you <em>while you type</em> sensitive data into Claude, Drippy needs macOS Accessibility access. Without it, the clipboard guard still works.</p>
+  <button class="btn" onclick="window.drippyInfo.openAccessibility()">Open Accessibility settings…</button>
+
+  <div class="foot">
+    Impact figures are estimates (±3×) from a versioned, source-cited factor table — see METHODOLOGY.md.
+    Factors <span id="fv"></span> · Find Drippy in the menu bar: 💧
+  </div>
+  <script>document.getElementById('fv').textContent = window.drippyInfo.factorsVersion;</script>
+</body>
+</html>

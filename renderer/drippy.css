@@ -1,0 +1,203 @@
+/* Drippy — direction "1e Blink". Values from the design handoff; treat as final. */
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+#stage.dragging { cursor: grabbing; }
+
+#holder {
+  position: relative;
+  width: 56px;
+  height: 52px;
+}
+
+/* --- Keyframes (from spec) --- */
+@keyframes bob    { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes morph  { 0%   { border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%; }
+                    100% { border-radius: 53% 47% 45% 55% / 47% 55% 45% 53%; } }
+@keyframes blinkK { 0%, 91%, 100% { transform: scaleY(1); } 94% { transform: scaleY(.12); } 97% { transform: scaleY(1); } }
+@keyframes shadowB { 0%, 100% { transform: scaleX(1); opacity: .35; } 50% { transform: scaleX(.82); opacity: .22; } }
+@keyframes pulse  { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+
+/* --- Ground shadow --- */
+#ground {
+  position: absolute;
+  left: 6px;
+  bottom: -12px;
+  width: 44px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .5);
+  filter: blur(4px);
+  animation: shadowB 5s ease-in-out infinite;
+  transition: opacity .4s ease-out;
+}
+
+/* --- Bob wrapper (vertical float) + squish wrapper (drag feedback) --- */
+#bob { animation: bob 5s ease-in-out infinite; }
+#squish {
+  transition: transform .35s cubic-bezier(.34, 1.56, .64, 1); /* spring back */
+}
+.grabbed #squish { transform: scale(1.1, .9); transition: transform .12s ease-out; }
+.grabbed #bob, .grabbed #ground { animation-play-state: paused; }
+
+/* --- The blob --- */
+#blob {
+  position: relative;
+  width: 56px;
+  height: 52px;
+  border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%;
+  background: linear-gradient(165deg, oklch(0.85 0.09 195), oklch(0.66 0.11 210));
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, .45),
+    inset 0 -8px 14px rgba(0, 60, 70, .35),
+    inset 0 3px 6px rgba(255, 255, 255, .45);
+  animation: morph 7s ease-in-out infinite alternate;
+  transition:
+    box-shadow .4s ease-out,
+    transform .4s ease-out,
+    filter .4s ease-out,
+    border-radius .4s ease-out;
+}
+
+/* Colour cross-fade layers — gradients can't transition, so overlays fade in. */
+.skin {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity .4s ease-out;
+  pointer-events: none;
+}
+#skinPrivacy {
+  background: linear-gradient(165deg, oklch(0.8 0.08 300), oklch(0.62 0.1 310));
+  box-shadow:
+    inset 0 -8px 14px rgba(50, 20, 80, .35),
+    inset 0 3px 6px rgba(255, 255, 255, .4);
+}
+#skinDim {
+  background: linear-gradient(165deg, oklch(0.78 0.07 200), oklch(0.6 0.09 212));
+  box-shadow:
+    inset 0 -6px 10px rgba(0, 60, 70, .4),
+    inset 0 2px 5px rgba(255, 255, 255, .35);
+}
+
+/* --- Eyes: exist only when Drippy has something to show --- */
+#eyes {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  opacity: 0;
+  transform: scale(.6);
+  transition: opacity .25s ease-out, transform .25s ease-out, top .25s ease-out, gap .25s ease-out;
+  pointer-events: none;
+}
+.eye {
+  width: 6px;
+  height: 10px;
+  border-radius: 3px;
+  background: #0b2530;
+  transition: width .25s, height .25s, border-radius .25s, background .25s;
+}
+
+/* --- Footprint ring --- */
+#ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity .4s ease-out;
+  -webkit-mask: radial-gradient(closest-side, transparent 84%, #000 86%);
+  mask: radial-gradient(closest-side, transparent 84%, #000 86%);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   MODES
+   ========================================================================== */
+
+/* Signal vocabulary — each element carries one meaning:
+   eyes = about you · gaze = looking at your work ·
+   glow = AI energy flowing · lean = your request */
+
+/* EYES — Claude is open in front of you, or your request is running */
+.has-eyes #eyes {
+  opacity: 1;
+  transform: scale(1);
+}
+.has-eyes .eye { animation: blinkK 6s ease-in-out infinite; }
+
+/* GAZE — you're typing (or your request runs): eyes look toward the work */
+.has-gaze #eyes,
+.has-lean #eyes { transform: scale(1) translateX(var(--lean-x, 4px)); }
+
+/* GLOW — any AI request on this machine (yours or background agents).
+   Spec's 16px/.3 glow is invisible at true size over a real desktop —
+   layered halo (tight core + wide spread) reads clearly without shouting. */
+.has-glow #blob {
+  animation-duration: 4s;
+  box-shadow:
+    0 0 10px rgba(103, 232, 249, .55),
+    0 0 26px 8px rgba(103, 232, 249, .3),
+    0 10px 20px rgba(0, 0, 0, .45),
+    inset 0 -8px 14px rgba(0, 60, 70, .35),
+    inset 0 3px 6px rgba(255, 255, 255, .45);
+}
+
+/* LEAN — your request specifically: body tips toward the work */
+.has-lean #blob { transform: rotate(var(--lean-rot, -5deg)); }
+
+/* PRIVACY EVENT — violet, near-circle, wide eyes, whole-body pulse */
+.mode-privacyEvent #blob {
+  animation: pulse 1.6s ease-in-out infinite; /* replaces morph */
+  border-radius: 50% 50% 52% 48% / 52% 52% 48% 48%;
+  box-shadow:
+    0 0 18px oklch(0.72 0.12 300 / .45),
+    0 10px 20px rgba(0, 0, 0, .45),
+    inset 0 3px 6px rgba(255, 255, 255, .4);
+}
+.mode-privacyEvent #skinPrivacy { opacity: 1; }
+.mode-privacyEvent #eyes {
+  opacity: 1;
+  transform: scale(1);
+  top: 15px;
+  gap: 8px;
+}
+.mode-privacyEvent .eye {
+  width: 8px;
+  height: 13px;
+  border-radius: 4px;
+  background: #1c0b30;
+}
+
+/* DAY'S FOOTPRINT — dimmed, shrunk to 44x41, eyeless, ringed */
+.mode-footprint #blob {
+  transform: scale(.785); /* 44/56 */
+  filter: brightness(.9);
+}
+.mode-footprint #skinDim { opacity: 1; }
+.mode-footprint #ring { opacity: 1; }
+.mode-footprint #ground { opacity: .6; }

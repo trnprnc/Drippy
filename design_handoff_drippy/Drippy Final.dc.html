@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f0eee9;font-family:system-ui,-apple-system,sans-serif}
+a{color:#0e7490}a:hover{color:#155e75}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes morph{0%{border-radius:47% 53% 55% 45%/55% 49% 51% 45%}100%{border-radius:53% 47% 45% 55%/47% 55% 45% 53%}}
+@keyframes blinkK{0%,91%,100%{transform:scaleY(1)}94%{transform:scaleY(.12)}97%{transform:scaleY(1)}}
+@keyframes shadowB{0%,100%{transform:scaleX(1);opacity:.35}50%{transform:scaleX(.82);opacity:.22}}
+</style>
+</helmet>
+
+<div style="max-width:1060px;margin:0 auto;padding:44px 44px 56px;display:flex;flex-direction:column;gap:28px" data-screen-label="Drippy final spec">
+
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font:600 26px/1.15 'Bricolage Grotesque',system-ui,sans-serif;color:#1a1a1a">Drippy — final form</div>
+    <div style="font-size:13px;line-height:1.55;color:rgba(0,0,0,.6);max-width:640px">Direction <strong>1e Blink</strong>. At rest, Drippy is an eyeless floating blob — a quiet, living presence. Eyes only open when there is something to notice.</div>
+  </div>
+
+  <!-- Hero: resting on desktop -->
+  <div style="position:relative;height:340px;border-radius:14px;background:linear-gradient(150deg,#1b2233 0%,#0e1420 60%,#101828 100%);overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.12)">
+    <div style="position:absolute;top:0;left:0;right:0;height:26px;background:rgba(16,20,32,.75);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font:500 10px ui-monospace,Menlo,monospace;color:rgba(255,255,255,.5)"><span>●&nbsp;&nbsp;●&nbsp;&nbsp;●</span><span>Wed 9:41 AM</span></div>
+    <div style="position:absolute;left:44px;top:62px;width:380px;height:230px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07);border-radius:12px"></div>
+    <div style="position:absolute;left:16px;bottom:12px;font:500 10px ui-monospace,Menlo,monospace;color:rgba(255,255,255,.38)">RESTING · always-on-top · draggable · true size 56 px</div>
+    <div style="position:absolute;right:70px;bottom:64px;width:56px;height:56px">
+      <div style="position:absolute;left:6px;bottom:-12px;width:44px;height:8px;border-radius:50%;background:rgba(0,0,0,.5);filter:blur(4px);animation:shadowB 5s ease-in-out infinite"></div>
+      <div style="animation:bob 5s ease-in-out infinite">
+        <div style="width:56px;height:52px;border-radius:47% 53% 55% 45%/55% 49% 51% 45%;background:linear-gradient(165deg,oklch(0.85 0.09 195),oklch(0.66 0.11 210));box-shadow:0 10px 20px rgba(0,0,0,.45),inset 0 -8px 14px rgba(0,60,70,.35),inset 0 3px 6px rgba(255,255,255,.45);animation:morph 7s ease-in-out infinite alternate"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- States -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="position:relative;height:150px;border-radius:12px;background:linear-gradient(155deg,#161c2b,#0d1220);display:flex;align-items:center;justify-content:center">
+        <div style="animation:bob 5s ease-in-out infinite">
+          <div style="width:56px;height:52px;border-radius:47% 53% 55% 45%/55% 49% 51% 45%;background:linear-gradient(165deg,oklch(0.85 0.09 195),oklch(0.66 0.11 210));box-shadow:inset 0 -8px 14px rgba(0,60,70,.35),inset 0 3px 6px rgba(255,255,255,.45);animation:morph 7s ease-in-out infinite alternate"></div>
+        </div>
+      </div>
+      <div style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#1a1a1a">RESTING</div>
+      <div style="font-size:11px;line-height:1.5;color:rgba(0,0,0,.55)">Eyeless blob. Slow bob + morph, teal gradient. No signal, no face — pure presence.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="position:relative;height:150px;border-radius:12px;background:linear-gradient(155deg,#161c2b,#0d1220);display:flex;align-items:center;justify-content:center">
+        <div style="position:relative;width:56px;height:52px;border-radius:47% 53% 55% 45%/55% 49% 51% 45%;background:linear-gradient(165deg,oklch(0.85 0.09 195),oklch(0.66 0.11 210));box-shadow:0 0 16px rgba(103,232,249,.3),inset 0 -8px 14px rgba(0,60,70,.35),inset 0 3px 6px rgba(255,255,255,.45);transform:rotate(-5deg);animation:morph 4s ease-in-out infinite alternate">
+          <div style="position:absolute;left:0;right:0;top:16px;display:flex;justify-content:center;gap:9px;transform:translateX(4px)">
+            <div style="width:6px;height:10px;border-radius:3px;background:#0b2530;animation:blinkK 6s ease-in-out infinite"></div>
+            <div style="width:6px;height:10px;border-radius:3px;background:#0b2530;animation:blinkK 6s ease-in-out infinite"></div>
+          </div>
+        </div>
+      </div>
+      <div style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#1a1a1a">AI ACTIVE — EYES OPEN</div>
+      <div style="font-size:11px;line-height:1.5;color:rgba(0,0,0,.55)">Eyes appear and look toward the active window. Faster morph, cyan glow while a request runs.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="position:relative;height:150px;border-radius:12px;background:linear-gradient(155deg,#161c2b,#0d1220);display:flex;align-items:center;justify-content:center">
+        <div style="position:relative;width:56px;height:52px;border-radius:50% 50% 52% 48%/52% 52% 48% 48%;background:linear-gradient(165deg,oklch(0.8 0.08 300),oklch(0.62 0.1 310));box-shadow:0 0 18px oklch(0.72 0.12 300 / .45),inset 0 -8px 14px rgba(50,20,80,.35),inset 0 3px 6px rgba(255,255,255,.4);animation:pulse 1.6s ease-in-out infinite">
+          <div style="position:absolute;left:0;right:0;top:15px;display:flex;justify-content:center;gap:8px">
+            <div style="width:8px;height:13px;border-radius:4px;background:#1c0b30"></div>
+            <div style="width:8px;height:13px;border-radius:4px;background:#1c0b30"></div>
+          </div>
+        </div>
+      </div>
+      <div style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#1a1a1a">PRIVACY EVENT — WIDE-EYED</div>
+      <div style="font-size:11px;line-height:1.5;color:rgba(0,0,0,.55)">Turns violet, eyes wide, gentle pulse when personal data leaves the machine. Click for details.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="position:relative;height:150px;border-radius:12px;background:linear-gradient(155deg,#161c2b,#0d1220);display:flex;align-items:center;justify-content:center">
+        <div style="position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;width:64px;height:64px;border-radius:50%;background:conic-gradient(from -90deg,oklch(0.78 0.14 155 / .9) 0 128deg,transparent 128deg 140deg,oklch(0.82 0.13 85 / .9) 140deg 238deg,transparent 238deg 250deg,oklch(0.72 0.12 300 / .9) 250deg 348deg,transparent 348deg 360deg);mask:radial-gradient(closest-side,transparent 84%,#000 86%)"></div>
+          <div style="width:44px;height:41px;border-radius:47% 53% 55% 45%/55% 49% 51% 45%;background:linear-gradient(165deg,oklch(0.78 0.07 200),oklch(0.6 0.09 212));box-shadow:inset 0 -6px 10px rgba(0,60,70,.4),inset 0 2px 5px rgba(255,255,255,.35);filter:brightness(.9)"></div>
+        </div>
+      </div>
+      <div style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#1a1a1a">DAY'S FOOTPRINT</div>
+      <div style="font-size:11px;line-height:1.5;color:rgba(0,0,0,.55)">Dims and gathers the day into a ring: green environment, amber energy, violet privacy events.</div>
+    </div>
+
+  </div>
+
+  <div style="font-size:12px;line-height:1.55;color:rgba(0,0,0,.5);max-width:680px">Rule of the face: eyes exist only while Drippy has something to show you — AI running, or a privacy event. The rest of the time it is a calm, anonymous blob. Silence is the default; color and posture speak first, words only on click.</div>
+</div>
+
+</x-dc>
+</body>
+</html>

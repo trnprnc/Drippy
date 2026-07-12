@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+build/Drippy.iconset/
+build/icon-1024.png
+
+# design handoff archive (extracted copy is tracked)
+*.zip
+
+# local state & logs
+*.log
+.DS_Store
