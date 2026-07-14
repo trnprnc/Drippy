@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.1 (2026-07-14)
+
+- **Energy factors regrounded in current (2026) measurements.** Replaced the
+  triangulated-from-2025 figures with values anchored to 2026 inference-energy
+  research, each factor carrying a dated source in `impact-factors.json`:
+  per-output-token energy range, the ≤3.4% prefill / ≥96% decode split (input
+  ratio 0.1 → 0.05), cache-read energy at the price-ratio proxy (0.005),
+  model tiers spanning the measured per-token range (Opus 2.5 → 2.0, Haiku
+  0.3 → 0.25), and US regional grid carbon (350 → 321 gCO₂e/kWh, since Claude
+  runs in US regions). METHODOLOGY updated with citations, and cache-read
+  energy flagged as the dominant term and top measurement priority.
+
 ## 0.5.0 (2026-07-14)
 
 - **Exact token accounting for Claude Code.** Drippy now reads the provider

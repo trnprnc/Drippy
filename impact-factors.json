@@ -1,31 +1,31 @@
 {
-  "version": "2026.07.3",
+  "version": "2026.07.4",
   "updated": "2026-07-14",
   "status": "provisional",
-  "notes": "No AI provider publishes per-request figures for Claude yet. These factors are triangulated from published third-party and provider methodology work, carry wide uncertainty bands (shown in UI), and will be revised continually with provider and open-source community data. Every revision bumps the version. Token counts for Claude Code are now EXACT (read from local session transcripts), so estimation error there collapses to the energy factors alone.",
+  "notes": "No AI provider publishes per-request figures for Claude. These factors are grounded in current (2026) peer-reviewed and industry measurements of LLM inference energy, carry an uncertainty band shown in the UI, and are revised continually. Token counts for Claude Code are EXACT (read from local session transcripts), so on that path the only remaining uncertainty is these energy factors. Data vintage: 2026.",
   "sources": [
-    { "id": "google-gemini-2025", "note": "Google Gemini serving methodology: median text prompt 0.24 Wh, 0.26 mL water, 0.03 gCO2e including datacenter overheads" },
-    { "id": "epoch-ai-2025", "note": "Epoch AI estimate ~0.3 Wh per GPT-4o-class text query" },
-    { "id": "openai-2025", "note": "OpenAI stated average 0.34 Wh per query" },
-    { "id": "grid-intensity", "note": "World average grid carbon intensity ~350 gCO2e/kWh; will become region-aware" },
-    { "id": "prompt-caching", "note": "Agentic clients (Claude Code etc.) re-send conversation context on every call but providers serve most of it from prompt cache at a fraction of full-reprocessing cost. Measured on a real Claude Code session: ~93% of input tokens were cache reads. Claude Code transcripts give the exact fresh/cache split per message, so freshInputFraction is no longer needed for that path." },
-    { "id": "model-tiers", "note": "Larger models use more energy per token, roughly with active parameter count, which Anthropic does not publish. modelTiers are provisional multipliers relative to a Sonnet-class baseline (1.0), to be replaced with measured figures from open inference-energy work (ML.ENERGY leaderboard, Hugging Face AI Energy Score)." }
+    { "id": "inference-energy-2026", "note": "2026 measurements: optimised frontier inference median ~0.31 Wh/query (IQR 0.16-0.60); per output token ~0.0001-0.002 Wh spanning small to large models. GPT-4o-class ~0.3 Wh for a 500-token window. Decode (output) is >=96% of energy for typical generation. Sources: ScienceDirect S2542435126001145; TokenPowerBench (AAAI 2026); arXiv 2507.11417." },
+    { "id": "prefill-decode-2026", "note": "Prefill (input) is <=3.4% of inference energy for standard generation vs >=96% for decode, so per-token input energy is roughly 0.03-0.05x an output token; rises for very long contexts due to quadratic attention. Source: arXiv 2512.22066." },
+    { "id": "prompt-caching-2026", "note": "Cache reads skip prefill recompute but still incur KV-cache memory bandwidth during decode, so ~0.1x fresh-input energy (also Anthropic's cache-read price ratio). Measured on real Claude Code sessions: 93-94% of input tokens are cache reads. Transcripts give the exact fresh/cache split per message." },
+    { "id": "model-tiers-2026", "note": "Energy per token scales ~with active parameters (Anthropic does not publish these). Tiers span the measured 0.0001-0.002 Wh/token range relative to a Sonnet-class baseline (1.0). To be replaced with measured figures from ML.ENERGY and Hugging Face AI Energy Score." },
+    { "id": "grid-carbon-2026", "note": "US regional grid ~321 gCO2e/kWh (IEA-derived, 2026); the US hosts ~45% of AI datacentre capacity and Claude runs primarily in US regions, so US intensity is used rather than the ~396 gCO2e/kWh global average. Will become datacentre-region-aware." },
+    { "id": "water-2026", "note": "Onsite cooling water use effectiveness ~1.1 L/kWh (hyperscaler-disclosed range ~0.2-1.8; liquid cooling cuts onsite use 70-90%). Least certain factor; shown only at meaningful scale, not per-request." }
   ],
   "assumptions": {
     "whPer1kOutputTokens": 1.0,
-    "inputTokenEnergyRatio": 0.1,
-    "gridGCo2PerKwh": 350,
+    "inputTokenEnergyRatio": 0.05,
+    "cacheReadEnergyRatio": 0.005,
+    "gridGCo2PerKwh": 321,
     "waterMlPerWh": 1.1,
     "uncertaintyBand": [0.33, 3.0],
     "wireBytesPerOutputToken": 110,
     "wireBytesPerInputToken": 6,
     "inputTokensPerOutputToken": 2.5,
     "freshInputFraction": 0.2,
-    "cacheReadEnergyRatio": 0.01,
     "modelTiers": {
-      "opus": 2.5,
+      "opus": 2.0,
       "sonnet": 1.0,
-      "haiku": 0.3,
+      "haiku": 0.25,
       "fable": 1.0,
       "default": 1.0
     }

@@ -47,33 +47,37 @@ Where the exact path applies, the only remaining uncertainty is the energy
 factors themselves, not the token counts. That is the whole point: collapse
 the estimation error one layer at a time.
 
-## Current factors (v2026.07.2, provisional)
+## Current factors (v2026.07.4, provisional, 2026 data)
 
-| Assumption | Value | Basis |
+| Assumption | Value | Basis (2026 data) |
 |---|---|---|
-| `whPer1kOutputTokens` | 1.0 Wh | triangulated from Google's Gemini serving paper (0.24 Wh median prompt incl. overheads), Epoch AI (~0.3 Wh/GPT-4o query), OpenAI's stated 0.34 Wh average |
-| `inputTokenEnergyRatio` | 0.1 | context processing is far cheaper per token than generation |
-| `freshInputFraction` | 0.2 | share of uplink tokens genuinely recomputed vs. served from prompt cache |
-| `gridGCo2PerKwh` | 350 g | world blended average; region-awareness planned |
-| `waterMlPerWh` | 1.1 mL | consistent with Google's published 0.26 mL / 0.24 Wh |
-| `wireBytesPerOutputToken` | 110 B | SSE envelope overhead; calibratable against measured token counts |
-| `wireBytesPerInputToken` | 6 B | JSON-encoded text ≈ 4–5 chars/token + envelope |
+| `whPer1kOutputTokens` | 1.0 Wh | GPT-4o-class ≈ 0.31 Wh median per query; measured per-output-token 0.0001–0.002 Wh; decode is ≥96% of inference energy, giving ≈1 Wh per 1k output tokens for a Sonnet-class model |
+| `inputTokenEnergyRatio` | 0.05 | prefill (input) is ≤3.4% of energy vs ≥96% for decode, so an input token costs ≈3–5% of an output token (more for very long contexts) |
+| `cacheReadEnergyRatio` | 0.005 | cache reads skip prefill recompute but incur KV-cache memory bandwidth; ≈0.1× fresh-input energy (matches Anthropic's cache-read price ratio) |
+| `modelTiers` | Opus 2.0 · Sonnet 1.0 · Haiku 0.25 | spans the measured 0.0001–0.002 Wh/token range by model size |
+| `gridGCo2PerKwh` | 321 g | US regional grid (Claude runs in US regions; US hosts ~45% of AI datacentre capacity), vs ~396 g global average |
+| `waterMlPerWh` | 1.1 mL | onsite cooling WUE ≈ 1.1 L/kWh (disclosed range 0.2–1.8); least certain, shown only at scale |
 | `uncertaintyBand` | ×⅓ … ×3 | shown wherever numbers appear |
 
 The machine-readable source of truth is
-[impact-factors.json](impact-factors.json); the UI displays its version.
+[impact-factors.json](impact-factors.json), where every factor carries a
+dated source; the UI displays its version.
 
 ## Known limitations
 
-- **Byte-based token estimates** are approximate; they'll be calibrated
-  against exact counts once the browser extension (L2 adapter) measures real
-  token streams.
-- **Model tier is invisible** at the network level, so a Haiku token and an
-  Opus token are currently priced the same. Tier multipliers arrive with L2.
-- **One flow can span several API calls** (agentic tools make back-to-back
-  requests), so "requests" is a lower bound; byte totals remain correct.
-- **Attribution ("yours" vs background)** is a timing heuristic until
-  per-surface adapters exist.
+- **Cache-read energy is now the dominant term for agentic use** and the
+  single biggest remaining uncertainty. A heavy Claude Code session re-reads
+  hundreds of thousands of cached tokens per turn, so `cacheReadEnergyRatio`
+  drives the total. It is grounded in the cache-read price ratio for now, and
+  is the top priority for replacement with a directly measured figure.
+- **Byte-based token estimates** (Claude Desktop and web) are approximate;
+  they'll be replaced with exact counts as the browser extension (L2) lands.
+  The Claude Code path is already exact.
+- **Model tier is invisible on the estimated path**, so a Haiku token and an
+  Opus token are priced the same there. The exact (Claude Code) path reads the
+  real model per message.
+- **Grid and water are single global figures**, not yet datacentre-region- or
+  time-of-day-aware.
 - **Anthropic only** for now, per the product's Claude-first roadmap.
 
 ## What the day's data shows so far

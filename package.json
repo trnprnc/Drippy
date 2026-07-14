@@ -1,7 +1,7 @@
 {
   "name": "drippy",
   "productName": "Drippy",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "AI transparency companion: an always-on-top desktop blob that makes the hidden impacts of AI usage visible.",
   "main": "main.js",
   "author": "Jack Warrillow",
