@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.3 (2026-07-14)
+
+- **Cache-read energy factor corroborated.** The dominant term for agentic
+  workloads (0.005) is now backed by two independent lines rather than the
+  price proxy alone: Anthropic's cache-read price (0.1× input) and a measured
+  85–95% energy saving on a cache hit (a cache-read token costs 5–15% of a
+  fresh input token, i.e. 0.0025–0.0075× an output token; we use the 0.005
+  mid). The per-cached-token structure matches how the saving is measured.
+  Sources added to the registry; a direct energy measurement stays on the
+  watch list.
+- **Water "what counts as used" simplified**: water evaporated (taken out of
+  the local water cycle) is counted as used; water drawn and returned is
+  deferred. Documented plainly; the model (consumptive, onsite + offsite) is
+  unchanged.
+
 ## 0.5.2 (2026-07-14)
 
 - **Water modelled properly: onsite + offsite.** Previously Drippy counted

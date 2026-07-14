@@ -24,11 +24,14 @@
     "cacheReadEnergyRatio": {
       "value": 0.005,
       "unit": "fraction of an output token's energy per cached input token",
-      "priority": "HIGHEST: dominant term for agentic workloads, weakest grounding",
+      "priority": "Dominant term for agentic workloads. Now corroborated by two independent lines; still worth a direct energy measurement.",
+      "grounding": "Two lines converge on ~0.005: (a) Anthropic cache-read price = 0.1x input; (b) measured 85-95% cost/energy saving on a cache hit => cache read = 5-15% of fresh input = 0.0025-0.0075x output. Per-cached-token structure matches how the saving is measured and priced.",
       "sources": [
-        { "title": "Anthropic prompt caching pricing (cache read ~0.1x input price)", "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching", "year": 2026, "figure": "price proxy: cache read = 0.1x input" }
+        { "title": "Anthropic prompt caching pricing (cache read ~0.1x input price)", "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching", "year": 2026, "figure": "price proxy: cache read = 0.1x input" },
+        { "title": "Prompt Caching in 2026: Cut LLM Costs, Keep Quality", "url": "https://www.digitalapplied.com/blog/prompt-caching-2026-cut-llm-costs-engineering-guide", "year": 2026, "figure": "85-95% cost/energy saving on cache hit; collapses prefill compute into a memory read" },
+        { "title": "Don't Break the Cache: Prompt Caching for Long-Horizon Agentic Tasks", "url": "https://arxiv.org/pdf/2601.06007", "year": 2026, "figure": "cache behaviour under agentic workloads" }
       ],
-      "chasing": "A measured KV-cache read energy (memory-bandwidth) figure. Candidate methods: ML.ENERGY, direct GPU power measurement over long-context decode."
+      "chasing": "A directly measured KV-cache read energy (cache-hit vs miss joules) over long-context decode, e.g. via ML.ENERGY-style GPU power measurement, to confirm the 0.005 mid-point."
     },
     "modelTiers": {
       "value": { "opus": 2.0, "sonnet": 1.0, "haiku": 0.25 },

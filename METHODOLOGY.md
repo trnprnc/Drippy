@@ -53,7 +53,7 @@ the estimation error one layer at a time.
 |---|---|---|
 | `whPer1kOutputTokens` | 1.0 Wh | GPT-4o-class ≈ 0.31 Wh median per query; measured per-output-token 0.0001–0.002 Wh; decode is ≥96% of inference energy, giving ≈1 Wh per 1k output tokens for a Sonnet-class model |
 | `inputTokenEnergyRatio` | 0.05 | prefill (input) is ≤3.4% of energy vs ≥96% for decode, so an input token costs ≈3–5% of an output token (more for very long contexts) |
-| `cacheReadEnergyRatio` | 0.005 | cache reads skip prefill recompute but incur KV-cache memory bandwidth; ≈0.1× fresh-input energy (matches Anthropic's cache-read price ratio) |
+| `cacheReadEnergyRatio` | 0.005 | two converging lines: Anthropic's cache-read price (0.1× input) and a measured 85–95% energy saving on a cache hit (5–15% of fresh input) |
 | `modelTiers` | Opus 2.0 · Sonnet 1.0 · Haiku 0.25 | spans the measured 0.0001–0.002 Wh/token range by model size |
 | `gridGCo2PerKwh` | 321 g | US regional grid (Claude runs in US regions; US hosts ~45% of AI datacentre capacity), vs ~396 g global average |
 | `waterOnsiteMlPerWh` | 1.1 mL | onsite cooling WUE ≈ 1.1 L/kWh (disclosed range 0.2–1.8) |
@@ -69,9 +69,13 @@ for updates. The UI displays the factor-table version.
 
 Most headline "AI water" figures count only *onsite* cooling (~0.3 mL for a
 short query). That understates it: the water used to *generate the electricity*
-is comparable or larger. Drippy counts both, using **consumptive** water
-(evaporated, not returned) as the honest metric rather than the larger
-withdrawal figures some reports use. Total ≈ 2.35 mL/Wh.
+is comparable or larger. Drippy counts both.
+
+The simple rule for what counts as "used": **water taken out of the local
+water cycle (evaporated) is used.** Water that is drawn and returned is a
+later complexity we are not counting yet. That maps to **consumptive**
+(evaporative) water, onsite and offsite, and it avoids the larger withdrawal
+figures some reports use. Total ≈ 2.35 mL/Wh.
 
 A single query is a fraction of a millilitre, which is meaningless to a person.
 So water will be shown only **at scale and once we are confident in it**: your
@@ -81,11 +85,12 @@ Offsite grid-water intensity is the biggest lever here and is tracked yearly.
 
 ## Known limitations
 
-- **Cache-read energy is now the dominant term for agentic use** and the
-  single biggest remaining uncertainty. A heavy Claude Code session re-reads
-  hundreds of thousands of cached tokens per turn, so `cacheReadEnergyRatio`
-  drives the total. It is grounded in the cache-read price ratio for now, and
-  is the top priority for replacement with a directly measured figure.
+- **Cache-read energy is the dominant term for agentic use.** A heavy Claude
+  Code session re-reads hundreds of thousands of cached tokens per turn, so
+  `cacheReadEnergyRatio` drives the total. It is now corroborated by two
+  independent lines (the cache-read price ratio and a measured 85–95% cache-hit
+  energy saving), which converge on 0.005. A direct energy measurement would
+  still tighten it further, so it stays on the watch list.
 - **Byte-based token estimates** (Claude Desktop and web) are approximate;
   they'll be replaced with exact counts as the browser extension (L2) lands.
   The Claude Code path is already exact.
