@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.4 (2026-07-14)
+
+- **Professional menu-bar icon.** Replaced the colour 💧 emoji with a
+  monochrome macOS template icon that macOS tints for the light/dark menu
+  bar, in line with other menu-bar apps. The mark is Drippy's exact blob
+  (the real CSS border-radius) with the precise eye geometry cut out: eyes
+  as the symbol of keeping an eye on things. Generated from the true brand
+  shape by `build/tray-icon-gen.js`, not an approximation.
+
 ## 0.5.3 (2026-07-14)
 
 - **Cache-read energy factor corroborated.** The dominant term for agentic
