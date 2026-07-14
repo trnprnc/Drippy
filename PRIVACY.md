@@ -29,6 +29,7 @@ are enforced *structurally* in the code, not just by policy.
 | Engagement | frontmost app name + seconds since last keyboard/mouse input (a system-wide timer; individual keystrokes are invisible to Drippy) | "present" / "typing" booleans | none |
 | Clipboard guard | clipboard text, rescanned only when it changes, only while you're in a Claude surface | concern category verdicts only | none |
 | Typed-text guard (optional) | the focused Claude composer's text via macOS Accessibility, only while you're typing in Claude | concern category verdicts only | Accessibility + Automation, granted by you in System Settings |
+| Claude Code usage | the `usage` numbers and model id from Claude Code's own local session transcripts (`~/.claude/projects`). The message text in those files is never read | exact token counts and model, per message | none |
 
 **Explicitly ruled out, permanently:** TLS interception and root
 certificates. Drippy will never decrypt your traffic, for any feature.

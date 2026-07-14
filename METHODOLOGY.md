@@ -7,26 +7,45 @@ openly rather than not at all. Every number carries an uncertainty band
 factor table, and revisions are expected as provider and community data
 improves. If you can improve a factor, we want the correction.
 
-## The pipeline
+## Two paths to tokens
+
+Drippy uses the most accurate token source available per app.
+
+**Exact (Claude Code).** Claude Code writes a session transcript locally, and
+every assistant message carries a provider `usage` object: real input, output
+and the exact cache split (`cache_read` vs `cache_creation`). Drippy reads
+those numbers directly (never the message content), so for the heaviest
+workload on most developer machines there is *no token estimation at all*.
+Measured on a real session: 94% of input tokens were cache reads, which cost
+far less energy than fresh processing. A fixed "fresh fraction" guess would
+have been wrong; the exact split is not.
+
+**Estimated (everything else, for now).** For Claude Desktop and web, Drippy
+estimates tokens from encrypted traffic volume: downlink bytes ≈ output
+tokens, uplink bytes ≈ input tokens. No content is read. This path will be
+replaced with exact counts as the browser extension (L2) lands.
+
+## The energy pipeline
 
 ```
-wire bytes  →  tokens  →  energy (Wh)  →  carbon (gCO₂e) + water (mL)
+tokens (exact or estimated)  →  energy (Wh)  →  carbon (gCO₂e) + water (mL)
 ```
 
-1. **Bytes.** The network monitor measures encrypted traffic volume to
-   Anthropic per request: downlink (the streamed response) and uplink (your
-   prompt plus re-sent conversation context). No content is read.
-2. **Tokens.** Streaming responses have near-constant wire overhead per
-   token, so `bytes ÷ wireBytesPerOutputToken` estimates output tokens;
-   uplink bytes similarly estimate input tokens.
-3. **Energy.** Output tokens are priced at `whPer1kOutputTokens`. Input
-   tokens cost `inputTokenEnergyRatio` (about 10%) of that, and only
-   `freshInputFraction` (about 20%) of them are charged at all, because
-   agentic clients re-send context that providers serve from prompt cache at
-   a small fraction of full-reprocessing cost.
-4. **Carbon and water.** Energy × world-average grid intensity
-   (`gridGCo2PerKwh`) and datacentre water use (`waterMlPerWh`). Both will
-   become region-aware.
+- **Output** tokens are priced at `whPer1kOutputTokens`.
+- **Fresh input** (new prompt + cache creation) costs `inputTokenEnergyRatio`
+  (about 10%) of an output token.
+- **Cache-read input** costs `cacheReadEnergyRatio` (about 1%): served from
+  the KV cache, no recomputation.
+- The total is scaled by a **model tier** multiplier (`modelTiers`): larger
+  models use more energy per token. Claude Code exposes the model per message;
+  the estimated path cannot yet see it.
+- **Carbon and water**: energy × world-average grid intensity
+  (`gridGCo2PerKwh`) and datacentre water use (`waterMlPerWh`). Both will
+  become region-aware.
+
+Where the exact path applies, the only remaining uncertainty is the energy
+factors themselves, not the token counts. That is the whole point: collapse
+the estimation error one layer at a time.
 
 ## Current factors (v2026.07.2, provisional)
 

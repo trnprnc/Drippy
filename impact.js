@@ -40,4 +40,38 @@ function fromBytes(bytesIn, bytesOut = 0) {
   return { outputTokens, inputTokens, ...impactOf(outputTokens, inputTokens) };
 }
 
-module.exports = { fromBytes, impactOf, tokensFromBytes, version: factors.version };
+function tierFor(model) {
+  const m = (model || '').toLowerCase();
+  const tiers = A.modelTiers || {};
+  for (const key of Object.keys(tiers)) {
+    if (key !== 'default' && m.includes(key)) return tiers[key];
+  }
+  return tiers.default ?? 1;
+}
+
+// Exact accounting from a provider usage object (Claude Code transcripts).
+// No estimation: fresh input, cache-creation and cache-read are priced
+// separately, then scaled by the model tier.
+//   fresh input + cache creation: full input processing energy
+//   cache read: a small fraction (no recomputation, attention over cache)
+//   output: full generation energy
+function fromUsage({ model, inputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0, outputTokens = 0 }) {
+  const tier = tierFor(model);
+  const freshIn = inputTokens + cacheCreationTokens;
+  const inputWh = (freshIn / 1000) * A.whPer1kOutputTokens * A.inputTokenEnergyRatio;
+  const cacheWh = (cacheReadTokens / 1000) * A.whPer1kOutputTokens * A.cacheReadEnergyRatio;
+  const outputWh = (outputTokens / 1000) * A.whPer1kOutputTokens;
+  const wh = (inputWh + cacheWh + outputWh) * tier;
+  return {
+    model,
+    tier,
+    inputTokens: freshIn + cacheReadTokens, // total input, for display
+    outputTokens,
+    wh,
+    gco2: (wh / 1000) * A.gridGCo2PerKwh,
+    waterMl: wh * A.waterMlPerWh,
+    band: A.uncertaintyBand,
+  };
+}
+
+module.exports = { fromBytes, fromUsage, impactOf, tokensFromBytes, tierFor, version: factors.version };

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.0 (2026-07-14)
+
+- **Exact token accounting for Claude Code.** Drippy now reads the provider
+  `usage` numbers Claude Code writes to its own local session transcripts:
+  real input, output and the exact prompt-cache split, per message, live. For
+  the heaviest workload on a developer's machine there is no longer any token
+  estimation. It reads only the usage numbers and model id, never the message
+  content. A measured session showed 94% of input tokens were cache reads, so
+  a fixed "fresh fraction" guess was replaced with the true per-message split.
+- **Model-tier energy multipliers.** Larger models cost more energy per token;
+  Claude Code exposes the model per message, so Opus, Sonnet, Haiku and others
+  are now priced differently (provisional multipliers, to be replaced with
+  measured figures from open inference-energy work).
+- **Cache-read energy factor** added: cache reads cost far less than fresh
+  processing, and are now priced as such rather than lumped into input.
+- Simulation and Demo controls are no longer present in the shipped build
+  (development only). Removed Drippy's own CPU readout from the menu for now.
+
 ## 0.4.0 (2026-07-12)
 
 - **Privacy concerns catalogue**: 21 concerns across three severities, built

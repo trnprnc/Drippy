@@ -5,6 +5,7 @@ const os = require('os');
 const AnthropicMonitor = require('./monitor');
 const EngagementSensor = require('./engagement');
 const PrivacySensor = require('./privacy');
+const ClaudeCodeMonitor = require('./claude-code');
 const impact = require('./impact');
 const history = require('./history');
 
@@ -348,15 +349,6 @@ setInterval(() => {
   }
 }, 60 * 1000).unref();
 
-// Drippy measures itself with the same yardstick — CPU across all its
-// processes, sampled every 30s, shown in the tray.
-let selfCpuPercent = 0;
-setInterval(() => {
-  try {
-    selfCpuPercent = app.getAppMetrics().reduce((s, p) => s + ((p.cpu && p.cpu.percentCPUUsage) || 0), 0);
-  } catch {}
-}, 30 * 1000).unref();
-
 // ---------------------------------------------------------------------------
 // Live monitor — L1 flow metadata (see monitor.js). Same event interface the
 // future NEFilterDataProvider system extension will emit.
@@ -382,10 +374,10 @@ monitor.on('request-start', ({ app: appName, pid }) => {
   console.log(`[drippy] request start — ${appName} (${fg ? 'yours' : 'background'})`);
   requestStarted(fg);
 });
-monitor.on('request-end', ({ app: appName, pid, bytesIn, bytesOut, durationMs }) => {
-  const fg = fgFlows.get(pid) ?? false;
-  fgFlows.delete(pid);
-  const est = impact.fromBytes(bytesIn, bytesOut);
+// Records one request's impact into today's totals, per-app breakdown and
+// history. `est` comes either from byte estimation (network monitor) or from
+// exact provider usage (Claude Code transcripts).
+function recordRequest({ app: appName, fg, ms, est }) {
   recordUsage(est);
   if (fg) daily.fgRequests += 1;
   const a = (daily.apps[appName] = daily.apps[appName] || { requests: 0, wh: 0, tokensIn: 0, tokensOut: 0 });
@@ -397,16 +389,41 @@ monitor.on('request-end', ({ app: appName, pid, bytesIn, bytesOut, durationMs })
     ts: new Date().toISOString(),
     app: appName,
     fg,
-    ms: durationMs,
+    ms,
     in: est.inputTokens,
     out: est.outputTokens,
     wh: +est.wh.toFixed(3),
   });
-  console.log(
-    `[drippy] request end — ${appName} (${fg ? 'yours' : 'background'}) · ${Math.round(durationMs / 1000)}s · ` +
-      `≈${est.inputTokens} in / ${est.outputTokens} out tokens ≈ ${est.wh.toFixed(2)} Wh`
-  );
+}
+
+// The Claude Code CLI process reports EXACT usage via its transcripts, so we
+// let claudeCode be the authoritative impact source for it and avoid
+// double-counting its bytes here. The network flow still drives the creature.
+const CLI_APP = 'claude';
+
+monitor.on('request-end', ({ app: appName, pid, bytesIn, bytesOut, durationMs }) => {
+  const fg = fgFlows.get(pid) ?? false;
+  fgFlows.delete(pid);
+  if (appName !== CLI_APP) {
+    const est = impact.fromBytes(bytesIn, bytesOut);
+    recordRequest({ app: appName, fg, ms: durationMs, est });
+    console.log(
+      `[drippy] request end — ${appName} (${fg ? 'yours' : 'background'}) · ${Math.round(durationMs / 1000)}s · ` +
+        `≈${est.inputTokens} in / ${est.outputTokens} out tokens ≈ ${est.wh.toFixed(2)} Wh`
+    );
+  }
   requestEnded(fg);
+});
+
+// Exact accounting for Claude Code, straight from session transcripts.
+const claudeCode = new ClaudeCodeMonitor();
+claudeCode.on('usage', (u) => {
+  const est = impact.fromUsage(u);
+  recordRequest({ app: 'Claude Code', fg: true, ms: 0, est });
+  console.log(
+    `[drippy] claude code — ${est.model} ×${est.tier} · exact ${u.inputTokens}+${u.cacheCreationTokens} fresh / ` +
+      `${u.cacheReadTokens} cached in / ${u.outputTokens} out ≈ ${est.wh.toFixed(3)} Wh`
+  );
 });
 
 // Eyes open the moment the user starts working in Claude — quiet
@@ -557,7 +574,6 @@ function updateTrayMenu() {
     Menu.buildFromTemplate([
       { label: `Drippy v${app.getVersion()}: ${trayStateLabel()}`, enabled: false },
       { label: watchLabel, enabled: false },
-      { label: `Drippy itself: ~${selfCpuPercent.toFixed(1)}% CPU`, enabled: false },
       { type: 'separator' },
       {
         label: `Today: ${daily.requests} requests · ~${Math.round(daily.tokensIn)} in / ${Math.round(daily.tokensOut)} out tokens`,
@@ -589,9 +605,14 @@ function updateTrayMenu() {
         : []),
       { type: 'separator' },
       { label: "Show day's footprint", type: 'checkbox', checked: footprintShown, click: toggleFootprint },
-      { label: 'Simulate AI request (5s)', click: simulateRequest },
-      { label: 'Simulate privacy event', click: privacyEvent },
-      { label: 'Demo mode', type: 'checkbox', checked: demoEnabled, click: () => setDemo(!demoEnabled) },
+      // Simulation and demo controls are development-only; never shipped.
+      ...(app.isPackaged
+        ? []
+        : [
+            { label: 'Simulate AI request (5s)', click: simulateRequest },
+            { label: 'Simulate privacy event', click: privacyEvent },
+            { label: 'Demo mode', type: 'checkbox', checked: demoEnabled, click: () => setDemo(!demoEnabled) },
+          ]),
       { type: 'separator' },
       { label: 'Usage trends…', click: showTrends },
       { label: 'About Drippy: what it can see…', click: showWelcome },
@@ -799,6 +820,7 @@ app.whenReady().then(() => {
   createTray();
   monitor.start();
   engagement.start();
+  claudeCode.start();
   maybeShowWelcome();
 });
 
