@@ -56,12 +56,28 @@ the estimation error one layer at a time.
 | `cacheReadEnergyRatio` | 0.005 | cache reads skip prefill recompute but incur KV-cache memory bandwidth; ≈0.1× fresh-input energy (matches Anthropic's cache-read price ratio) |
 | `modelTiers` | Opus 2.0 · Sonnet 1.0 · Haiku 0.25 | spans the measured 0.0001–0.002 Wh/token range by model size |
 | `gridGCo2PerKwh` | 321 g | US regional grid (Claude runs in US regions; US hosts ~45% of AI datacentre capacity), vs ~396 g global average |
-| `waterMlPerWh` | 1.1 mL | onsite cooling WUE ≈ 1.1 L/kWh (disclosed range 0.2–1.8); least certain, shown only at scale |
+| `waterOnsiteMlPerWh` | 1.1 mL | onsite cooling WUE ≈ 1.1 L/kWh (disclosed range 0.2–1.8) |
+| `waterOffsiteMlPerWh` | 1.25 mL | water to generate the electricity: US thermoelectric consumptive ≈ 1.25 L/kWh (EIA) |
 | `uncertaintyBand` | ×⅓ … ×3 | shown wherever numbers appear |
 
 The machine-readable source of truth is
-[impact-factors.json](impact-factors.json), where every factor carries a
-dated source; the UI displays its version.
+[impact-factors.json](impact-factors.json); every factor's evidence, with URLs
+and dates, lives in [impact-sources.json](impact-sources.json), which we track
+for updates. The UI displays the factor-table version.
+
+## Water: two parts, and shown at scale
+
+Most headline "AI water" figures count only *onsite* cooling (~0.3 mL for a
+short query). That understates it: the water used to *generate the electricity*
+is comparable or larger. Drippy counts both, using **consumptive** water
+(evaporated, not returned) as the honest metric rather than the larger
+withdrawal figures some reports use. Total ≈ 2.35 mL/Wh.
+
+A single query is a fraction of a millilitre, which is meaningless to a person.
+So water will be shown only **at scale and once we are confident in it**: your
+week or month of AI expressed in litres, with a human comparison (cups of
+coffee, a shower of N minutes), never as a fake-precise per-query droplet.
+Offsite grid-water intensity is the biggest lever here and is tracked yearly.
 
 ## Known limitations
 

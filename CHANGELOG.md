@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.2 (2026-07-14)
+
+- **Water modelled properly: onsite + offsite.** Previously Drippy counted
+  only onsite cooling water (WUE 1.1 mL/Wh). It now adds the water used to
+  generate the electricity (US thermoelectric consumptive ~1.25 mL/Wh, EIA),
+  which is comparable or larger, for a total ~2.35 mL/Wh. Uses consumptive
+  (evaporated) water, the honest metric, not the larger withdrawal figures.
+  Water will still only be shown at meaningful scale, once confident.
+- **Living sources registry** (`impact-sources.json`): every factor's
+  evidence with URLs, figures, dates, and the better source we're still
+  chasing. This is the document we track the web against; reviewed monthly
+  and whenever new provider/study data lands.
+
 ## 0.5.1 (2026-07-14)
 
 - **Energy factors regrounded in current (2026) measurements.** Replaced the

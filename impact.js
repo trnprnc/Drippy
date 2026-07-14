@@ -5,6 +5,11 @@ const factors = require('./impact-factors.json');
 
 const A = factors.assumptions;
 
+// Water has two comparable parts: onsite cooling (WUE) and the offsite water
+// used to generate the electricity. Counting only onsite understates it by
+// roughly half. See impact-sources.json (water-*).
+const WATER_ML_PER_WH = A.waterOnsiteMlPerWh + A.waterOffsiteMlPerWh;
+
 // Wire bytes of an SSE response stream are roughly proportional to output
 // tokens (JSON envelope overhead per chunk is near-constant); the factor is
 // calibratable against measured token counts from L2 adapters later.
@@ -23,7 +28,7 @@ function impactOf(outputTokens, inputTokens = null) {
   return {
     wh,
     gco2: (wh / 1000) * A.gridGCo2PerKwh,
-    waterMl: wh * A.waterMlPerWh,
+    waterMl: wh * WATER_ML_PER_WH,
     band: A.uncertaintyBand,
   };
 }
@@ -69,7 +74,7 @@ function fromUsage({ model, inputTokens = 0, cacheReadTokens = 0, cacheCreationT
     outputTokens,
     wh,
     gco2: (wh / 1000) * A.gridGCo2PerKwh,
-    waterMl: wh * A.waterMlPerWh,
+    waterMl: wh * WATER_ML_PER_WH,
     band: A.uncertaintyBand,
   };
 }

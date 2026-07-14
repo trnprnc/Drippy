@@ -1,0 +1,68 @@
+{
+  "purpose": "Living registry of the evidence behind every factor in impact-factors.json. We track these sources for updates and revise factors as better data appears. Each factor lists the sources consulted, the figure taken, and any better source we are still chasing.",
+  "lastReviewed": "2026-07-14",
+  "reviewCadence": "monthly, plus whenever a provider or major study publishes new figures",
+  "factors": {
+    "whPer1kOutputTokens": {
+      "value": 1.0,
+      "unit": "Wh per 1000 output tokens (Sonnet-class baseline)",
+      "sources": [
+        { "title": "Energy use of AI inference, efficiency pathways, and test-time scaling", "url": "https://www.sciencedirect.com/science/article/pii/S2542435126001145", "year": 2026, "figure": "frontier median ~0.31 Wh/query (IQR 0.16-0.60)" },
+        { "title": "TokenPowerBench: Benchmarking the Power Consumption of LLM Inference (AAAI 2026)", "url": "https://ojs.aaai.org/index.php/AAAI/article/view/40535", "year": 2026, "figure": "per-output-token 0.0001-0.002 Wh by model size" },
+        { "title": "Quantifying Energy & Carbon of LLM Inference via Simulations", "url": "https://arxiv.org/pdf/2507.11417", "year": 2026, "figure": "test-time scaling 15x -> ~13x energy" }
+      ],
+      "chasing": "A directly measured per-token figure for Claude models specifically."
+    },
+    "inputTokenEnergyRatio": {
+      "value": 0.05,
+      "unit": "fraction of an output token's energy",
+      "sources": [
+        { "title": "Prefill vs. Decode Bottlenecks: SRAM-Frequency Tradeoffs and the Memory-Bandwidth Ceiling", "url": "https://arxiv.org/html/2512.22066v1", "year": 2026, "figure": "prefill <=3.4% of energy vs decode >=96% for standard generation" }
+      ],
+      "chasing": "Per-token prefill energy as a function of context length (quadratic attention) for long agentic contexts."
+    },
+    "cacheReadEnergyRatio": {
+      "value": 0.005,
+      "unit": "fraction of an output token's energy per cached input token",
+      "priority": "HIGHEST: dominant term for agentic workloads, weakest grounding",
+      "sources": [
+        { "title": "Anthropic prompt caching pricing (cache read ~0.1x input price)", "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching", "year": 2026, "figure": "price proxy: cache read = 0.1x input" }
+      ],
+      "chasing": "A measured KV-cache read energy (memory-bandwidth) figure. Candidate methods: ML.ENERGY, direct GPU power measurement over long-context decode."
+    },
+    "modelTiers": {
+      "value": { "opus": 2.0, "sonnet": 1.0, "haiku": 0.25 },
+      "unit": "multiplier on baseline, ~by active parameters",
+      "sources": [
+        { "title": "TokenPowerBench per-token range 0.0001-0.002 Wh by model size", "url": "https://ojs.aaai.org/index.php/AAAI/article/view/40535", "year": 2026, "figure": "20x span small->large model" }
+      ],
+      "chasing": "Measured per-model energy from the ML.ENERGY leaderboard (https://ml.energy/leaderboard) and Hugging Face AI Energy Score (https://huggingface.co/spaces/AIEnergyScore). Anthropic does not publish active parameter counts."
+    },
+    "gridGCo2PerKwh": {
+      "value": 321,
+      "unit": "gCO2e per kWh",
+      "sources": [
+        { "title": "The carbon and water footprints of data centers", "url": "https://www.sciencedirect.com/science/article/pii/S2666389925002788", "year": 2026, "figure": "US regional ~321 gCO2e/kWh; global ~396; US hosts ~45% of AI datacentre capacity" }
+      ],
+      "chasing": "Datacentre-region-aware and time-of-day intensity (e.g. Electricity Maps), reflecting where Claude actually runs."
+    },
+    "waterOnsiteMlPerWh": {
+      "value": 1.1,
+      "unit": "mL per Wh (onsite cooling, WUE)",
+      "sources": [
+        { "title": "AI water usage per query, real 2026 numbers", "url": "https://felloai.com/how-much-water-does-ai-use/", "year": 2026, "figure": "onsite ~0.26-0.32 mL/query; WUE ~1.1 L/kWh (Google best-in-class)" },
+        { "title": "Data centre water consumption (npj Clean Water)", "url": "https://www.nature.com/articles/s41545-021-00101-w", "year": 2021, "figure": "WUE methodology and ranges" }
+      ],
+      "chasing": "Anthropic/hosting-provider region-level WUE disclosures; adjustment for liquid-cooled AI racks."
+    },
+    "waterOffsiteMlPerWh": {
+      "value": 1.25,
+      "unit": "mL per Wh (offsite, electricity-generation consumptive water)",
+      "sources": [
+        { "title": "EIA: US electric power sector water efficiency", "url": "https://www.eia.gov/todayinenergy/detail.php?id=56820", "year": 2026, "figure": "US thermoelectric consumptive ~1.25 L/kWh; nuclear ~2.1, coal ~2, CCGT ~1.2 or less" },
+        { "title": "AI Data Centers and the Water Use Feedback Loop", "url": "https://arxiv.org/pdf/2606.21760", "year": 2026, "figure": "offsite comparable to or larger than onsite; total 5-20x onsite alone" }
+      ],
+      "chasing": "US-grid-mix consumptive intensity tracked yearly (coal decline lowers it); reconcile the LBNL 7.6 L/kWh upper estimate vs EIA consumptive."
+    }
+  }
+}
