@@ -20,9 +20,10 @@ const path = require('path');
 const BLOB_W = 56;
 const BLOB_H = 52;
 const RADIUS = '47% 53% 55% 45% / 55% 49% 51% 45%';
+// dx shifts both eyes sideways: Drippy's recognisable "glancing over" pose.
 const VARIANTS = {
-  trayTemplate: { w: 6, h: 10, r: 3, gap: 9, top: 16 }, // active/attentive eyes
-  trayAlertTemplate: { w: 8, h: 13, r: 4, gap: 8, top: 15 }, // privacy wide eyes
+  trayTemplate: { w: 6, h: 10, r: 3, gap: 9, top: 16, dx: -4 }, // glancing over (signature)
+  trayAlertTemplate: { w: 10, h: 15, r: 5, gap: 8, top: 14, dx: 0 }, // wide, facing forward
 };
 const F = 8; // supersample factor for smooth edges
 
@@ -45,7 +46,7 @@ function cutEyes(pngBuffer, eye) {
         g.drawImage(img, 0, 0, ${W}, ${H});
         g.globalCompositeOperation = 'destination-out';
         const totalW = ${eye.w * 2 + eye.gap};
-        const x0 = (${BLOB_W} - totalW) / 2;
+        const x0 = (${BLOB_W} - totalW) / 2 + ${eye.dx || 0};
         const eyes = [x0, x0 + ${eye.w + eye.gap}];
         for (const ex of eyes) {
           g.beginPath();

@@ -1,12 +1,19 @@
 # Changelog
 
+## 0.5.6 (2026-07-14)
+
+- **Menu-bar icon refined for recognisability and a clearer alert.** The
+  resting icon now shows Drippy's signature "glancing over" pose (eyes
+  offset to the side). During a privacy warning the eyes go wide *and face
+  forward*, and are a touch larger, so the shift from calm-glance to
+  wide-forward is obvious at a glance in the top bar.
+
 ## 0.5.5 (2026-07-14)
 
 - **The menu bar reacts too.** During a privacy warning, Drippy's menu-bar
-  eyes go wide (the design's exact 8×13 privacy-eye geometry) and return to
-  normal when the warning clears, extending the "eyes open when there's
-  something to show you" rule to the menu bar. Same monochrome template
-  style; verified end to end.
+  eyes go wide and return to normal when the warning clears, extending the
+  "eyes open when there's something to show you" rule to the menu bar. Same
+  monochrome template style; verified end to end.
 
 ## 0.5.4 (2026-07-14)
 
