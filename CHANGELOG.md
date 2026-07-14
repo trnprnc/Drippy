@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 (2026-07-14)
+
+- **Clipboard privacy now matches real workflows.** Previously Drippy only
+  scanned the clipboard while Claude was the frontmost app, so a secret
+  copied from a browser, a .env file or a password manager (the normal way
+  people do it) was missed at copy time. Drippy now watches the clipboard
+  throughout an active Claude session, frontmost or within ~3 minutes of
+  using Claude, and warns the instant a secret is detected, so you're caught
+  before you paste it in. The menu-bar eyes go wide even while you're still in
+  the other app. Scanning stops once you have not used Claude for a few
+  minutes; it never scans your clipboard outside a Claude session. Docs
+  updated to describe this plainly.
+
 ## 0.5.6 (2026-07-14)
 
 - **Menu-bar icon refined for recognisability and a clearer alert.** The

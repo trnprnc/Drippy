@@ -74,8 +74,10 @@ gracefully to whatever the user has granted:
   `NEFilterDataProvider` system extension with identical events.
 - **L2 content, on-device only**: clipboard + Claude composer scanned
   in-memory by pure rules ([pii.js](pii.js)), verdicts only →
-  [privacy.js](privacy.js). Next: claude.ai browser extension (exact tokens,
-  pre-send warnings on the web).
+  [privacy.js](privacy.js). The clipboard is watched throughout an active
+  Claude session (not just when Claude is frontmost), so a secret copied in a
+  browser or `.env` is caught before you paste it. Next: claude.ai browser
+  extension (exact tokens, pre-send warnings on the web).
 - **L3 provider truth**: Anthropic Admin/Usage APIs (Drippy Commercial).
 
 Impact arithmetic lives in [impact.js](impact.js) over

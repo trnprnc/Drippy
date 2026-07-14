@@ -61,6 +61,7 @@
   <ul>
     <li>It watches <b>traffic patterns</b> to Anthropic (timing and volume). It does not decrypt or read your conversations.</li>
     <li>It knows <b>that</b> you're typing (system idle timer), never <b>what</b> you type, except the optional privacy scan below, which checks text on-device and instantly discards it. Only the category ("email address") is kept.</li>
+    <li>While you're using Claude, it checks your <b>clipboard</b> for secrets (an API key, a password, a .env line) so it can warn you before you paste one in, even if you copied it from a browser. Checked on-device, content discarded, only the category kept. It stops when you're not using Claude.</li>
     <li>Everything stays on this Mac. Drippy has no account, no cloud, no analytics, and its only network activity is looking up Anthropic's addresses.</li>
   </ul>
 

@@ -21,13 +21,20 @@ are enforced *structurally* in the code, not just by policy.
 3. **Metadata before content.** Drippy prefers the least-invasive signal that
    can do the job, and each deeper level is separately opt-in.
 
+**Why the clipboard is watched during a session, not just when Claude is
+frontmost:** in real work you copy a secret somewhere else (a browser, a
+`.env` file, a password manager) and then paste it into Claude. To warn you
+before that, Drippy checks the clipboard throughout an active Claude session,
+including a few minutes after you tab away to grab something. It never scans
+your clipboard when you have not been using Claude.
+
 ## What each sensor sees
 
 | Sensor | What it reads | What it keeps | Permission |
 |---|---|---|---|
 | Network monitor | which processes have connections to Anthropic's address block; byte counts and timing (encrypted payloads are never decrypted, so Drippy could not read your conversations if it wanted to) | request start/end, app name, byte totals | none |
 | Engagement | frontmost app name + seconds since last keyboard/mouse input (a system-wide timer; individual keystrokes are invisible to Drippy) | "present" / "typing" booleans | none |
-| Clipboard guard | clipboard text, rescanned only when it changes, only while you're in a Claude surface | concern category verdicts only | none |
+| Clipboard guard | clipboard text, rescanned when it changes, throughout an active Claude session: while Claude is frontmost, or within ~3 minutes of using it, so a secret you copied in a browser, a .env file or a password manager is caught before you paste it. Scanning stops once you have not used Claude for a few minutes | concern category verdicts only | none |
 | Typed-text guard (optional) | the focused Claude composer's text via macOS Accessibility, only while you're typing in Claude | concern category verdicts only | Accessibility + Automation, granted by you in System Settings |
 | Claude Code usage | the `usage` numbers and model id from Claude Code's own local session transcripts (`~/.claude/projects`). The message text in those files is never read | exact token counts and model, per message | none |
 
