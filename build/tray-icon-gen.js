@@ -1,24 +1,29 @@
-// Renders Drippy's menu-bar icon as a monochrome macOS template image using
+// Renders Drippy's menu-bar icons as monochrome macOS template images using
 // Drippy's EXACT branding: the real CSS blob border-radius and the exact eye
-// geometry, not an approximation. Template images are pure black + alpha;
-// macOS tints them for the light/dark menu bar automatically.
+// geometry, not an approximation. Two variants:
+//   trayTemplate       normal eyes (6x10 r3, gap 9) - keeping an eye on things
+//   trayAlertTemplate  wide eyes (8x13 r4, gap 8)   - privacy warning
+// Template images are pure black + alpha; macOS tints them for the light/dark
+// menu bar automatically.
 //
 // Method: render the true CSS blob (div with the exact border-radius) as a
-// black silhouette, then punch the two eyes out as transparency at their
-// exact coordinates via canvas destination-out. Rendered at high resolution
-// and downscaled for crisp anti-aliasing.
+// black silhouette, then punch the eyes out as transparency at their exact
+// coordinates via canvas destination-out. Rendered at high resolution and
+// downscaled for crisp anti-aliasing.
 //
 // Run with: npx electron build/tray-icon-gen.js
-// Output: assets/trayTemplate.png (1x) and assets/trayTemplate@2x.png (2x)
 const { app, BrowserWindow, nativeImage } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
-// Exact brand values (from renderer/drippy.css, resting/active geometry).
+// Exact brand values (from renderer/drippy.css).
 const BLOB_W = 56;
 const BLOB_H = 52;
 const RADIUS = '47% 53% 55% 45% / 55% 49% 51% 45%';
-const EYE = { w: 6, h: 10, r: 3, gap: 9, top: 16 };
+const VARIANTS = {
+  trayTemplate: { w: 6, h: 10, r: 3, gap: 9, top: 16 }, // active/attentive eyes
+  trayAlertTemplate: { w: 8, h: 13, r: 4, gap: 8, top: 15 }, // privacy wide eyes
+};
 const F = 8; // supersample factor for smooth edges
 
 const W = BLOB_W * F;
@@ -28,8 +33,8 @@ const html = `<!DOCTYPE html><html><body style="margin:0;background:transparent"
   <div id="blob" style="width:${W}px;height:${H}px;border-radius:${RADIUS};background:#000"></div>
 </body></html>`;
 
-// Punch the two eyes out of the captured silhouette, at exact scaled coords.
-function cutEyes(pngBuffer) {
+// Punch the two eyes out of the captured silhouette at exact scaled coords.
+function cutEyes(pngBuffer, eye) {
   return `(() => {
     const img = new Image();
     return new Promise((resolve) => {
@@ -39,13 +44,12 @@ function cutEyes(pngBuffer) {
         const g = c.getContext('2d');
         g.drawImage(img, 0, 0, ${W}, ${H});
         g.globalCompositeOperation = 'destination-out';
-        const totalW = ${EYE.w * 2 + EYE.gap};
+        const totalW = ${eye.w * 2 + eye.gap};
         const x0 = (${BLOB_W} - totalW) / 2;
-        const eyes = [x0, x0 + ${EYE.w + EYE.gap}];
+        const eyes = [x0, x0 + ${eye.w + eye.gap}];
         for (const ex of eyes) {
-          const x = ex * ${F}, y = ${EYE.top * F}, w = ${EYE.w * F}, h = ${EYE.h * F}, r = ${EYE.r * F};
           g.beginPath();
-          g.roundRect(x, y, w, h, r);
+          g.roundRect(ex * ${F}, ${eye.top * F}, ${eye.w * F}, ${eye.h * F}, ${eye.r * F});
           g.fill();
         }
         resolve(c.toDataURL('image/png'));
@@ -60,8 +64,8 @@ app.whenReady().then(async () => {
   fs.mkdirSync(outDir, { recursive: true });
   const win = new BrowserWindow({
     show: false,
-    width: BLOB_W * F,
-    height: BLOB_H * F,
+    width: W,
+    height: H,
     transparent: true,
     frame: false,
     useContentSize: true,
@@ -69,20 +73,17 @@ app.whenReady().then(async () => {
   });
   await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
   await new Promise((r) => setTimeout(r, 300));
-
   const silhouette = (await win.webContents.capturePage({ x: 0, y: 0, width: W, height: H })).toPNG();
-  const dataUrl = await win.webContents.executeJavaScript(cutEyes(silhouette));
-  const full = nativeImage.createFromDataURL(dataUrl);
 
-  // Downscale to menu-bar sizes (height ~18pt), preserving 56:52 aspect.
   const h1 = 18;
   const w1 = Math.round((h1 * BLOB_W) / BLOB_H);
-  const at1x = full.resize({ width: w1, height: h1, quality: 'best' });
-  const at2x = full.resize({ width: w1 * 2, height: h1 * 2, quality: 'best' });
-  fs.writeFileSync(path.join(outDir, 'trayTemplate.png'), at1x.toPNG());
-  fs.writeFileSync(path.join(outDir, 'trayTemplate@2x.png'), at2x.toPNG());
-  // A larger proof for visual review.
-  fs.writeFileSync(path.join(__dirname, 'trayTemplate-proof.png'), full.resize({ width: BLOB_W * 3, height: BLOB_H * 3, quality: 'best' }).toPNG());
-  console.log(`wrote assets/trayTemplate.png (${w1}x${h1}) and @2x (${w1 * 2}x${h1 * 2})`);
+  for (const [name, eye] of Object.entries(VARIANTS)) {
+    const dataUrl = await win.webContents.executeJavaScript(cutEyes(silhouette, eye));
+    const full = nativeImage.createFromDataURL(dataUrl);
+    fs.writeFileSync(path.join(outDir, `${name}.png`), full.resize({ width: w1, height: h1, quality: 'best' }).toPNG());
+    fs.writeFileSync(path.join(outDir, `${name}@2x.png`), full.resize({ width: w1 * 2, height: h1 * 2, quality: 'best' }).toPNG());
+    fs.writeFileSync(path.join(__dirname, `${name}-proof.png`), full.resize({ width: BLOB_W * 3, height: BLOB_H * 3, quality: 'best' }).toPNG());
+    console.log(`wrote assets/${name}.png (${w1}x${h1}) + @2x`);
+  }
   app.quit();
 });

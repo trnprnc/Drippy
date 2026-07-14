@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.5 (2026-07-14)
+
+- **The menu bar reacts too.** During a privacy warning, Drippy's menu-bar
+  eyes go wide (the design's exact 8×13 privacy-eye geometry) and return to
+  normal when the warning clears, extending the "eyes open when there's
+  something to show you" rule to the menu bar. Same monochrome template
+  style; verified end to end.
+
 ## 0.5.4 (2026-07-14)
 
 - **Professional menu-bar icon.** Replaced the colour 💧 emoji with a
