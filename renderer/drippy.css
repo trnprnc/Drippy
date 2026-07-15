@@ -56,6 +56,16 @@ html, body {
 .grabbed #squish { transform: scale(1.1, .9); transition: transform .12s ease-out; }
 .grabbed #bob, .grabbed #ground { animation-play-state: paused; }
 
+/* --- Doze: after a long idle Drippy droops and bobs slowly, sleepy, as it
+   slopes off to the corner (the window move is handled in the main process) --- */
+.dozing #bob { animation-duration: 9s; }
+.dozing #ground { animation-duration: 9s; opacity: .28; }
+.dozing #squish {
+  transform: translateY(5px) scale(1.04, 0.9);
+  transition: transform .9s ease-out;
+}
+.dozing #blob { animation-duration: 11s; filter: brightness(.94) saturate(.92); }
+
 /* --- The blob --- */
 #blob {
   position: relative;

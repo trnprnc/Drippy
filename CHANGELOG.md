@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0 (2026-07-15)
+
+- **Drippy dozes off to the corner.** After a while idle, Drippy slopes off to
+  the nearest screen corner and naps there (droops, bobs slowly), then bounces
+  back to its home spot the moment you need it: open Claude, an AI request, a
+  privacy event, a hover or a drag all wake it. A fond, quiet nod to Clippy,
+  the corner companion, but without the interruption.
+- **The footprint ring, clarified.** The three arcs are now labelled pillars
+  and behave as gauges that fill toward a daily reference, so a light day
+  shows short arcs and a heavy day fuller ones: amber = AI usage, green =
+  environment, violet = privacy. **Hover Drippy in footprint mode** for the
+  breakdown (requests and tokens, Wh / CO₂e / water, privacy warnings).
+
 ## 0.7.0 (2026-07-15)
 
 - **Risk-tiered privacy warnings.** Not everything sensitive is equally risky

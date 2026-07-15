@@ -32,36 +32,63 @@
     display: none;
   }
   #act:hover { background: light-dark(#f0eef8, #3a4250); }
+  #rows { margin-top: 8px; display: none; }
+  .row { display: flex; align-items: baseline; gap: 8px; margin-top: 5px; }
+  .row .dot { width: 8px; height: 8px; flex: none; border-radius: 50%; transform: translateY(1px); }
+  .row .lbl { font-weight: 600; width: 78px; flex: none; }
+  .row .val { color: light-dark(rgba(0,0,0,.62), rgba(255,255,255,.62)); }
+  #footer { margin-top: 9px; font-size: 10.5px; color: light-dark(rgba(0,0,0,.4), rgba(255,255,255,.4)); }
 </style>
 </head>
 <body>
   <div id="card">
-    <div id="title"><i></i><span id="titleText"></span></div>
+    <div id="title"><i id="titleDot"></i><span id="titleText"></span></div>
     <div id="detail"></div>
     <div id="rec"></div>
     <button id="act" onclick="window.drippyBubble.action()"></button>
+    <div id="rows"></div>
+    <div id="footer"></div>
   </div>
 <script>
   document.body.addEventListener('mouseenter', () => window.drippyBubble.hover(true));
   document.body.addEventListener('mouseleave', () => window.drippyBubble.hover(false));
-  window.drippyBubble.onData(({ title, tier, detail, recommendation, action }) => {
-    document.getElementById('titleText').textContent = title;
-    document.getElementById('detail').textContent = detail;
-    document.getElementById('rec').textContent = recommendation;
-    // Tier 1 (critical) uses the reserved alert colour; tier 2 (caution) violet.
-    const critical = tier === 1;
-    const color = critical ? 'oklch(0.7 0.19 25)' : 'oklch(0.72 0.12 300)';
-    document.querySelector('#title i').style.background = color;
-    document.getElementById('card').style.borderColor = critical
-      ? 'oklch(0.7 0.19 25 / .55)'
-      : 'oklch(0.72 0.12 300 / .5)';
-    const act = document.getElementById('act');
-    act.style.display = action ? 'inline-block' : 'none';
-    act.textContent = action || '';
-    // Report the content height so the window sizes to fit (no clipping).
+
+  const $ = (id) => document.getElementById(id);
+
+  window.drippyBubble.onData((d) => {
+    $('titleText').textContent = d.title;
+    const warning = d.kind !== 'footprint';
+
+    // Warning layout: detail + recommendation + optional action.
+    $('detail').style.display = warning ? '' : 'none';
+    $('rec').style.display = warning ? '' : 'none';
+    $('rows').style.display = warning ? 'none' : 'block';
+    $('act').style.display = warning && d.action ? 'inline-block' : 'none';
+    $('footer').style.display = warning ? 'none' : 'block';
+
+    if (warning) {
+      $('detail').textContent = d.detail || '';
+      $('rec').textContent = d.recommendation || '';
+      $('act').textContent = d.action || '';
+      const critical = d.tier === 1;
+      const color = critical ? 'oklch(0.7 0.19 25)' : 'oklch(0.72 0.12 300)';
+      $('titleDot').style.background = color;
+      $('titleDot').style.animation = 'pulse 1.6s ease-in-out infinite';
+      $('card').style.borderColor = critical ? 'oklch(0.7 0.19 25 / .55)' : 'oklch(0.72 0.12 300 / .5)';
+    } else {
+      // Footprint breakdown: one coloured row per pillar.
+      $('titleDot').style.background = 'oklch(0.66 0.11 210)'; // Drippy teal
+      $('titleDot').style.animation = 'none';
+      $('card').style.borderColor = 'oklch(0.66 0.11 210 / .45)';
+      $('rows').innerHTML = (d.rows || [])
+        .map((r) => `<div class="row"><span class="dot" style="background:${r.color}"></span><span class="lbl">${r.label}</span><span class="val">${r.value}</span></div>`)
+        .join('');
+      $('footer').textContent = d.footer || '';
+    }
+
     requestAnimationFrame(() => {
-      const card = document.getElementById('card');
-      const h = Math.ceil(card.getBoundingClientRect().height) + 16; // 8px margin each side
+      const card = $('card');
+      const h = Math.ceil(card.getBoundingClientRect().height) + 16;
       window.drippyBubble.reportHeight(h);
     });
   });

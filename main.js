@@ -62,7 +62,8 @@ function loadPosition() {
 
 function savePosition() {
   if (!win) return;
-  const [x, y] = win.getPosition();
+  // Persist Drippy's home, never the temporary corner it dozes in.
+  const [x, y] = dozing && homePosition ? [homePosition.x, homePosition.y] : win.getPosition();
   try {
     fs.writeFileSync(positionFile(), JSON.stringify({ x, y }));
   } catch {}
@@ -93,7 +94,10 @@ const daily = {
 let lastPrivacy = null; // { source, categories, at }
 let axPermissionNeeded = false;
 // Rough daily reference budgets, used only to proportion the footprint arcs.
-const BUDGET = { gco2: 20, wh: 50, privacy: 3 };
+// Daily reference points: the footprint ring's three arcs fill toward these,
+// so a light day shows short arcs and a heavy day fuller ones. The arcs are
+// Drippy's three pillars: AI usage, environment, and privacy.
+const FOOTPRINT_REF = { requests: 40, gco2: 20, privacy: 3 };
 
 // Requests are split by attribution: foreground (started while the user was
 // engaged with a Claude surface — "yours") vs background (agents, other
@@ -158,15 +162,15 @@ function trayStateLabel() {
 }
 
 function footprintArcs() {
-  // Each dimension relative to a reference budget, then normalised into ring
-  // shares. Equal thirds on an empty day. (env vs energy will differentiate
-  // once the factor table becomes region-aware.)
-  const env = daily.gco2 / BUDGET.gco2;
-  const energy = daily.wh / BUDGET.wh;
-  const privacy = daily.privacyEvents / BUDGET.privacy;
-  const total = env + energy + privacy;
-  if (total === 0) return { env: 1 / 3, energy: 1 / 3, privacy: 1 / 3 };
-  return { env: env / total, energy: energy / total, privacy: privacy / total };
+  // Each arc is a gauge that fills 0..1 toward its daily reference (capped).
+  // usage = how much AI you leaned on, env = what it cost the planet,
+  // privacy = how often sensitive data nearly slipped out.
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  return {
+    usage: clamp01(daily.requests / FOOTPRINT_REF.requests),
+    env: clamp01(daily.gco2 / FOOTPRINT_REF.gco2),
+    privacy: clamp01(daily.privacyEvents / FOOTPRINT_REF.privacy),
+  };
 }
 
 function leanDirection() {
@@ -187,6 +191,7 @@ function pushState() {
   win.webContents.send('drippy:update', {
     mode,
     ...flags,
+    dozing,
     leanDir: leanDirection(),
     arcs: footprintArcs(),
   });
@@ -195,6 +200,7 @@ function pushState() {
 }
 
 function requestStarted(fg) {
+  noteActivity();
   if (fg) {
     inFlightFg += 1;
     fgLinger = false;
@@ -244,6 +250,7 @@ function requestEnded(fg) {
 
 // level 1 = critical (full alarm + badge), 2 = caution (a quiet squint).
 function privacyEvent(level = 1) {
+  noteActivity();
   daily.privacyEvents += 1;
   saveState();
   privacyLevel = level;
@@ -275,8 +282,10 @@ function acknowledgePrivacy() {
 }
 
 function toggleFootprint() {
+  noteActivity();
   footprintShown = !footprintShown;
   pushState();
+  updateBubble(); // show/hide the footprint breakdown if hovering
 }
 
 function resetDay() {
@@ -441,6 +450,7 @@ engagement.on('state', ({ present, typing, app: appName }) => {
   const typingStarted = typing && !userTyping;
   userPresent = present;
   userTyping = typing;
+  if (present || typing) noteActivity(); // you're back — wake and reset idle
   console.log(`[drippy] engagement — present:${present} typing:${typing}${present ? ` (${appName})` : ''}`);
   monitor.setHot(present); // react in ~1s while you're actually there
   if (typingStarted) monitor.poke(); // a send is probably imminent
@@ -529,6 +539,7 @@ function setDemo(enabled) {
 let dragPoll = null;
 
 function startDrag() {
+  noteActivity(); // a drag wakes Drippy and it becomes the new home
   if (bubbleWin) bubbleWin.hide();
   const cursor = screen.getCursorScreenPoint();
   const [wx, wy] = win.getPosition();
@@ -544,9 +555,106 @@ function startDrag() {
 function endDrag() {
   clearInterval(dragPoll);
   dragPoll = null;
+  homePosition = posObj(); // wherever you put it becomes home
   savePosition();
   pushState(); // refresh lean for the new position
 }
+
+// ---------------------------------------------------------------------------
+// Doze — after a long idle Drippy slopes off to a screen corner and dozes
+// there (a fond nod to Clippy, who lived in the corner), then bounces back to
+// its home spot the moment it's needed again. Clippy's charm, no interruption.
+// ---------------------------------------------------------------------------
+
+const DOZE_AFTER_MS = Number(process.env.DRIPPY_DOZE_MS) || 90 * 1000;
+let homePosition = null;
+let dozing = false;
+let lastActivityAt = Date.now();
+let windowTween = null;
+
+const posObj = () => {
+  const [x, y] = win.getPosition();
+  return { x, y };
+};
+
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+const easeOutBack = (t) => {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+};
+
+function animateWindowTo(tx, ty, duration, ease, done) {
+  if (!win) return;
+  clearInterval(windowTween);
+  const [sx, sy] = win.getPosition();
+  const start = Date.now();
+  windowTween = setInterval(() => {
+    const t = Math.min(1, (Date.now() - start) / duration);
+    const e = ease(t);
+    win.setPosition(Math.round(sx + (tx - sx) * e), Math.round(sy + (ty - sy) * e));
+    if (t >= 1) {
+      clearInterval(windowTween);
+      windowTween = null;
+      if (done) done();
+    }
+  }, 16);
+}
+
+function nearestCornerTarget() {
+  const [wx, wy] = win.getPosition();
+  const wa = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H }).workArea;
+  const peek = 0.45; // fraction of the window tucked past the corner
+  const left = wx + WIN_W / 2 < wa.x + wa.width / 2;
+  const top = wy + WIN_H / 2 < wa.y + wa.height / 2;
+  return {
+    x: left ? Math.round(wa.x - WIN_W * peek) : Math.round(wa.x + wa.width - WIN_W * (1 - peek)),
+    y: top ? Math.round(wa.y - WIN_H * peek) : Math.round(wa.y + wa.height - WIN_H * (1 - peek)),
+  };
+}
+
+function idleEnough() {
+  return (
+    !dozing &&
+    !dragPoll &&
+    !userPresent &&
+    totalInFlight() === 0 &&
+    !fgLinger &&
+    !bgLinger &&
+    privacyLevel === 0 &&
+    !footprintShown &&
+    Date.now() - lastActivityAt > DOZE_AFTER_MS
+  );
+}
+
+function dozeOff() {
+  if (dozing || !win) return;
+  homePosition = homePosition || posObj();
+  dozing = true;
+  pushState(); // renderer droops off to sleep
+  const target = nearestCornerTarget();
+  console.log(`[drippy] dozing off to corner (${target.x}, ${target.y})`);
+  animateWindowTo(target.x, target.y, 1600, easeInOut);
+}
+
+function wakeToHome() {
+  if (!dozing || !win) return;
+  dozing = false;
+  pushState();
+  const home = homePosition || posObj();
+  console.log(`[drippy] bouncing back home (${home.x}, ${home.y})`);
+  animateWindowTo(home.x, home.y, 650, easeOutBack, savePosition);
+}
+
+// Any sign of life resets the idle clock and bounces Drippy back if dozing.
+function noteActivity() {
+  lastActivityAt = Date.now();
+  if (dozing) wakeToHome();
+}
+
+setInterval(() => {
+  if (idleEnough()) dozeOff();
+}, 5000).unref();
 
 // ---------------------------------------------------------------------------
 // Window & tray
@@ -582,6 +690,7 @@ function createWindow() {
     const { workArea } = screen.getPrimaryDisplay();
     win.setPosition(workArea.x + workArea.width - WIN_W - 40, workArea.y + workArea.height - WIN_H - 40);
   }
+  homePosition = posObj(); // remember where Drippy lives when awake
 }
 
 function simulateRequest() {
@@ -726,21 +835,43 @@ let blobHovered = false;
 let bubbleHovered = false;
 let bubbleHideTimer = null;
 
+// Ring colours (match renderer/setRing) for the footprint breakdown rows.
+const RING_COLORS = { usage: 'oklch(0.82 0.13 85)', env: 'oklch(0.78 0.14 155)', privacy: 'oklch(0.72 0.12 300)' };
+
 function bubblePayload() {
-  if (!lastPrivacy) return null;
-  const concerns = lastPrivacy.concerns; // already sorted most-severe first
-  const top = concerns[0];
-  return {
-    title: `Drippy spotted: ${top.label}${concerns.length > 1 ? ` +${concerns.length - 1} more` : ''}`,
-    severity: top.severity,
-    tier: top.tier,
-    detail:
-      lastPrivacy.source === 'clipboard'
-        ? 'On your clipboard, ready to paste into Claude.'
-        : 'In your Claude composer. It has not been sent yet.',
-    recommendation: impactRecommend(top.id),
-    action: lastPrivacy.source === 'clipboard' ? 'Clear clipboard' : null,
-  };
+  if (privacyLevel > 0 && lastPrivacy) {
+    const concerns = lastPrivacy.concerns; // already sorted most-severe first
+    const top = concerns[0];
+    return {
+      kind: 'warning',
+      title: `Drippy spotted: ${top.label}${concerns.length > 1 ? ` +${concerns.length - 1} more` : ''}`,
+      tier: top.tier,
+      detail:
+        lastPrivacy.source === 'clipboard'
+          ? 'On your clipboard, ready to paste into Claude.'
+          : 'In your Claude composer. It has not been sent yet.',
+      recommendation: impactRecommend(top.id),
+      action: lastPrivacy.source === 'clipboard' ? 'Clear clipboard' : null,
+    };
+  }
+  if (footprintShown) {
+    const tokens = Math.round(daily.tokensIn + daily.tokensOut);
+    return {
+      kind: 'footprint',
+      title: "Today's footprint",
+      rows: [
+        { color: RING_COLORS.usage, label: 'AI usage', value: `${daily.requests} requests · ~${tokens.toLocaleString()} tokens` },
+        {
+          color: RING_COLORS.env,
+          label: 'Environment',
+          value: `${daily.wh.toFixed(1)} Wh · ${daily.gco2.toFixed(1)} g CO₂e · ${daily.waterMl.toFixed(0)} mL water`,
+        },
+        { color: RING_COLORS.privacy, label: 'Privacy', value: `${daily.privacyEvents} warning${daily.privacyEvents === 1 ? '' : 's'} today` },
+      ],
+      footer: `Each arc fills toward a daily reference · estimates ±3× · factors v${impact.version}`,
+    };
+  }
+  return null;
 }
 
 const { recommendationFor: impactRecommend } = require('./pii');
@@ -757,7 +888,7 @@ function positionBubble() {
 }
 
 function updateBubble() {
-  const shouldShow = privacyLevel > 0 && (blobHovered || bubbleHovered);
+  const shouldShow = (privacyLevel > 0 || footprintShown) && (blobHovered || bubbleHovered);
   if (shouldShow) {
     clearTimeout(bubbleHideTimer);
     if (!bubbleWin) {
@@ -793,7 +924,7 @@ function updateBubble() {
     // Grace period so the cursor can travel from blob to bubble.
     clearTimeout(bubbleHideTimer);
     bubbleHideTimer = setTimeout(() => {
-      if (bubbleWin && !(privacyLevel > 0 && (blobHovered || bubbleHovered))) bubbleWin.hide();
+      if (bubbleWin && !((privacyLevel > 0 || footprintShown) && (blobHovered || bubbleHovered))) bubbleWin.hide();
     }, 400);
   }
 }
@@ -838,6 +969,7 @@ ipcMain.handle('drippy:history', () => ({
 }));
 
 ipcMain.on('drippy:hover', (_e, { over }) => {
+  if (over) noteActivity(); // hovering wakes Drippy
   blobHovered = over;
   updateBubble();
 });
