@@ -180,6 +180,21 @@ const CONCERNS = [
 
 const SEVERITY_RANK = { critical: 0, high: 1, medium: 2 };
 
+// Risk tier drives how loudly Drippy reacts (see METHODOLOGY / the risk
+// hierarchy). 1 = critical: real or irreversible harm to you (credentials,
+// payment, government IDs) — full alarm + badge. 2 = caution: privacy-
+// sensitive but low-to-moderate (phone, date of birth) — a quiet squint,
+// no badge. 3 = low: minimal risk, e.g. your own email, which Claude
+// already has — noted for trends but no warning.
+const TIERS = {
+  'anthropic-key': 1, 'openai-key': 1, 'github-token': 1, 'aws-key': 1, 'stripe-key': 1,
+  'slack-token': 1, 'google-key': 1, 'private-key': 1, 'db-connection': 1, 'jwt': 1,
+  'bearer-token': 1, 'secret-assignment': 1,
+  'card-number': 1, 'iban': 1, 'uk-bank': 1, 'uk-nino': 1, 'ssn': 1,
+  'phone': 2, 'dob': 2,
+  'email': 3,
+};
+
 function luhnValid(digits) {
   let sum = 0;
   let alt = false;
@@ -204,16 +219,17 @@ function hasCardNumber(text) {
   });
 }
 
-// Returns matched concerns sorted most-severe first: [{id, label, severity}]
+// Returns matched concerns sorted highest-risk first:
+// [{id, label, severity, tier}]
 function scanText(text) {
   if (!text || text.length < 6) return [];
   const found = [];
   for (const c of CONCERNS) {
     try {
-      if (c.test(text)) found.push({ id: c.id, label: c.label, severity: c.severity });
+      if (c.test(text)) found.push({ id: c.id, label: c.label, severity: c.severity, tier: TIERS[c.id] ?? 2 });
     } catch {}
   }
-  return found.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+  return found.sort((a, b) => a.tier - b.tier || SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
 }
 
 function recommendationFor(id) {

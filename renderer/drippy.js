@@ -5,11 +5,14 @@ const MODES = ['resting', 'privacyEvent', 'footprint'];
 
 // The attention progression: eyes forward (AI in use) → eyes on the work
 // (typing) → warning keeps eyes on the work. Glow = AI energy flowing.
-function applyState({ mode, eyes, gaze, glow, leanDir, arcs }) {
+function applyState({ mode, eyes, gaze, glow, leanDir, arcs, privacyLevel }) {
   for (const m of MODES) document.body.classList.toggle(`mode-${m}`, m === mode);
   document.body.classList.toggle('has-eyes', !!eyes);
   document.body.classList.toggle('has-gaze', !!gaze);
   document.body.classList.toggle('has-glow', !!glow);
+  // Privacy tier: 1 = critical (wide eyes + badge), 2 = caution (squint).
+  document.body.classList.toggle('privacy-critical', privacyLevel === 1);
+  document.body.classList.toggle('privacy-caution', privacyLevel === 2);
 
   // Lean: body rotates 5° and eyes shift 4px toward the work
   // (leanDir = 1 means the work is to Drippy's right; spec card shows

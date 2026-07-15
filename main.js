@@ -105,7 +105,7 @@ let fgLinger = false;
 let bgLinger = false;
 let fgLingerTimer = null;
 let bgLingerTimer = null;
-let privacyActive = false;
+let privacyLevel = 0; // 0 = none, 1 = critical (badge), 2 = caution (squint)
 let privacyStartedAt = 0;
 let privacyClearTimer = null;
 let footprintShown = false;
@@ -126,17 +126,18 @@ function totalInFlight() {
 //             problem is); hover Drippy for details and a recommendation
 //   glow — AI energy flowing on this machine (any request, yours or not)
 function visualFlags() {
-  if (privacyActive) return { eyes: false, gaze: true, glow: false };
+  if (privacyLevel > 0) return { eyes: false, gaze: true, glow: false, privacyLevel };
   const fg = inFlightFg > 0 || fgLinger;
   return {
     eyes: userPresent || fg,
     gaze: userTyping,
     glow: fg || inFlightBg > 0 || bgLinger,
+    privacyLevel: 0,
   };
 }
 
 function currentMode() {
-  if (privacyActive) return 'privacyEvent';
+  if (privacyLevel > 0) return 'privacyEvent';
   const f = visualFlags();
   if (f.eyes || f.glow) return 'live'; // flags drive the visuals
   if (footprintShown) return 'footprint';
@@ -144,7 +145,8 @@ function currentMode() {
 }
 
 function trayStateLabel() {
-  if (privacyActive) return 'warning: hover Drippy for details';
+  if (privacyLevel === 1) return 'warning: hover Drippy for details';
+  if (privacyLevel === 2) return 'heads-up: hover Drippy for details';
   const f = visualFlags();
   if (inFlightFg > 0 || fgLinger) return 'your request is running';
   if (f.glow && f.eyes) return 'attentive · background AI activity';
@@ -181,7 +183,7 @@ function leanDirection() {
 function pushState() {
   if (!win || win.isDestroyed()) return;
   const mode = currentMode();
-  const flags = mode === 'footprint' ? { eyes: false, gaze: false, glow: false } : visualFlags();
+  const flags = mode === 'footprint' ? { eyes: false, gaze: false, glow: false, privacyLevel: 0 } : visualFlags();
   win.webContents.send('drippy:update', {
     mode,
     ...flags,
@@ -240,20 +242,22 @@ function requestEnded(fg) {
   pushState();
 }
 
-function privacyEvent() {
+// level 1 = critical (full alarm + badge), 2 = caution (a quiet squint).
+function privacyEvent(level = 1) {
   daily.privacyEvents += 1;
   saveState();
-  privacyActive = true;
+  privacyLevel = level;
   privacyStartedAt = Date.now();
   clearTimeout(privacyClearTimer);
   // Auto-clear if never acknowledged — long enough to notice and hover.
-  privacyClearTimer = setTimeout(clearPrivacy, 15000);
+  // A caution clears a little sooner than a critical warning.
+  privacyClearTimer = setTimeout(clearPrivacy, level === 1 ? 15000 : 10000);
   pushState();
   updateBubble(); // refresh payload if the user is already hovering
 }
 
 function clearPrivacy() {
-  privacyActive = false;
+  privacyLevel = 0;
   clearTimeout(privacyClearTimer);
   updateBubble();
   pushState();
@@ -445,13 +449,25 @@ engagement.on('state', ({ present, typing, app: appName }) => {
 });
 
 privacy.on('detected', ({ source, concerns }) => {
-  lastPrivacy = { source, concerns, at: new Date() };
+  // Count every detection so trends stay honest, including low-risk ones.
   for (const c of concerns) daily.privacyByCat[c.label] = (daily.privacyByCat[c.label] || 0) + 1;
   history.appendPrivacy({ ts: new Date().toISOString(), source, cats: concerns.map((c) => c.id) });
+
+  const topTier = Math.min(...concerns.map((c) => c.tier)); // 1 = most serious
+  if (topTier >= 3) {
+    // Low risk (e.g. your own email): note it, but don't raise a warning.
+    console.log(`[drippy] noted (low risk) — ${concerns.map((c) => c.label).join(', ')} (${source})`);
+    return;
+  }
+
+  // Show the warning built around the concerns that actually warrant it.
+  const warned = concerns.filter((c) => c.tier <= 2);
+  lastPrivacy = { source, concerns: warned, at: new Date() };
+  const level = topTier === 1 ? 1 : 2;
   console.log(
-    `[drippy] privacy event — ${concerns.map((c) => `${c.label} [${c.severity}]`).join(', ')} (${source})`
+    `[drippy] ${level === 1 ? 'WARNING' : 'heads-up'} — ${warned.map((c) => `${c.label} [tier ${c.tier}]`).join(', ')} (${source})`
   );
-  privacyEvent();
+  privacyEvent(level);
 });
 privacy.on('ax-permission-needed', () => {
   axPermissionNeeded = true;
@@ -473,10 +489,20 @@ privacy.on('ax-ready', () => {
 let demoEnabled = false;
 let demoTimer = null;
 
+// Dev-only: fire a warning with a realistic fake concern so the bubble works.
+function simulatePrivacy(level = 1) {
+  const fake =
+    level === 1
+      ? { id: 'anthropic-key', label: 'Anthropic API key', severity: 'critical', tier: 1 }
+      : { id: 'phone', label: 'phone number', severity: 'medium', tier: 2 };
+  lastPrivacy = { source: 'clipboard', concerns: [fake], at: new Date() };
+  privacyEvent(level);
+}
+
 function demoTick() {
   if (!demoEnabled) return;
   if (Math.random() < 0.18) {
-    privacyEvent();
+    simulatePrivacy(Math.random() < 0.6 ? 1 : 2);
   } else {
     const fg = Math.random() < 0.5;
     requestStarted(fg);
@@ -611,7 +637,8 @@ function updateTrayMenu() {
         ? []
         : [
             { label: 'Simulate AI request (5s)', click: simulateRequest },
-            { label: 'Simulate privacy event', click: privacyEvent },
+            { label: 'Simulate critical warning', click: () => simulatePrivacy(1) },
+            { label: 'Simulate caution (squint)', click: () => simulatePrivacy(2) },
             { label: 'Demo mode', type: 'checkbox', checked: demoEnabled, click: () => setDemo(!demoEnabled) },
           ]),
       { type: 'separator' },
@@ -635,11 +662,11 @@ let trayNormalIcon = null;
 let trayAlertIcon = null;
 let trayShowingAlert = false;
 
-// The menu bar reacts too: Drippy's eyes go wide during a privacy warning,
-// the same "eyes open when there's something to show you" rule.
+// The menu bar reacts too: Drippy's eyes go wide during a critical warning
+// (tier 1 only). A tier-2 caution stays a normal glance in the menu bar.
 function updateTrayIcon() {
   if (!tray || !trayNormalIcon || trayNormalIcon.isEmpty()) return;
-  const alert = privacyActive;
+  const alert = privacyLevel === 1;
   if (alert === trayShowingAlert) return;
   trayShowingAlert = alert;
   tray.setImage(alert && !trayAlertIcon.isEmpty() ? trayAlertIcon : trayNormalIcon);
@@ -706,6 +733,7 @@ function bubblePayload() {
   return {
     title: `Drippy spotted: ${top.label}${concerns.length > 1 ? ` +${concerns.length - 1} more` : ''}`,
     severity: top.severity,
+    tier: top.tier,
     detail:
       lastPrivacy.source === 'clipboard'
         ? 'On your clipboard, ready to paste into Claude.'
@@ -729,7 +757,7 @@ function positionBubble() {
 }
 
 function updateBubble() {
-  const shouldShow = privacyActive && (blobHovered || bubbleHovered);
+  const shouldShow = privacyLevel > 0 && (blobHovered || bubbleHovered);
   if (shouldShow) {
     clearTimeout(bubbleHideTimer);
     if (!bubbleWin) {
@@ -765,7 +793,7 @@ function updateBubble() {
     // Grace period so the cursor can travel from blob to bubble.
     clearTimeout(bubbleHideTimer);
     bubbleHideTimer = setTimeout(() => {
-      if (bubbleWin && !(privacyActive && (blobHovered || bubbleHovered))) bubbleWin.hide();
+      if (bubbleWin && !(privacyLevel > 0 && (blobHovered || bubbleHovered))) bubbleWin.hide();
     }, 400);
   }
 }
@@ -838,7 +866,7 @@ ipcMain.on('drippy:open-accessibility', () => {
 ipcMain.on('drippy:drag-start', startDrag);
 ipcMain.on('drippy:drag-end', endDrag);
 ipcMain.on('drippy:click', () => {
-  if (privacyActive) acknowledgePrivacy();
+  if (privacyLevel > 0) acknowledgePrivacy();
   else if (footprintShown) toggleFootprint();
 });
 

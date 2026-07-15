@@ -44,16 +44,16 @@
 <script>
   document.body.addEventListener('mouseenter', () => window.drippyBubble.hover(true));
   document.body.addEventListener('mouseleave', () => window.drippyBubble.hover(false));
-  window.drippyBubble.onData(({ title, severity, detail, recommendation, action }) => {
+  window.drippyBubble.onData(({ title, tier, detail, recommendation, action }) => {
     document.getElementById('titleText').textContent = title;
     document.getElementById('detail').textContent = detail;
     document.getElementById('rec').textContent = recommendation;
-    // critical concerns use the design system's reserved alert color
-    const alert = severity === 'critical';
-    const color = alert ? 'oklch(0.72 0.15 30)' : 'oklch(0.72 0.12 300)';
+    // Tier 1 (critical) uses the reserved alert colour; tier 2 (caution) violet.
+    const critical = tier === 1;
+    const color = critical ? 'oklch(0.7 0.19 25)' : 'oklch(0.72 0.12 300)';
     document.querySelector('#title i').style.background = color;
-    document.getElementById('card').style.borderColor = alert
-      ? 'oklch(0.72 0.15 30 / .55)'
+    document.getElementById('card').style.borderColor = critical
+      ? 'oklch(0.7 0.19 25 / .55)'
       : 'oklch(0.72 0.12 300 / .5)';
     const act = document.getElementById('act');
     act.style.display = action ? 'inline-block' : 'none';

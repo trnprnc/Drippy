@@ -118,7 +118,8 @@ html, body {
   z-index: 6;
 }
 #badge::after { content: "!"; }
-.mode-privacyEvent #badge {
+/* Badge appears for critical (tier 1) warnings only, never the caution squint. */
+.privacy-critical #badge {
   opacity: 1;
   transform: scale(1);
   animation: badgeNudge 1.4s ease-in-out infinite .25s;
@@ -213,11 +214,10 @@ html, body {
     glowPulse 2.2s ease-in-out infinite;
 }
 
-/* PRIVACY / WARNING — violet, near-circle, wide eyes, whole-body pulse.
-   Eyes stay ON THE WORK: the problem is there, so Drippy keeps looking
-   there (has-gaze supplies the translate). Hover Drippy for details. */
+/* PRIVACY — violet, whole-body pulse. Eyes stay ON THE WORK: the problem is
+   there, so Drippy keeps looking there (has-gaze supplies the translate).
+   Two tiers: critical (wide eyes + badge) and caution (a gentle squint). */
 .mode-privacyEvent #blob {
-  animation: pulse 1.6s ease-in-out infinite; /* replaces morph */
   border-radius: 50% 50% 52% 48% / 52% 52% 48% 48%;
   box-shadow:
     0 0 18px 3px oklch(0.72 0.12 300 / .5),
@@ -226,22 +226,20 @@ html, body {
     inset 0 3px 6px rgba(255, 255, 255, .4);
 }
 .mode-privacyEvent #skinPrivacy { opacity: 1; }
-.mode-privacyEvent #eyes {
-  opacity: 1;
-  transform: scale(1);
-  top: 15px;
-  gap: 8px;
-}
-.mode-privacyEvent.has-gaze #eyes {
-  transform: scale(1) translateX(var(--lean-x, 4px));
-}
+.mode-privacyEvent #eyes { opacity: 1; top: 15px; gap: 8px; }
 .mode-privacyEvent.has-gaze #blob { transform: rotate(var(--lean-rot, -5deg)); }
-.mode-privacyEvent .eye {
-  width: 8px;
-  height: 13px;
-  border-radius: 4px;
-  background: #1c0b30;
-}
+.mode-privacyEvent .eye { width: 8px; border-radius: 4px; background: #1c0b30; }
+
+/* Tier 1 critical: wide eyes, firmer pulse. Badge appears (rule above). */
+.privacy-critical #blob { animation: pulse 1.6s ease-in-out infinite; }
+.privacy-critical .eye { height: 13px; }
+.privacy-critical.has-gaze #eyes { transform: translateX(var(--lean-x, 4px)); }
+
+/* Tier 2 caution: a squint (half-closed eyes), gentler pulse, no badge. */
+.privacy-caution #blob { animation: pulse 2.6s ease-in-out infinite; }
+.privacy-caution .eye { height: 12px; }
+.privacy-caution #eyes { transform: scaleY(.34); }
+.privacy-caution.has-gaze #eyes { transform: scaleY(.34) translateX(var(--lean-x, 4px)); }
 
 /* DAY'S FOOTPRINT — dimmed, shrunk to 44x41, eyeless, ringed */
 .mode-footprint #blob {

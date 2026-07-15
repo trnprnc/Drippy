@@ -41,6 +41,29 @@ your clipboard when you have not been using Claude.
 **Explicitly ruled out, permanently:** TLS interception and root
 certificates. Drippy will never decrypt your traffic, for any feature.
 
+## How loudly Drippy warns (risk tiers)
+
+Not everything sensitive is equally risky to share with Claude, and crying
+wolf over the harmless things trains you to ignore the warnings that matter.
+So Drippy grades what it finds:
+
+- **Tier 1, critical (full alarm + badge):** credentials and secrets (API
+  keys, tokens, private keys, database URLs, passwords), payment details
+  (cards, bank), and government IDs (SSN, National Insurance). These can cause
+  real or irreversible harm: account takeover, fraud, permanent identity
+  theft. De-identification in a training pipeline does not neutralise a live
+  secret. Drippy goes violet, eyes wide, with a red notification badge.
+- **Tier 2, caution (a quiet squint):** phone numbers and dates of birth.
+  Privacy-sensitive but low harm on their own. Drippy gives a gentle squint,
+  no badge.
+- **Tier 3, low (noted, no warning):** your own email address. You already
+  gave Claude your email to use it, so a single one is not a meaningful new
+  exposure. Drippy counts it for your trends but does not interrupt you.
+
+(A future tier will catch *bulk* or *third-party* PII, e.g. a pasted list of
+customer records, which is a genuine data-protection risk that a single
+personal detail is not.)
+
 ## What Drippy stores on disk
 
 - `~/Library/Application Support/Drippy/position.json`: where you left the blob

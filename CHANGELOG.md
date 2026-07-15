@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.0 (2026-07-15)
+
+- **Risk-tiered privacy warnings.** Not everything sensitive is equally risky
+  to share with Claude, and false alarms erode trust in the real ones. Drippy
+  now grades findings (see PRIVACY.md, informed by 2026 research on what
+  actually happens to data you paste into Claude):
+  - **Tier 1 critical** (credentials & secrets, payment, government IDs):
+    the full alarm, wide eyes, red exclamation badge, and the menu-bar eyes go
+    wide. The exclamation badge is now reserved for this tier only.
+  - **Tier 2 caution** (phone, date of birth): a gentle squint, violet, no
+    badge, menu bar stays a normal glance.
+  - **Tier 3 low** (your own email): noted in your trends but no warning at
+    all, because a single email you've already given Claude is not a risk.
+- Dev builds now have separate "Simulate critical warning" and "Simulate
+  caution" controls.
+
 ## 0.6.1 (2026-07-14)
 
 - **Warning bubble no longer clips.** The attention bubble was a fixed height,
