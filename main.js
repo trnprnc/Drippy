@@ -692,7 +692,7 @@ function showWelcome() {
 // ---------------------------------------------------------------------------
 
 const BUBBLE_W = 300;
-const BUBBLE_H = 150;
+let bubbleHeight = 170; // grows to fit content (reported by the bubble)
 
 let bubbleWin = null;
 let blobHovered = false;
@@ -708,7 +708,7 @@ function bubblePayload() {
     severity: top.severity,
     detail:
       lastPrivacy.source === 'clipboard'
-        ? 'On your clipboard while a Claude surface is open.'
+        ? 'On your clipboard, ready to paste into Claude.'
         : 'In your Claude composer. It has not been sent yet.',
     recommendation: impactRecommend(top.id),
     action: lastPrivacy.source === 'clipboard' ? 'Clear clipboard' : null,
@@ -723,9 +723,9 @@ function positionBubble() {
   // Prefer the side toward the screen centre (usually the work side).
   let x = wx - BUBBLE_W + 20;
   if (x < display.workArea.x) x = wx + WIN_W - 20;
-  let y = wy + Math.round(WIN_H / 2 - BUBBLE_H / 2);
-  y = Math.max(display.workArea.y, Math.min(y, display.workArea.y + display.workArea.height - BUBBLE_H));
-  bubbleWin.setPosition(Math.round(x), Math.round(y));
+  let y = wy + Math.round(WIN_H / 2 - bubbleHeight / 2);
+  y = Math.max(display.workArea.y, Math.min(y, display.workArea.y + display.workArea.height - bubbleHeight));
+  bubbleWin.setBounds({ x: Math.round(x), y: Math.round(y), width: BUBBLE_W, height: bubbleHeight });
 }
 
 function updateBubble() {
@@ -735,7 +735,7 @@ function updateBubble() {
     if (!bubbleWin) {
       bubbleWin = new BrowserWindow({
         width: BUBBLE_W,
-        height: BUBBLE_H,
+        height: bubbleHeight,
         frame: false,
         transparent: true,
         resizable: false,
@@ -816,6 +816,11 @@ ipcMain.on('drippy:hover', (_e, { over }) => {
 ipcMain.on('drippy:bubble-hover', (_e, { over }) => {
   bubbleHovered = over;
   updateBubble();
+});
+ipcMain.on('drippy:bubble-height', (_e, { h }) => {
+  // Size the bubble to its content so long recommendations aren't clipped.
+  bubbleHeight = Math.max(120, Math.min(360, Math.round(h)));
+  if (bubbleWin && !bubbleWin.isDestroyed()) positionBubble();
 });
 ipcMain.on('drippy:bubble-action', () => {
   // Only clipboard events offer an action; clearing is the remedy.

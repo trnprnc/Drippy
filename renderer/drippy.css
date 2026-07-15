@@ -97,6 +97,37 @@ html, body {
     inset 0 2px 5px rgba(255, 255, 255, .35);
 }
 
+/* --- Notification badge: a recognisable "hover me for details" nudge that
+   appears at the blob's top-right during a warning --- */
+#badge {
+  position: absolute;
+  top: -3px;
+  right: -5px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: oklch(0.7 0.19 25); /* alert red-coral */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .45), 0 0 0 2px rgba(255, 255, 255, .25);
+  color: #fff;
+  font: 700 12px/17px -apple-system, system-ui, sans-serif;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity .2s ease-out, transform .25s cubic-bezier(.34, 1.6, .64, 1);
+  pointer-events: none;
+  z-index: 6;
+}
+#badge::after { content: "!"; }
+.mode-privacyEvent #badge {
+  opacity: 1;
+  transform: scale(1);
+  animation: badgeNudge 1.4s ease-in-out infinite .25s;
+}
+@keyframes badgeNudge {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.1) translateY(-1.5px); }
+}
+
 /* --- Eyes: exist only when Drippy has something to show --- */
 #eyes {
   position: absolute;

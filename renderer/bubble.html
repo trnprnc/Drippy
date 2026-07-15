@@ -58,6 +58,12 @@
     const act = document.getElementById('act');
     act.style.display = action ? 'inline-block' : 'none';
     act.textContent = action || '';
+    // Report the content height so the window sizes to fit (no clipping).
+    requestAnimationFrame(() => {
+      const card = document.getElementById('card');
+      const h = Math.ceil(card.getBoundingClientRect().height) + 16; // 8px margin each side
+      window.drippyBubble.reportHeight(h);
+    });
   });
 </script>
 </body>

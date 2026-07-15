@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.1 (2026-07-14)
+
+- **Warning bubble no longer clips.** The attention bubble was a fixed height,
+  so longer recommendations (and the action button) were cut off. It now sizes
+  to its content.
+- **Notification nudge.** During a privacy warning a small alert badge appears
+  at the blob's top-right, a recognisable "there's something to see here" cue
+  that invites you to hover for the details.
+
 ## 0.6.0 (2026-07-14)
 
 - **Clipboard privacy now matches real workflows.** Previously Drippy only
