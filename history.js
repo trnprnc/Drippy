@@ -35,6 +35,10 @@ function appendPrivacy(p) {
   append(monthFile(p.ts), { t: 'priv', ...p });
 }
 
+function appendSuggestion(sg) {
+  append(monthFile(sg.ts), { t: 'sug', ...sg });
+}
+
 function readDays(n = 30) {
   if (!dir) return [];
   try {
@@ -60,4 +64,4 @@ function finalizeDay(record) {
   append('days.jsonl', record);
 }
 
-module.exports = { init, appendRequest, appendPrivacy, finalizeDay, readDays };
+module.exports = { init, appendRequest, appendPrivacy, appendSuggestion, finalizeDay, readDays };

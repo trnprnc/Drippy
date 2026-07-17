@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.9.0 (2026-07-16) — the voice of reason
+
+Drippy's identity: not the intern who does your work, the colleague who stops
+you sending the wrong thing. A better Clippy: high accuracy, real value, no
+daily caps (abundance doctrine).
+
+- **Suggestion engine** ([suggestions.js](suggestions.js)): a launch catalogue
+  of 30 nudges across six families (authenticity, practice, wellbeing, usage,
+  onboarding, guard), triggered by rules over signals we already sense
+  (clipboard in/out, session rhythm, request cadence, model/tokens, time of
+  day). Ranked by least-dismissed; dismissals stretch a cooldown rather than
+  retiring a nudge; outcomes logged locally so the catalogue earns its place.
+- **AI-tell detector** ([aitell.js](aitell.js)): rule-based, on-device. Text
+  you copy out of Claude gets read for machine-writing fingerprints (em
+  dashes, tell-phrases, uniform rhythm, matching bullets, hedges) so Drippy
+  can nudge a human voice back in before it ships.
+- **Delivery**: a teal suggestion mini-bubble that auto-shows beside Drippy,
+  never stealing focus, then tucks away; plus a reviewable **Suggestions** feed
+  (💧 menu) so nothing is ever lost when you're heads-down.
+- Everything on device, verdicts only, no AI at runtime. Never modal, never
+  does your work.
+
 ## 0.8.0 (2026-07-15)
 
 - **Drippy dozes off to the corner.** After a while idle, Drippy slopes off to

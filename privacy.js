@@ -26,6 +26,7 @@ const { EventEmitter } = require('events');
 const crypto = require('crypto');
 const { clipboard } = require('electron');
 const { scanText } = require('./pii');
+const { scanAiTell } = require('./aitell');
 
 const CLIPBOARD_POLL_MS = 1000; // while a Claude session is active
 const SESSION_LINGER_MS = 3 * 60 * 1000; // keep scanning this long after leaving Claude
@@ -107,13 +108,23 @@ class PrivacySensor extends EventEmitter {
     if (hash === this.lastScanHash) return; // unchanged since last scan
     this.lastScanHash = hash;
     const concerns = scanText(text);
-    text = ''; // discard content; only concern descriptors survive
+    // Authenticity: text copied OUT of Claude (long, no secrets) gets an
+    // AI-tell read, so Drippy can nudge a human voice back in before it ships.
+    let aitell = null;
+    if (!concerns.length) {
+      const t = scanAiTell(text);
+      if (t.score >= 3) aitell = t;
+    }
+    text = ''; // discard content; only descriptors survive
     // Warn as soon as a secret is on the clipboard during an active Claude
     // session, so you are caught before you paste, even if you copied it
     // elsewhere. Deduped so one copied secret warns once.
     if (concerns.length && hash !== this.warnedHash) {
       this.warnedHash = hash;
       this.emit('detected', { source: 'clipboard', concerns });
+    } else if (aitell && hash !== this.warnedHash) {
+      this.warnedHash = hash;
+      this.emit('aitell', aitell);
     }
   }
 

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Drippy suggestions</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --ink: light-dark(#1a1a1a, #e8e8e8);
+    --ink-2: light-dark(rgba(0,0,0,.55), rgba(255,255,255,.55));
+    --ink-3: light-dark(rgba(0,0,0,.4), rgba(255,255,255,.4));
+    --card: light-dark(#ffffff, #1d222b);
+    --line: light-dark(rgba(0,0,0,.08), rgba(255,255,255,.09));
+  }
+  body { margin: 0; padding: 22px 24px 18px; font: 13px/1.55 -apple-system, system-ui, sans-serif;
+    color: var(--ink); background: light-dark(#f5f4f0, #16191f); user-select: none; }
+  h1 { font-size: 17px; margin: 0; }
+  .sub { color: var(--ink-3); font-size: 12px; margin: 2px 0 14px; }
+  .item { display: flex; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex: none; }
+  .body { flex: 1; }
+  .text { color: var(--ink); }
+  .meta { font-size: 11px; color: var(--ink-3); margin-top: 3px; display: flex; gap: 8px; align-items: center; }
+  .fam { text-transform: uppercase; letter-spacing: .04em; }
+  .acts { display: flex; gap: 6px; margin-top: 6px; }
+  button { padding: 2px 9px; border-radius: 6px; cursor: pointer; font: 11px -apple-system, system-ui, sans-serif;
+    border: 1px solid light-dark(rgba(0,0,0,.16), rgba(255,255,255,.2)); background: var(--card); color: inherit; }
+  button:hover { background: light-dark(#efeee8, #2c333e); }
+  .tag { font-size: 10.5px; padding: 1px 7px; border-radius: 20px; }
+  .tag.acted { background: oklch(0.66 0.11 200 / .18); color: oklch(0.55 0.1 200); }
+  .tag.dismissed { background: light-dark(rgba(0,0,0,.06), rgba(255,255,255,.08)); color: var(--ink-3); }
+  .empty { color: var(--ink-3); font-size: 13px; padding: 20px 0; }
+</style>
+</head>
+<body>
+  <h1>Drippy suggestions</h1>
+  <p class="sub">A voice of reason, on device. Nothing here was uploaded. Newest first.</p>
+  <div id="list"></div>
+<script>
+  const FAM = {
+    authenticity: 'oklch(0.7 0.14 40)', practice: 'oklch(0.66 0.11 200)', wellbeing: 'oklch(0.7 0.13 150)',
+    usage: 'oklch(0.78 0.12 85)', onboarding: 'oklch(0.66 0.11 210)', guard: 'oklch(0.7 0.15 25)',
+  };
+  function when(ts) {
+    const m = Math.round((Date.now() - ts) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + 'm ago';
+    const h = Math.round(m / 60); if (h < 24) return h + 'h ago';
+    return Math.round(h / 24) + 'd ago';
+  }
+  async function load() {
+    const feed = (window.drippyFeed ? await window.drippyFeed.get() : []) || [];
+    const list = document.getElementById('list');
+    if (!feed.length) { list.innerHTML = '<div class="empty">No suggestions yet. Drippy speaks up as it learns your rhythm.</div>'; return; }
+    list.innerHTML = feed.map((f) => `
+      <div class="item">
+        <div class="dot" style="background:${FAM[f.family] || 'var(--ink-3)'}"></div>
+        <div class="body">
+          <div class="text">${f.text}</div>
+          <div class="meta"><span class="fam" style="color:${FAM[f.family] || 'var(--ink-3)'}">${f.family}</span><span>${when(f.at)}</span>
+            ${f.outcome ? `<span class="tag ${f.outcome}">${f.outcome}</span>` : ''}</div>
+          ${f.outcome ? '' : `<div class="acts"><button data-id="${f.id}" data-k="acted">Useful</button><button data-id="${f.id}" data-k="dismissed">Dismiss</button></div>`}
+        </div>
+      </div>`).join('');
+    list.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+      window.drippyFeed.outcome(b.dataset.id, b.dataset.k); load();
+    }));
+  }
+  load();
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@ const PrivacySensor = require('./privacy');
 const ClaudeCodeMonitor = require('./claude-code');
 const impact = require('./impact');
 const history = require('./history');
+const { SuggestionEngine } = require('./suggestions');
 
 // Drippy may run detached from any terminal (launched via `open` so macOS
 // attributes permissions to Electron.app itself) — mirror logs to a file.
@@ -201,6 +202,15 @@ function pushState() {
 
 function requestStarted(fg) {
   noteActivity();
+  const now = Date.now();
+  if (fg) {
+    sig.fgReqTimes.push(now);
+    sig.rapidStreak = now - sig.lastReqStartAt < 25000 ? sig.rapidStreak + 1 : 1;
+    sig.lastReqStartAt = now;
+    if (!sig.streamingSince) sig.streamingSince = now;
+  } else if (inFlightFg === 0 && !sig.bgSoloSince) {
+    sig.bgSoloSince = now;
+  }
   if (fg) {
     inFlightFg += 1;
     fgLinger = false;
@@ -244,6 +254,8 @@ function requestEnded(fg) {
   if (totalInFlight() === 0) {
     clearInterval(aiSecondsTimer);
     aiSecondsTimer = null;
+    sig.streamingSince = 0;
+    sig.bgSoloSince = 0;
   }
   pushState();
 }
@@ -264,10 +276,12 @@ function privacyEvent(level = 1) {
 }
 
 function clearPrivacy() {
+  const wasCritical = privacyLevel === 1;
   privacyLevel = 0;
   clearTimeout(privacyClearTimer);
   updateBubble();
   pushState();
+  suggestions.evaluate({ type: 'warning-cleared', wasCritical });
 }
 
 function acknowledgePrivacy() {
@@ -434,22 +448,99 @@ const claudeCode = new ClaudeCodeMonitor();
 claudeCode.on('usage', (u) => {
   const est = impact.fromUsage(u);
   recordRequest({ app: 'Claude Code', fg: true, ms: 0, est });
+  sig.ccInputEvents.push({ t: Date.now(), tokens: u.inputTokens + u.cacheReadTokens + u.cacheCreationTokens });
+  sig.lastModel = est.model;
+  sig.lastCacheRead = u.cacheReadTokens;
+  sig.smallOutputStreak = u.outputTokens < 150 ? sig.smallOutputStreak + 1 : 0;
   console.log(
     `[drippy] claude code — ${est.model} ×${est.tier} · exact ${u.inputTokens}+${u.cacheCreationTokens} fresh / ` +
       `${u.cacheReadTokens} cached in / ${u.outputTokens} out ≈ ${est.wh.toFixed(3)} Wh`
   );
 });
 
+// ---------------------------------------------------------------------------
+// Signals for the suggestion engine — cheap rolling facts about how you're
+// working, assembled on demand. No content, just rhythm and counts.
+// ---------------------------------------------------------------------------
+
+const sig = {
+  fgReqTimes: [],
+  ccInputEvents: [], // { t, tokens }
+  presentSince: 0,
+  lastPresentTrueAt: 0,
+  lastReqStartAt: 0,
+  rapidStreak: 0,
+  smallOutputStreak: 0,
+  lastModel: '',
+  lastCacheRead: 0,
+  streamingSince: 0,
+  bgSoloSince: 0,
+  criticalTimes: [],
+};
+
+function prune() {
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  sig.fgReqTimes = sig.fgReqTimes.filter((t) => t > cutoff - 60 * 60 * 1000);
+  sig.ccInputEvents = sig.ccInputEvents.filter((e) => e.t > cutoff);
+}
+
+function signals() {
+  const now = Date.now();
+  const within = (arr, ms) => arr.filter((t) => now - t < ms).length;
+  const lastCritical = sig.criticalTimes[sig.criticalTimes.length - 1] || 0;
+  return {
+    hour: new Date().getHours(),
+    daily,
+    daysOfHistory: history.readDays(90).length,
+    fgReq30m: within(sig.fgReqTimes, 30 * 60000),
+    fgReq20m: within(sig.fgReqTimes, 20 * 60000),
+    exactInput1h: sig.ccInputEvents.filter((e) => now - e.t < 3600000).reduce((a, e) => a + e.tokens, 0),
+    presentContinuousMin: userPresent && sig.presentSince ? (now - sig.presentSince) / 60000 : 0,
+    minSincePrivacy: lastPrivacy ? (now - lastPrivacy.at.getTime()) / 60000 : 1e9,
+    criticalsThisWeek: sig.criticalTimes.filter((t) => now - t < 7 * 24 * 3600000).length,
+    hoursSinceCritical: lastCritical ? (now - lastCritical) / 3600000 : 1e9,
+    bgSoloMin: inFlightBg > 0 && inFlightFg === 0 && sig.bgSoloSince ? (now - sig.bgSoloSince) / 60000 : 0,
+    fgStreamingSec: inFlightFg > 0 && sig.streamingSince ? (now - sig.streamingSince) / 1000 : 0,
+    rapidStreak: sig.rapidStreak,
+    smallOutputStreak: sig.smallOutputStreak,
+    lastModel: sig.lastModel,
+    lastCacheRead: sig.lastCacheRead,
+    avgOutTokens: daily.requests ? daily.tokensOut / daily.requests : 0,
+  };
+}
+
+const suggestions = new SuggestionEngine({ stateDir: app.getPath('userData'), signals });
+suggestions.on('suggest', (sg) => {
+  history.appendSuggestion({ ts: new Date().toISOString(), id: sg.id, family: sg.family });
+  console.log(`[drippy] suggests — [${sg.family}] ${sg.text}`);
+  showSuggestion(sg);
+});
+setInterval(() => {
+  prune();
+  suggestions.evaluate();
+}, 30 * 1000).unref();
+
 // Eyes open the moment the user starts working in Claude — quiet
 // acknowledgment that Drippy sees the activity. Glow stays reserved for an
 // actual request in flight.
 const privacy = new PrivacySensor();
+privacy.on('aitell', (t) => suggestions.evaluate({ type: 'aitell', signals: t.signals }));
 
 const engagement = new EngagementSensor();
 engagement.on('state', ({ present, typing, app: appName }) => {
   const typingStarted = typing && !userTyping;
+  const wasPresent = userPresent;
   userPresent = present;
   userTyping = typing;
+  if (present && !wasPresent) {
+    const now = Date.now();
+    sig.presentSince = now;
+    // A fresh working session if it's been a while since you were here.
+    if (now - sig.lastPresentTrueAt > 15 * 60 * 1000) suggestions.evaluate({ type: 'session-start' });
+    sig.lastPresentTrueAt = now;
+  } else if (!present) {
+    sig.presentSince = 0;
+  }
   if (present || typing) noteActivity(); // you're back — wake and reset idle
   console.log(`[drippy] engagement — present:${present} typing:${typing}${present ? ` (${appName})` : ''}`);
   monitor.setHot(present); // react in ~1s while you're actually there
@@ -474,6 +565,7 @@ privacy.on('detected', ({ source, concerns }) => {
   const warned = concerns.filter((c) => c.tier <= 2);
   lastPrivacy = { source, concerns: warned, at: new Date() };
   const level = topTier === 1 ? 1 : 2;
+  if (level === 1) sig.criticalTimes.push(Date.now());
   console.log(
     `[drippy] ${level === 1 ? 'WARNING' : 'heads-up'} — ${warned.map((c) => `${c.label} [tier ${c.tier}]`).join(', ')} (${source})`
   );
@@ -644,6 +736,7 @@ function wakeToHome() {
   const home = homePosition || posObj();
   console.log(`[drippy] bouncing back home (${home.x}, ${home.y})`);
   animateWindowTo(home.x, home.y, 650, easeOutBack, savePosition);
+  suggestions.evaluate({ type: 'doze-wake' });
 }
 
 // Any sign of life resets the idle clock and bounces Drippy back if dozing.
@@ -748,9 +841,19 @@ function updateTrayMenu() {
             { label: 'Simulate AI request (5s)', click: simulateRequest },
             { label: 'Simulate critical warning', click: () => simulatePrivacy(1) },
             { label: 'Simulate caution (squint)', click: () => simulatePrivacy(2) },
+            {
+              label: 'Simulate suggestion',
+              click: () =>
+                showSuggestion({
+                  id: 'ask-critique',
+                  family: 'practice',
+                  text: 'AI loves to agree with you. Ask it to attack the idea instead; the pushback is the value.',
+                }),
+            },
             { label: 'Demo mode', type: 'checkbox', checked: demoEnabled, click: () => setDemo(!demoEnabled) },
           ]),
       { type: 'separator' },
+      { label: 'Suggestions…', click: showFeed },
       { label: 'Usage trends…', click: showTrends },
       { label: 'About Drippy: what it can see…', click: showWelcome },
       { label: 'Reset day', click: resetDay },
@@ -984,10 +1087,119 @@ ipcMain.on('drippy:bubble-height', (_e, { h }) => {
 });
 ipcMain.on('drippy:bubble-action', () => {
   // Only clipboard events offer an action; clearing is the remedy.
+  const wasCritical = privacyLevel === 1;
   require('electron').clipboard.clear();
   console.log('[drippy] clipboard cleared via attention bubble');
   clearPrivacy();
+  if (wasCritical) suggestions.evaluate({ type: 'critical-cleared-button' });
 });
+
+// ---------------------------------------------------------------------------
+// Suggestion delivery — a mini bubble that auto-shows beside Drippy (never
+// steals focus) and a reviewable feed so nothing is ever lost.
+// ---------------------------------------------------------------------------
+
+const SUG_W = 300;
+let sugHeight = 120;
+let sugWin = null;
+let sugCurrent = null;
+let sugHovered = false;
+let sugAutoHide = null;
+
+function positionSuggestion() {
+  if (!sugWin || !win) return;
+  const [wx, wy] = win.getPosition();
+  const display = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H });
+  let x = wx - SUG_W + 20;
+  if (x < display.workArea.x) x = wx + WIN_W - 20;
+  // Sit above the blob so it never clashes with the warning bubble's spot.
+  let y = wy - sugHeight + 10;
+  y = Math.max(display.workArea.y, Math.min(y, display.workArea.y + display.workArea.height - sugHeight));
+  sugWin.setBounds({ x: Math.round(x), y: Math.round(y), width: SUG_W, height: sugHeight });
+}
+
+function showSuggestion(sg) {
+  sugCurrent = sg;
+  if (!sugWin) {
+    sugWin = new BrowserWindow({
+      width: SUG_W,
+      height: sugHeight,
+      frame: false,
+      transparent: true,
+      resizable: false,
+      hasShadow: false,
+      skipTaskbar: true,
+      focusable: false,
+      show: false,
+      webPreferences: { preload: path.join(__dirname, 'suggestion-preload.js'), contextIsolation: true },
+    });
+    sugWin.setAlwaysOnTop(true, 'floating');
+    sugWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    sugWin.loadFile(path.join(__dirname, 'renderer', 'suggestion.html'));
+    sugWin.webContents.on('did-finish-load', () => {
+      sugWin.webContents.send('suggest:data', sugCurrent);
+      positionSuggestion();
+      sugWin.showInactive();
+      armSuggestionAutoHide();
+    });
+  } else {
+    sugWin.webContents.send('suggest:data', sg);
+    positionSuggestion();
+    sugWin.showInactive();
+    armSuggestionAutoHide();
+  }
+}
+
+function armSuggestionAutoHide() {
+  clearTimeout(sugAutoHide);
+  sugAutoHide = setTimeout(() => {
+    if (sugWin && !sugHovered) sugWin.hide();
+  }, 9000);
+}
+
+function hideSuggestion() {
+  clearTimeout(sugAutoHide);
+  if (sugWin) sugWin.hide();
+}
+
+ipcMain.on('suggest:hover', (_e, { over }) => {
+  sugHovered = over;
+  if (over) clearTimeout(sugAutoHide);
+  else armSuggestionAutoHide();
+});
+ipcMain.on('suggest:act', () => {
+  if (sugCurrent) suggestions.outcome(sugCurrent.id, 'acted');
+  hideSuggestion();
+});
+ipcMain.on('suggest:dismiss', () => {
+  if (sugCurrent) suggestions.outcome(sugCurrent.id, 'dismissed');
+  hideSuggestion();
+});
+ipcMain.on('suggest:height', (_e, { h }) => {
+  sugHeight = Math.max(80, Math.min(260, Math.round(h)));
+  if (sugWin && !sugWin.isDestroyed()) positionSuggestion();
+});
+ipcMain.on('suggest:outcome', (_e, { id, kind }) => suggestions.outcome(id, kind));
+ipcMain.handle('suggest:feed', () => suggestions.feed());
+
+let feedWin = null;
+function showFeed() {
+  if (feedWin) {
+    feedWin.focus();
+    return;
+  }
+  feedWin = new BrowserWindow({
+    width: 480,
+    height: 640,
+    title: 'Drippy suggestions',
+    fullscreenable: false,
+    webPreferences: { preload: path.join(__dirname, 'feed-preload.js'), contextIsolation: true },
+  });
+  feedWin.loadFile(path.join(__dirname, 'renderer', 'feed.html'));
+  feedWin.on('closed', () => {
+    feedWin = null;
+  });
+}
 
 ipcMain.on('drippy:open-accessibility', () => {
   require('electron').shell.openExternal(

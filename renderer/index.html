@@ -10,6 +10,29 @@
       <div id="ring"></div>
       <div id="badge"></div>
       <div id="ground"></div>
+
+      <!-- Clippy-style shape-shifting: Drippy morphs into a bicycle (and more)
+           when you click it, then rolls back to being a blob. -->
+      <div id="shapes">
+        <svg id="shape-bike" class="shape" viewBox="0 0 120 82" fill="none" aria-hidden="true">
+          <g stroke="oklch(0.86 0.11 195)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="26" cy="56" r="19"/>
+            <circle cx="94" cy="56" r="19"/>
+            <path d="M26 56 L54 56 L45 27 L26 56 Z"/>
+            <path d="M54 56 L82 30 L45 27"/>
+            <path d="M82 30 L94 56"/>
+            <path d="M82 30 L90 22"/>
+            <path d="M39 25 L51 27"/>
+          </g>
+          <circle cx="54" cy="56" r="3.6" fill="oklch(0.86 0.11 195)"/>
+        </svg>
+        <svg id="shape-glass" class="shape" viewBox="0 0 120 82" fill="none" aria-hidden="true">
+          <g stroke="oklch(0.86 0.11 195)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="48" cy="34" r="26"/>
+            <path d="M67 53 L92 78"/>
+          </g>
+        </svg>
+      </div>
       <div id="bob">
         <div id="squish">
           <div id="blob">
