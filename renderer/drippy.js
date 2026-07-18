@@ -6,6 +6,8 @@ const MODES = ['resting', 'privacyEvent', 'footprint'];
 // The attention progression: eyes forward (AI in use) → eyes on the work
 // (typing) → warning keeps eyes on the work. Glow = AI energy flowing.
 function applyState({ mode, eyes, gaze, glow, leanDir, arcs, privacyLevel, dozing }) {
+  // A warning or the footprint always interrupts a playful transform.
+  if (mode === 'privacyEvent' || mode === 'footprint') clearShape();
   for (const m of MODES) document.body.classList.toggle(`mode-${m}`, m === mode);
   document.body.classList.toggle('has-eyes', !!eyes);
   document.body.classList.toggle('has-gaze', !!gaze);
@@ -70,6 +72,29 @@ stage.addEventListener('mousedown', (e) => {
   window.drippy.dragStart();
 });
 
+// Click-to-transform: Drippy morphs into a shape (bicycle, magnifying
+// glass, alternating) and pops back a moment later. Purely playful; never
+// during a warning or the footprint, where clicks keep their real jobs.
+const SHAPES = ['bike', 'glass'];
+let shapeIdx = 0;
+let shapeTimer = null;
+
+function clearShape() {
+  clearTimeout(shapeTimer);
+  document.body.classList.remove('shaped', 'shape-bike', 'shape-glass');
+}
+
+function tryTransform() {
+  const b = document.body;
+  if (b.classList.contains('mode-privacyEvent') || b.classList.contains('mode-footprint')) return;
+  if (b.classList.contains('shaped')) {
+    clearShape(); // click again to pop straight back
+    return;
+  }
+  b.classList.add('shaped', `shape-${SHAPES[shapeIdx++ % SHAPES.length]}`);
+  shapeTimer = setTimeout(clearShape, 2600);
+}
+
 window.addEventListener('mouseup', (e) => {
   if (!downAt) return;
   const moved = Math.hypot(e.screenX - downAt.x, e.screenY - downAt.y);
@@ -77,7 +102,10 @@ window.addEventListener('mouseup', (e) => {
   document.body.classList.remove('grabbed');
   stage.classList.remove('dragging');
   window.drippy.dragEnd();
-  if (moved < 4) window.drippy.click();
+  if (moved < 4) {
+    tryTransform();
+    window.drippy.click();
+  }
 });
 
 window.drippy.onUpdate(applyState);

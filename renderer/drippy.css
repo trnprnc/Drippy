@@ -66,6 +66,36 @@ html, body {
 }
 .dozing #blob { animation-duration: 11s; filter: brightness(.94) saturate(.92); }
 
+/* --- Shape-shifting (Clippy homage): hidden overlays until a click morphs
+   Drippy into one, then it pops back to being a blob. Never during a
+   warning or the footprint. --- */
+#shapes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.shape {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 86px;
+  height: 59px;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.2) rotate(-10deg);
+  transition: opacity .25s ease-out, transform .4s cubic-bezier(.34, 1.56, .64, 1);
+}
+.shaped #squish {
+  transform: scale(.12);
+  opacity: 0;
+  transition: transform .3s ease-in, opacity .25s ease-in;
+}
+.shaped #ground { animation-play-state: paused; opacity: .3; }
+.shape-bike #shape-bike,
+.shape-glass #shape-glass {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+
 /* --- The blob --- */
 #blob {
   position: relative;

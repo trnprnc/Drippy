@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.1 (2026-07-16)
+
+- **Fixed**: half-wired shape overlays from the transform experiment were
+  taking layout space, cutting Drippy off and showing a stray bicycle and
+  magnifying glass. The shapes are now hidden overlays, and the feature is
+  finished properly: **click Drippy** and it morphs into a bicycle (then a
+  magnifying glass next click), popping back a moment later. Never during a
+  warning or the footprint, where clicks keep their real jobs.
+
 ## 0.9.0 (2026-07-16) — the voice of reason
 
 Drippy's identity: not the intern who does your work, the colleague who stops
