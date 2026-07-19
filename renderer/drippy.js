@@ -56,7 +56,9 @@ function setRing({ usage, env, privacy }) {
 
 // No-op bridge when opened in a plain browser (design preview / dev).
 if (!window.drippy) {
-  window.drippy = { onUpdate: () => {}, dragStart: () => {}, dragEnd: () => {}, click: () => {}, hover: () => {} };
+  window.drippy = {
+    onUpdate: () => {}, dragStart: () => {}, dragEnd: () => {}, click: () => {}, hover: () => {}, onMorph: () => {},
+  };
 }
 
 let downAt = null;
@@ -72,9 +74,10 @@ stage.addEventListener('mousedown', (e) => {
   window.drippy.dragStart();
 });
 
-// Click-to-transform: Drippy morphs into a shape (bicycle, magnifying
-// glass, alternating) and pops back a moment later. Purely playful; never
-// during a warning or the footprint, where clicks keep their real jobs.
+// Shape-shifting with purpose. The bicycle rides in with a wellbeing nudge
+// ("go take a break"); the magnifying glass appears when Drippy has looked
+// closely at your writing (an authenticity nudge). Clicking Drippy also
+// cycles them, as a bit of fun. Never during a warning or the footprint.
 const SHAPES = ['bike', 'glass'];
 let shapeIdx = 0;
 let shapeTimer = null;
@@ -84,16 +87,26 @@ function clearShape() {
   document.body.classList.remove('shaped', 'shape-bike', 'shape-glass');
 }
 
-function tryTransform() {
+function morphTo(shape, holdMs = 2600) {
   const b = document.body;
   if (b.classList.contains('mode-privacyEvent') || b.classList.contains('mode-footprint')) return;
-  if (b.classList.contains('shaped')) {
+  b.classList.remove('shape-bike', 'shape-glass');
+  b.classList.add('shaped', `shape-${shape}`);
+  clearTimeout(shapeTimer);
+  shapeTimer = setTimeout(clearShape, holdMs);
+}
+
+function tryTransform() {
+  if (document.body.classList.contains('shaped')) {
     clearShape(); // click again to pop straight back
     return;
   }
-  b.classList.add('shaped', `shape-${SHAPES[shapeIdx++ % SHAPES.length]}`);
-  shapeTimer = setTimeout(clearShape, 2600);
+  morphTo(SHAPES[shapeIdx++ % SHAPES.length]);
 }
+
+// A wellbeing suggestion turns Drippy into a bike; an authenticity one into
+// a magnifying glass. Held a touch longer so it's clearly readable.
+window.drippy.onMorph((shape) => morphTo(shape, 3400));
 
 window.addEventListener('mouseup', (e) => {
   if (!downAt) return;

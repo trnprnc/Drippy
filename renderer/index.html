@@ -11,26 +11,42 @@
       <div id="badge"></div>
       <div id="ground"></div>
 
-      <!-- Clippy-style shape-shifting: Drippy morphs into a bicycle (and more)
-           when you click it, then rolls back to being a blob. -->
+      <!-- Shape-shifting: Drippy squishes his whole blob into the SHAPE of
+           each object (chunky, filled, same teal skin), then pops back.
+           Bicycle = "go take a break". Magnifying glass = "having a look". -->
       <div id="shapes">
-        <svg id="shape-bike" class="shape" viewBox="0 0 120 82" fill="none" aria-hidden="true">
-          <g stroke="oklch(0.86 0.11 195)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="26" cy="56" r="19"/>
-            <circle cx="94" cy="56" r="19"/>
-            <path d="M26 56 L54 56 L45 27 L26 56 Z"/>
-            <path d="M54 56 L82 30 L45 27"/>
-            <path d="M82 30 L94 56"/>
-            <path d="M82 30 L90 22"/>
-            <path d="M39 25 L51 27"/>
+        <svg id="shape-bike" class="shape" viewBox="0 0 120 82" aria-hidden="true">
+          <defs>
+            <linearGradient id="drippySkin" x1="0" y1="0" x2="0.7" y2="1">
+              <stop offset="0" stop-color="oklch(0.85 0.09 195)"/>
+              <stop offset="1" stop-color="oklch(0.66 0.11 210)"/>
+            </linearGradient>
+          </defs>
+          <!-- chunky filled body: wheels as fat rings, frame as thick soft bars -->
+          <g fill="none" stroke="url(#drippySkin)" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="28" cy="54" r="17" stroke-width="9"/>
+            <circle cx="92" cy="54" r="17" stroke-width="9"/>
+            <path d="M28 54 L55 54 L45 28 L28 54 Z" stroke-width="10"/>
+            <path d="M55 54 L80 31 L45 28" stroke-width="10"/>
+            <path d="M80 31 L92 54" stroke-width="10"/>
+            <path d="M80 31 Q88 27 90 22" stroke-width="9"/>
+            <path d="M38 26 Q45 25 52 27" stroke-width="9"/>
           </g>
-          <circle cx="54" cy="56" r="3.6" fill="oklch(0.86 0.11 195)"/>
+          <circle cx="28" cy="54" r="5" fill="url(#drippySkin)"/>
+          <circle cx="92" cy="54" r="5" fill="url(#drippySkin)"/>
+          <circle cx="55" cy="54" r="6" fill="url(#drippySkin)"/>
         </svg>
-        <svg id="shape-glass" class="shape" viewBox="0 0 120 82" fill="none" aria-hidden="true">
-          <g stroke="oklch(0.86 0.11 195)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="48" cy="34" r="26"/>
-            <path d="M67 53 L92 78"/>
-          </g>
+        <svg id="shape-glass" class="shape" viewBox="0 0 120 82" aria-hidden="true">
+          <defs>
+            <linearGradient id="drippySkin2" x1="0" y1="0" x2="0.7" y2="1">
+              <stop offset="0" stop-color="oklch(0.85 0.09 195)"/>
+              <stop offset="1" stop-color="oklch(0.66 0.11 210)"/>
+            </linearGradient>
+          </defs>
+          <!-- fat teal ring lens with a soft glassy fill + a chunky handle -->
+          <circle cx="46" cy="34" r="24" fill="url(#drippySkin2)" opacity="0.28"/>
+          <circle cx="46" cy="34" r="24" fill="none" stroke="url(#drippySkin2)" stroke-width="11"/>
+          <path d="M62 51 L86 75" fill="none" stroke="url(#drippySkin2)" stroke-width="14" stroke-linecap="round"/>
         </svg>
       </div>
       <div id="bob">

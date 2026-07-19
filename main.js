@@ -514,6 +514,10 @@ suggestions.on('suggest', (sg) => {
   history.appendSuggestion({ ts: new Date().toISOString(), id: sg.id, family: sg.family });
   console.log(`[drippy] suggests — [${sg.family}] ${sg.text}`);
   showSuggestion(sg);
+  // Drippy embodies the point: a bike for "go take a break" (wellbeing),
+  // a magnifying glass for "I had a close look at your writing" (authenticity).
+  const shape = sg.family === 'wellbeing' ? 'bike' : sg.family === 'authenticity' ? 'glass' : null;
+  if (shape && win && !win.isDestroyed()) win.webContents.send('drippy:morph', shape);
 });
 setInterval(() => {
   prune();

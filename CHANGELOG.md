@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.2 (2026-07-16)
+
+- **Shapes redrawn as Drippy, not wireframes.** The bicycle and magnifying
+  glass now morph the blob into a chunky, filled, soft object in his exact
+  teal skin, so they look made of the same stuff Drippy is.
+- **Shapes given purpose**, tied to the objectives: the **bicycle** rides in
+  with a wellbeing nudge ("go take a break", the anti-fatigue objective made
+  physical); the **magnifying glass** appears with an authenticity nudge
+  ("I had a close look at your writing"). Clicking Drippy still cycles them
+  for fun; a warning or the footprint always interrupts.
+
 ## 0.9.1 (2026-07-16)
 
 - **Fixed**: half-wired shape overlays from the transform experiment were
