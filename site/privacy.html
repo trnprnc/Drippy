@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drippy privacy design</title>
+<link rel="stylesheet" href="site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%A7%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <a class="brand" href="/"><span class="blob small" style="animation:none"></span> Drippy</a>
+    <span class="spacer"></span>
+    <a href="/guide">User guide</a>
+    <a href="/privacy"><b>Privacy</b></a>
+    <a class="dl" href="/Drippy-mac-arm64.zip" download>Download</a>
+  </nav>
+
+  <div class="prose">
+    <h1>Privacy design</h1>
+    <p>Drippy exists to make AI's hidden impacts visible. A tool like that only works if you can trust it more than the things it watches. This page describes exactly what Drippy can see, what it cannot, and why, and how those promises are enforced structurally in the code, not just by policy.</p>
+
+    <h2>The three rules</h2>
+    <ol>
+      <li><b>Everything stays on your Mac.</b> Drippy has no account, no cloud, no telemetry and no analytics. Its only network activity is DNS lookups of <code>claude.ai</code> / <code>api.anthropic.com</code> (to learn which addresses to watch). It never transmits anything, anywhere.</li>
+      <li><b>Verdicts, not content.</b> Wherever Drippy touches text (clipboard, composer), the text is scanned in memory and discarded in the same function call. Only a category verdict survives, such as "API key" or "email address", never the value. There is no code path that stores, logs or transmits scanned content.</li>
+      <li><b>Metadata before content.</b> Drippy prefers the least-invasive signal that can do the job, and each deeper level is separately opt-in.</li>
+    </ol>
+    <p><b>Why the clipboard is watched during a session, not just when Claude is frontmost:</b> in real work you copy a secret somewhere else (a browser, a <code>.env</code> file, a password manager) and then paste it into Claude. To warn you before that, Drippy checks the clipboard throughout an active Claude session, including a few minutes after you tab away to grab something. It never scans your clipboard when you have not been using Claude.</p>
+
+    <h2>What each sensor sees</h2>
+    <table>
+      <tr><th>Sensor</th><th>What it reads</th><th>What it keeps</th><th>Permission</th></tr>
+      <tr><td>Network monitor</td><td>which processes have connections to Anthropic's address block; byte counts and timing. Encrypted payloads are never decrypted, so Drippy could not read your conversations if it wanted to</td><td>request start/end, app name, byte totals</td><td>none</td></tr>
+      <tr><td>Engagement</td><td>frontmost app name and seconds since last keyboard or mouse input (a system-wide timer; individual keystrokes are invisible to Drippy)</td><td>"present" / "typing" booleans</td><td>none</td></tr>
+      <tr><td>Clipboard guard</td><td>clipboard text, rescanned when it changes, throughout an active Claude session. Scanning stops once you have not used Claude for a few minutes</td><td>concern category verdicts only</td><td>none</td></tr>
+      <tr><td>Typed-text guard (optional)</td><td>the focused Claude composer's text via macOS Accessibility, only while you are typing in Claude</td><td>concern category verdicts only</td><td>Accessibility, granted by you</td></tr>
+      <tr><td>Claude Code usage</td><td>the usage numbers and model id from Claude Code's own local session transcripts. The message text in those files is never read</td><td>exact token counts and model</td><td>none</td></tr>
+    </table>
+    <p><b>Explicitly ruled out, permanently:</b> TLS interception and root certificates. Drippy will never decrypt your traffic, for any feature.</p>
+
+    <h2>How loudly Drippy warns</h2>
+    <p>Not everything sensitive is equally risky, and crying wolf over harmless things trains you to ignore the warnings that matter. So Drippy grades what he finds:</p>
+    <ul>
+      <li><b>Tier 1, critical (full alarm and badge):</b> credentials and secrets, payment details, government IDs. These can cause real or irreversible harm, and de-identification in a training pipeline does not neutralise a live secret.</li>
+      <li><b>Tier 2, caution (a quiet squint):</b> phone numbers and dates of birth. Privacy-sensitive but low harm on their own.</li>
+      <li><b>Tier 3, low (noted, no warning):</b> your own email address. You already gave Claude your email to use it; Drippy counts it for your trends but does not interrupt.</li>
+    </ul>
+
+    <h2>What Drippy stores on disk</h2>
+    <ul>
+      <li><code>~/Library/Application Support/Drippy/</code>: the blob's position and today's counters.</li>
+      <li><code>~/Library/Application Support/Drippy/history/</code>: your local usage history (daily rollups and per-event records: timestamps, app names, token and energy estimates, privacy categories). Powers the Usage trends window. It never leaves the device; any future community or aggregate sharing will be strictly opt-in and documented here first.</li>
+      <li><code>~/Library/Logs/Drippy.log</code>: operational log with state changes, app names and privacy event categories. Never content.</li>
+    </ul>
+    <p>Delete any of these at any time; Drippy recreates them empty.</p>
+
+    <h2>The estimates</h2>
+    <p>Impact numbers are derived from traffic volume (bytes ≈ tokens ≈ energy), never from reading your conversations, and are shown with their uncertainty (±3×). Claude Code numbers are exact, from its own local usage records.</p>
+
+    <h2>Verifying these claims</h2>
+    <p>Drippy's sensing surface is about 500 lines of readable source, and we intend to publish it so you do not have to take our word for any of this.</p>
+  </div>
+
+  <footer>
+    <span>Drippy 1.0.0 test build</span>
+    <span class="spacer"></span>
+    <a href="/">Home</a>
+    <a href="/guide">User guide</a>
+  </footer>
+
+</div>
+</body>
+</html>

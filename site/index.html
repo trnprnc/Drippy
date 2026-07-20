@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drippy, your AI transparency companion</title>
+<meta name="description" content="A small always-on-top companion for your Mac that makes the hidden side of AI usage visible: energy, privacy and habits. Everything stays on your machine.">
+<link rel="stylesheet" href="site.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%A7%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <a class="brand" href="/"><span class="blob small" style="animation:none"></span> Drippy</a>
+    <span class="spacer"></span>
+    <a href="/guide">User guide</a>
+    <a href="/privacy">Privacy</a>
+    <a class="dl" href="/Drippy-mac-arm64.zip" download>Download</a>
+  </nav>
+
+  <header class="hero">
+    <span class="bobber"><span class="blob glowing"><span class="eyes"><span class="eye"></span><span class="eye"></span></span></span></span>
+    <h1>Meet Drippy</h1>
+    <p class="tag">A small companion who floats above your desktop and makes the hidden side of AI visible: the energy it burns, the secrets it nearly swallows, and the habits it quietly builds.</p>
+    <div class="cta">
+      <a class="btn-primary" href="/Drippy-mac-arm64.zip" download>Download for Mac</a>
+      <p class="cta-note">Test build 1.0.0 · macOS 13+, Apple silicon · 96 MB · everything stays on your Mac<br>
+      Not yet notarised: see the <a href="#install">three install steps</a> below.</p>
+    </div>
+  </header>
+
+  <section>
+    <h2>Three things, watched honestly</h2>
+    <p class="lead">Drippy is pro-transparent-AI, not anti-AI. He never reads your conversations and never phones home; he watches patterns, on-device, and tells only you.</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="pill" style="background:var(--amber)"></span>AI usage</h3>
+        <p>Who is using AI on this Mac right now, you or a background agent, and how much. Claude Code usage is exact, read from its own local logs.</p>
+      </div>
+      <div class="card">
+        <h3><span class="pill" style="background:var(--green)"></span>Environment</h3>
+        <p>Honest estimates of energy, water and carbon per day, with the uncertainty stated (±3×) and every factor cited and versioned.</p>
+      </div>
+      <div class="card">
+        <h3><span class="pill" style="background:var(--violet)"></span>Privacy</h3>
+        <p>An API key on your clipboard, a card number in your composer: Drippy turns violet before it leaves your Mac, and tells you what to do about it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How to read him</h2>
+    <p class="lead">Silent by default. No sounds, no notification centre, no interruptions: Drippy speaks in colour and posture.</p>
+    <div class="states">
+      <div class="state">
+        <div class="holder"><span class="blob small" style="animation-duration:9s"></span></div>
+        <b>Resting</b><span>eyeless and calm; nothing to show you</span>
+      </div>
+      <div class="state">
+        <div class="holder"><span class="blob small"><span class="eyes"><span class="eye"></span><span class="eye"></span></span></span></div>
+        <b>Eyes open</b><span>Claude is in front of you; the eyes are about you</span>
+      </div>
+      <div class="state">
+        <div class="holder"><span class="blob small glowing"><span class="eyes"><span class="eye"></span><span class="eye"></span></span></span></div>
+        <b>Glowing</b><span>AI energy flowing, yours or a background agent's</span>
+      </div>
+      <div class="state">
+        <div class="holder"><span class="blob small violet badge-demo"><span class="eyes"><span class="eye"></span><span class="eye"></span></span></span></div>
+        <b>Violet warning</b><span>something sensitive nearly left the machine</span>
+      </div>
+      <div class="state">
+        <div class="holder"><span class="blob small dim ringed"></span></div>
+        <b>Footprint ring</b><span>your day in three gauges; hover for numbers</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>And sometimes, he becomes things</h2>
+    <p class="lead">Always for a reason. Drippy morphs his whole body to make a point, then pops back to being a blob.</p>
+    <div class="quirks">
+      <div class="quirk">
+        <svg viewBox="0 0 120 82" aria-label="Drippy as a bicycle">
+          <defs>
+            <linearGradient id="drippySkin" x1="0" y1="0" x2="0.7" y2="1">
+              <stop offset="0" stop-color="oklch(0.85 0.09 195)"/>
+              <stop offset="1" stop-color="oklch(0.66 0.11 210)"/>
+            </linearGradient>
+            <linearGradient id="drippySkinDeep" x1="0" y1="0" x2="0.6" y2="1">
+              <stop offset="0" stop-color="oklch(0.78 0.10 200)"/>
+              <stop offset="1" stop-color="oklch(0.60 0.11 215)"/>
+            </linearGradient>
+          </defs>
+          <g class="streaks" fill="none" stroke="oklch(0.80 0.07 200)" stroke-width="3.5" stroke-linecap="round">
+            <path d="M7 38 H21"/><path d="M2 50 H14"/><path d="M8 62 H18"/>
+          </g>
+          <g class="rig bike">
+            <g><circle cx="30" cy="57" r="16" fill="none" stroke="url(#drippySkinDeep)" stroke-width="7.5"/>
+              <g class="spokes" stroke="oklch(0.82 0.08 198)" stroke-width="2.4" stroke-linecap="round">
+                <path d="M30 47.5 V66.5"/><path d="M21.8 52.25 L38.2 61.75"/><path d="M21.8 61.75 L38.2 52.25"/>
+              </g>
+              <circle cx="30" cy="57" r="4" fill="url(#drippySkin)"/></g>
+            <g><circle cx="90" cy="57" r="16" fill="none" stroke="url(#drippySkinDeep)" stroke-width="7.5"/>
+              <g class="spokes" stroke="oklch(0.82 0.08 198)" stroke-width="2.4" stroke-linecap="round">
+                <path d="M90 47.5 V66.5"/><path d="M81.8 52.25 L98.2 61.75"/><path d="M81.8 61.75 L98.2 52.25"/>
+              </g>
+              <circle cx="90" cy="57" r="4" fill="url(#drippySkin)"/></g>
+            <g fill="none" stroke="url(#drippySkin)" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M30 57 Q57 70 81 29" stroke-width="8"/>
+              <path d="M90 57 L81 29 L84 15" stroke-width="6.5"/>
+              <path d="M84 15 Q89.5 9.5 95.5 12.5" stroke-width="5.5"/>
+              <path d="M55.5 50 L47.5 24" stroke-width="6.5"/>
+            </g>
+            <circle cx="57" cy="59.5" r="4.2" fill="url(#drippySkin)"/>
+            <g>
+              <ellipse cx="46.5" cy="16" rx="10" ry="8.5" fill="url(#drippySkin)"/>
+              <ellipse cx="42.5" cy="10.8" rx="3.4" ry="1.8" fill="rgba(255,255,255,.4)"/>
+              <g fill="#0b2530">
+                <rect class="beye" x="41.6" y="14" width="3" height="5.6" rx="1.5"/>
+                <rect class="beye" x="48.4" y="14" width="3" height="5.6" rx="1.5"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+        <p><b>The bicycle</b> arrives with a wellbeing nudge: you have been at it a while, go stretch your legs. Note who is riding.</p>
+      </div>
+      <div class="quirk">
+        <svg viewBox="0 0 120 82" aria-label="Drippy as a magnifying glass">
+          <defs>
+            <linearGradient id="drippySkin2" x1="0" y1="0" x2="0.7" y2="1">
+              <stop offset="0" stop-color="oklch(0.85 0.09 195)"/>
+              <stop offset="1" stop-color="oklch(0.66 0.11 210)"/>
+            </linearGradient>
+            <radialGradient id="lensGlass" cx="0.38" cy="0.32" r="0.85">
+              <stop offset="0" stop-color="oklch(0.95 0.04 195)" stop-opacity="0.92"/>
+              <stop offset="0.55" stop-color="oklch(0.87 0.07 198)" stop-opacity="0.80"/>
+              <stop offset="1" stop-color="oklch(0.74 0.10 205)" stop-opacity="0.85"/>
+            </radialGradient>
+            <linearGradient id="drippySkin2Deep" x1="0" y1="0" x2="0.6" y2="1">
+              <stop offset="0" stop-color="oklch(0.78 0.10 200)"/>
+              <stop offset="1" stop-color="oklch(0.60 0.11 215)"/>
+            </linearGradient>
+            <clipPath id="lensClip"><circle cx="46" cy="34" r="22.5"/></clipPath>
+          </defs>
+          <g class="rig glass">
+            <path d="M64 51.5 L89 75" fill="none" stroke="url(#drippySkin2Deep)" stroke-width="13" stroke-linecap="round"/>
+            <path d="M67 52.5 L74.5 59.5" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="46" cy="34" r="22.5" fill="url(#lensGlass)"/>
+            <g clip-path="url(#lensClip)">
+              <g class="lensEyes" fill="#0b2530">
+                <rect class="leye" x="34" y="25" width="7.5" height="15" rx="3.75"/>
+                <rect class="leye" x="50.5" y="25" width="7.5" height="15" rx="3.75"/>
+              </g>
+              <rect class="glint" x="41" y="1" width="10" height="66" rx="5" fill="rgba(255,255,255,.45)" opacity="0"/>
+            </g>
+            <circle cx="46" cy="34" r="18.5" fill="none" stroke="oklch(0.55 0.10 215 / .55)" stroke-width="2.5"/>
+            <circle cx="46" cy="34" r="22.5" fill="none" stroke="url(#drippySkin2)" stroke-width="9"/>
+            <path d="M31.5 19.5 A 20.5 20.5 0 0 1 46 13.5" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="2.8" stroke-linecap="round"/>
+            <path class="spark" d="M75 12 L76.6 16.4 L81 18 L76.6 19.6 L75 24 L73.4 19.6 L69 18 L73.4 16.4 Z"
+                  fill="oklch(0.9 0.06 195)" opacity="0"/>
+          </g>
+        </svg>
+        <p><b>The magnifying glass</b> means he has had a close look at your writing: those are his own eyes, magnified, checking the AI tells before you hit send.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>A voice of reason while you work</h2>
+    <p class="lead">Drippy makes small, practical suggestions in a bubble above him, and every card earns its place: it says why it fired ("because: 9 requests in the last 30 minutes") and its button does the thing: copies the sharper prompt, starts a real five-minute break, shows exactly which AI tells he spotted. No sound, no stolen focus, and every suggestion is kept in a reviewable feed. He guides your practice; he never does the work.</p>
+  </section>
+
+  <section id="install">
+    <h2>Install in three steps</h2>
+    <ol class="steps">
+      <li><b>Download and unzip</b>, then drag <code>Drippy.app</code> into Applications.</li>
+      <li><b>First launch:</b> this test build is not yet notarised, so macOS will refuse it once. Open <b>System Settings → Privacy &amp; Security</b>, scroll down, and click <b>Open Anyway</b>. (On older macOS: right-click the app, choose Open, then Open again.)</li>
+      <li><b>Say hello.</b> Drippy appears bottom-right and gives you his tour. Drag him wherever you like; wherever you drop him becomes home. He lives in the menu bar as 💧 and starts at login.</li>
+    </ol>
+    <p class="cta-note">Optional: to be warned while you type sensitive data into Claude, grant Accessibility when the welcome sheet offers it. Everything else works without it.</p>
+  </section>
+
+  <footer>
+    <span>Drippy 1.0.0 test build</span>
+    <span>Impact figures are estimates (±3×) from a versioned, cited factor table</span>
+    <span class="spacer"></span>
+    <a href="/guide">User guide</a>
+    <a href="/privacy">Privacy design</a>
+  </footer>
+
+</div>
+</body>
+</html>

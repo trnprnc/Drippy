@@ -8,6 +8,9 @@ default. Drippy speaks in colour and posture, never sounds or popups.
 At rest Drippy is an anonymous, eyeless blob. **Eyes exist only when it has
 something to show you.**
 
+New here? Drippy gives a guided tour on first launch (replay it any time
+from the 💧 menu). The full manual is [USER-GUIDE.md](USER-GUIDE.md).
+
 ## Install (macOS, Apple Silicon)
 
 1. Download `Drippy-<version>.dmg`, open it, drag **Drippy** to Applications.

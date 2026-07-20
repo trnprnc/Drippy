@@ -57,7 +57,7 @@
         <div class="dot" style="background:${FAM[f.family] || 'var(--ink-3)'}"></div>
         <div class="body">
           <div class="text">${f.text}</div>
-          <div class="meta"><span class="fam" style="color:${FAM[f.family] || 'var(--ink-3)'}">${f.family}</span><span>${when(f.at)}</span>
+          <div class="meta"><span class="fam" style="color:${FAM[f.family] || 'var(--ink-3)'}">${f.family}</span><span>${when(f.at)}</span>${f.why ? `<span>· ${f.why}</span>` : ''}
             ${f.outcome ? `<span class="tag ${f.outcome}">${f.outcome}</span>` : ''}</div>
           ${f.outcome ? '' : `<div class="acts"><button data-id="${f.id}" data-k="acted">Useful</button><button data-id="${f.id}" data-k="dismissed">Dismiss</button></div>`}
         </div>

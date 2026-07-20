@@ -6,7 +6,8 @@
   :root { color-scheme: light dark; }
   html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; }
   #card {
-    margin: 8px;
+    position: relative;
+    margin: 8px 14px;
     padding: 12px 14px;
     border-radius: 12px;
     background: light-dark(rgba(255,255,255,.96), rgba(29,34,43,.96));
@@ -15,10 +16,45 @@
     box-shadow: 0 8px 24px rgba(0,0,0,.35);
     font: 12px/1.5 -apple-system, system-ui, sans-serif;
   }
+  /* Speech-bubble tail on whichever side Drippy is. */
+  #card::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    background: inherit;
+    border: inherit;
+    transform: rotate(45deg);
+  }
+  #card.tail-right::after {
+    right: -8px;
+    border-bottom: none;
+    border-left: none;
+    border-top-right-radius: 3px;
+  }
+  #card.tail-left::after {
+    left: -8px;
+    border-top: none;
+    border-right: none;
+    border-bottom-left-radius: 3px;
+  }
+  @keyframes popIn {
+    0% { opacity: 0; transform: scale(.78); }
+    65% { transform: scale(1.03); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  #card.pop { animation: popIn .3s cubic-bezier(.3, 1.3, .6, 1); }
+  #card.tail-right { transform-origin: 100% 50%; }
+  #card.tail-left { transform-origin: 0% 50%; }
   #title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 7px; }
+  /* Drippy's blob, tinted to the moment: red critical, violet caution, teal footprint. */
   #title i {
-    width: 9px; height: 9px; flex: none; border-radius: 50%;
-    background: oklch(0.72 0.12 300);
+    width: 13px; height: 12px; flex: none;
+    border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%;
+    background: linear-gradient(165deg, oklch(0.8 0.08 300), oklch(0.62 0.1 310));
+    box-shadow: inset 0 -2px 3px rgba(0,0,0,.28), inset 0 1px 1.5px rgba(255,255,255,.4);
     animation: pulse 1.6s ease-in-out infinite;
   }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
@@ -41,7 +77,7 @@
 </style>
 </head>
 <body>
-  <div id="card">
+  <div id="card" class="tail-right">
     <div id="title"><i id="titleDot"></i><span id="titleText"></span></div>
     <div id="detail"></div>
     <div id="rec"></div>
@@ -55,9 +91,22 @@
 
   const $ = (id) => document.getElementById(id);
 
+  window.drippyBubble.onTail(({ side }) => {
+    $('card').classList.toggle('tail-right', side === 'right');
+    $('card').classList.toggle('tail-left', side === 'left');
+  });
+
+  // Blob tints: gradients matching Drippy's own skin under each mood.
+  const TINTS = {
+    critical: 'linear-gradient(165deg, oklch(0.78 0.16 25), oklch(0.6 0.19 25))',
+    caution: 'linear-gradient(165deg, oklch(0.8 0.08 300), oklch(0.62 0.1 310))',
+    footprint: 'linear-gradient(165deg, oklch(0.85 0.09 195), oklch(0.66 0.11 210))',
+  };
+
   window.drippyBubble.onData((d) => {
     $('titleText').textContent = d.title;
     const warning = d.kind !== 'footprint';
+    const card = $('card');
 
     // Warning layout: detail + recommendation + optional action.
     $('detail').style.display = warning ? '' : 'none';
@@ -71,25 +120,29 @@
       $('rec').textContent = d.recommendation || '';
       $('act').textContent = d.action || '';
       const critical = d.tier === 1;
-      const color = critical ? 'oklch(0.7 0.19 25)' : 'oklch(0.72 0.12 300)';
-      $('titleDot').style.background = color;
+      $('titleDot').style.background = critical ? TINTS.critical : TINTS.caution;
       $('titleDot').style.animation = 'pulse 1.6s ease-in-out infinite';
-      $('card').style.borderColor = critical ? 'oklch(0.7 0.19 25 / .55)' : 'oklch(0.72 0.12 300 / .5)';
+      card.style.borderColor = critical ? 'oklch(0.7 0.19 25 / .55)' : 'oklch(0.72 0.12 300 / .5)';
     } else {
       // Footprint breakdown: one coloured row per pillar.
-      $('titleDot').style.background = 'oklch(0.66 0.11 210)'; // Drippy teal
+      $('titleDot').style.background = TINTS.footprint;
       $('titleDot').style.animation = 'none';
-      $('card').style.borderColor = 'oklch(0.66 0.11 210 / .45)';
+      card.style.borderColor = 'oklch(0.66 0.11 210 / .45)';
       $('rows').innerHTML = (d.rows || [])
         .map((r) => `<div class="row"><span class="dot" style="background:${r.color}"></span><span class="lbl">${r.label}</span><span class="val">${r.value}</span></div>`)
         .join('');
       $('footer').textContent = d.footer || '';
     }
 
+    if (d.pop) {
+      card.classList.remove('pop');
+      void card.offsetWidth; // restart the entrance animation
+      card.classList.add('pop');
+    }
+
     requestAnimationFrame(() => {
-      const card = $('card');
-      const h = Math.ceil(card.getBoundingClientRect().height) + 16;
-      window.drippyBubble.reportHeight(h);
+      // offsetHeight: layout height, unaffected by the pop-in scale transform
+      window.drippyBubble.reportHeight(card.offsetHeight + 16);
     });
   });
 </script>

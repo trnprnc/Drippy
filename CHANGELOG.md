@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.0.0 (2026-07-20) — ready for first test users
+
+- **Suggestions earn their keep.** Every card now says why it fired
+  ("because: 9 requests in the last 30 minutes") and its button does the
+  thing instead of asking for applause: copy the critique prompt, start a
+  real five-minute break (Drippy pings when it is up), reveal exactly which
+  AI tells he spotted, drop a fresh-start brief on the clipboard, open the
+  right window. Dismiss is a quiet ×. (Jack's steer: actionable, not
+  decorative.)
+- **First-run tour.** On a fresh install Drippy introduces himself: six cards
+  above his head while he demonstrates each mode live (glow, the violet
+  warning, the footprint ring, his shapes). Skippable, replayable from
+  💧 → Replay the tour, and the welcome sheet still follows.
+- **Doze is deliberate now.** Instead of drifting half off-screen, an idle
+  Drippy condenses in place into a small still droplet, clearly there and
+  clearly clickable, and plumps back up on any sign of life.
+- **Shapes redesigned and properly alive.** The bicycle is a clean
+  step-through swoop with spinning spokes, speed streaks and Drippy's face
+  riding on the seat post. The magnifying glass got a glassier lens with a
+  deep inner rim: his magnified eyes blink and dart mid-inspection, a glint
+  sweeps the glass and a sparkle pops off the rim.
+- **Popups speak like Drippy.** Suggestion and warning bubbles grew
+  speech-bubble tails that point at him from whichever side he is on, a
+  springy pop-in, and a tiny blob signature (tinted red/violet/teal to the
+  moment). The suggestion bubble hovers just above his head.
+- **Popups stay put properly.** Bubbles hide during a drag, and the welcome,
+  suggestions and trends windows open centred on whichever display Drippy
+  lives on.
+- **User guide** ([USER-GUIDE.md](USER-GUIDE.md)): every state, popup,
+  permission and file location, plus install and uninstall.
+- Streamlined: the 'ask sources' rotation tip merged into 'verify figures'
+  (same action, one voice).
+
 ## 0.9.2 (2026-07-16)
 
 - **Shapes redrawn as Drippy, not wireframes.** The bicycle and magnifying

@@ -87,7 +87,7 @@ function clearShape() {
   document.body.classList.remove('shaped', 'shape-bike', 'shape-glass');
 }
 
-function morphTo(shape, holdMs = 2600) {
+function morphTo(shape, holdMs = 3200) {
   const b = document.body;
   if (b.classList.contains('mode-privacyEvent') || b.classList.contains('mode-footprint')) return;
   b.classList.remove('shape-bike', 'shape-glass');
@@ -105,8 +105,13 @@ function tryTransform() {
 }
 
 // A wellbeing suggestion turns Drippy into a bike; an authenticity one into
-// a magnifying glass. Held a touch longer so it's clearly readable.
-window.drippy.onMorph((shape) => morphTo(shape, 3400));
+// a magnifying glass. Held a touch longer so it's clearly readable. The
+// tour sends { shape, hold } objects ('none' pops him straight back).
+window.drippy.onMorph((m) => {
+  const shape = typeof m === 'string' ? m : m && m.shape;
+  if (!shape || shape === 'none') return clearShape();
+  morphTo(shape, (m && m.hold) || 4200);
+});
 
 window.addEventListener('mouseup', (e) => {
   if (!downAt) return;

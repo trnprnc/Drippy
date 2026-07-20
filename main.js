@@ -63,8 +63,7 @@ function loadPosition() {
 
 function savePosition() {
   if (!win) return;
-  // Persist Drippy's home, never the temporary corner it dozes in.
-  const [x, y] = dozing && homePosition ? [homePosition.x, homePosition.y] : win.getPosition();
+  const [x, y] = win.getPosition();
   try {
     fs.writeFileSync(positionFile(), JSON.stringify({ x, y }));
   } catch {}
@@ -187,6 +186,13 @@ function leanDirection() {
 
 function pushState() {
   if (!win || win.isDestroyed()) return;
+  // While the tour is puppeting the blob, real state stays out of the way
+  // (the tray keeps telling the truth underneath).
+  if (tourActive) {
+    updateTrayMenu();
+    updateTrayIcon();
+    return;
+  }
   const mode = currentMode();
   const flags = mode === 'footprint' ? { eyes: false, gaze: false, glow: false, privacyLevel: 0 } : visualFlags();
   win.webContents.send('drippy:update', {
@@ -511,6 +517,7 @@ function signals() {
 
 const suggestions = new SuggestionEngine({ stateDir: app.getPath('userData'), signals });
 suggestions.on('suggest', (sg) => {
+  if (tourActive) return; // the tour has the floor; the engine can speak later
   history.appendSuggestion({ ts: new Date().toISOString(), id: sg.id, family: sg.family });
   console.log(`[drippy] suggests — [${sg.family}] ${sg.text}`);
   showSuggestion(sg);
@@ -637,6 +644,7 @@ let dragPoll = null;
 function startDrag() {
   noteActivity(); // a drag wakes Drippy and it becomes the new home
   if (bubbleWin) bubbleWin.hide();
+  hideSuggestion(); // popups don't trail along mid-drag
   const cursor = screen.getCursorScreenPoint();
   const [wx, wy] = win.getPosition();
   const offX = cursor.x - wx;
@@ -651,68 +659,25 @@ function startDrag() {
 function endDrag() {
   clearInterval(dragPoll);
   dragPoll = null;
-  homePosition = posObj(); // wherever you put it becomes home
-  savePosition();
+  savePosition(); // wherever you put it becomes home
   pushState(); // refresh lean for the new position
 }
 
 // ---------------------------------------------------------------------------
-// Doze — after a long idle Drippy slopes off to a screen corner and dozes
-// there (a fond nod to Clippy, who lived in the corner), then bounces back to
-// its home spot the moment it's needed again. Clippy's charm, no interruption.
+// Doze — after a long idle Drippy condenses, in place, into a small still
+// droplet: clearly deliberate, clearly still there, clearly clickable. Any
+// sign of life (hover, drag, AI activity) plumps him straight back up.
 // ---------------------------------------------------------------------------
 
 const DOZE_AFTER_MS = Number(process.env.DRIPPY_DOZE_MS) || 90 * 1000;
-let homePosition = null;
 let dozing = false;
 let lastActivityAt = Date.now();
-let windowTween = null;
-
-const posObj = () => {
-  const [x, y] = win.getPosition();
-  return { x, y };
-};
-
-const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
-const easeOutBack = (t) => {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-};
-
-function animateWindowTo(tx, ty, duration, ease, done) {
-  if (!win) return;
-  clearInterval(windowTween);
-  const [sx, sy] = win.getPosition();
-  const start = Date.now();
-  windowTween = setInterval(() => {
-    const t = Math.min(1, (Date.now() - start) / duration);
-    const e = ease(t);
-    win.setPosition(Math.round(sx + (tx - sx) * e), Math.round(sy + (ty - sy) * e));
-    if (t >= 1) {
-      clearInterval(windowTween);
-      windowTween = null;
-      if (done) done();
-    }
-  }, 16);
-}
-
-function nearestCornerTarget() {
-  const [wx, wy] = win.getPosition();
-  const wa = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H }).workArea;
-  const peek = 0.45; // fraction of the window tucked past the corner
-  const left = wx + WIN_W / 2 < wa.x + wa.width / 2;
-  const top = wy + WIN_H / 2 < wa.y + wa.height / 2;
-  return {
-    x: left ? Math.round(wa.x - WIN_W * peek) : Math.round(wa.x + wa.width - WIN_W * (1 - peek)),
-    y: top ? Math.round(wa.y - WIN_H * peek) : Math.round(wa.y + wa.height - WIN_H * (1 - peek)),
-  };
-}
 
 function idleEnough() {
   return (
     !dozing &&
     !dragPoll &&
+    !tourActive &&
     !userPresent &&
     totalInFlight() === 0 &&
     !fgLinger &&
@@ -725,28 +690,21 @@ function idleEnough() {
 
 function dozeOff() {
   if (dozing || !win) return;
-  homePosition = homePosition || posObj();
   dozing = true;
-  pushState(); // renderer droops off to sleep
-  const target = nearestCornerTarget();
-  console.log(`[drippy] dozing off to corner (${target.x}, ${target.y})`);
-  animateWindowTo(target.x, target.y, 1600, easeInOut);
+  hideSuggestion(); // a condensed Drippy leaves no bubble hanging mid-air
+  console.log('[drippy] condensing into a droplet');
+  pushState(); // renderer melts down in place
 }
 
-function wakeToHome() {
-  if (!dozing || !win) return;
-  dozing = false;
-  pushState();
-  const home = homePosition || posObj();
-  console.log(`[drippy] bouncing back home (${home.x}, ${home.y})`);
-  animateWindowTo(home.x, home.y, 650, easeOutBack, savePosition);
-  suggestions.evaluate({ type: 'doze-wake' });
-}
-
-// Any sign of life resets the idle clock and bounces Drippy back if dozing.
+// Any sign of life resets the idle clock and plumps Drippy back up.
 function noteActivity() {
   lastActivityAt = Date.now();
-  if (dozing) wakeToHome();
+  if (dozing) {
+    dozing = false;
+    console.log('[drippy] plumping back up');
+    pushState();
+    suggestions.evaluate({ type: 'doze-wake' });
+  }
 }
 
 setInterval(() => {
@@ -787,7 +745,6 @@ function createWindow() {
     const { workArea } = screen.getPrimaryDisplay();
     win.setPosition(workArea.x + workArea.width - WIN_W - 40, workArea.y + workArea.height - WIN_H - 40);
   }
-  homePosition = posObj(); // remember where Drippy lives when awake
 }
 
 function simulateRequest() {
@@ -852,6 +809,8 @@ function updateTrayMenu() {
                   id: 'ask-critique',
                   family: 'practice',
                   text: 'AI loves to agree with you. Ask it to attack the idea instead; the pushback is the value.',
+                  why: '9 requests in the last 30 minutes',
+                  action: { label: 'Copy critique prompt', kind: 'copy', payload: 'Attack this idea. What breaks first, and why? Be specific and blunt; no praise, no hedging.' },
                 }),
             },
             { label: 'Demo mode', type: 'checkbox', checked: demoEnabled, click: () => setDemo(!demoEnabled) },
@@ -860,6 +819,7 @@ function updateTrayMenu() {
       { label: 'Suggestions…', click: showFeed },
       { label: 'Usage trends…', click: showTrends },
       { label: 'About Drippy: what it can see…', click: showWelcome },
+      { label: 'Replay the tour', click: startTour },
       { label: 'Reset day', click: resetDay },
       { label: 'Quit Drippy', click: () => app.quit() },
     ])
@@ -906,6 +866,19 @@ function createTray() {
 
 let welcomeWin = null;
 
+// Drippy's windows open on whichever display Drippy is on, sitting in the
+// upper third like a sheet he's holding up, not lost on another monitor.
+function centerOnDrippysDisplay(w) {
+  if (!win) return;
+  const [wx, wy] = win.getPosition();
+  const wa = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H }).workArea;
+  const b = w.getBounds();
+  w.setPosition(
+    Math.round(wa.x + (wa.width - b.width) / 2),
+    Math.round(wa.y + Math.max(0, (wa.height - b.height) / 3))
+  );
+}
+
 function showWelcome() {
   if (welcomeWin) {
     welcomeWin.focus();
@@ -924,6 +897,7 @@ function showWelcome() {
     },
   });
   welcomeWin.loadFile(path.join(__dirname, 'renderer', 'welcome.html'));
+  centerOnDrippysDisplay(welcomeWin);
   welcomeWin.on('closed', () => {
     welcomeWin = null;
   });
@@ -983,20 +957,32 @@ function bubblePayload() {
 
 const { recommendationFor: impactRecommend } = require('./pii');
 
+// Popups sit close enough to feel spoken by Drippy: beside him, overlapping
+// the window's empty halo margin but never the blob itself, with a tail
+// pointing back at him.
+const POPUP_TUCK = 44;
+
 function positionBubble() {
   const [wx, wy] = win.getPosition();
   const display = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H });
   // Prefer the side toward the screen centre (usually the work side).
-  let x = wx - BUBBLE_W + 20;
-  if (x < display.workArea.x) x = wx + WIN_W - 20;
+  let x = wx - BUBBLE_W + POPUP_TUCK;
+  let side = 'right'; // bubble left of Drippy, tail on its right edge
+  if (x < display.workArea.x) {
+    x = wx + WIN_W - POPUP_TUCK;
+    side = 'left';
+  }
   let y = wy + Math.round(WIN_H / 2 - bubbleHeight / 2);
   y = Math.max(display.workArea.y, Math.min(y, display.workArea.y + display.workArea.height - bubbleHeight));
   bubbleWin.setBounds({ x: Math.round(x), y: Math.round(y), width: BUBBLE_W, height: bubbleHeight });
+  bubbleWin.webContents.send('bubble:tail', { side });
 }
 
 function updateBubble() {
   const shouldShow = (privacyLevel > 0 || footprintShown) && (blobHovered || bubbleHovered);
   if (shouldShow) {
+    // Spring-in only on a fresh appearance, not on payload refreshes.
+    const fresh = !bubbleWin || !bubbleWin.isVisible();
     clearTimeout(bubbleHideTimer);
     if (!bubbleWin) {
       bubbleWin = new BrowserWindow({
@@ -1018,12 +1004,12 @@ function updateBubble() {
       bubbleWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
       bubbleWin.loadFile(path.join(__dirname, 'renderer', 'bubble.html'));
       bubbleWin.webContents.on('did-finish-load', () => {
-        bubbleWin.webContents.send('bubble:data', bubblePayload());
+        bubbleWin.webContents.send('bubble:data', { ...bubblePayload(), pop: true });
         positionBubble();
         bubbleWin.showInactive();
       });
     } else {
-      bubbleWin.webContents.send('bubble:data', bubblePayload());
+      bubbleWin.webContents.send('bubble:data', { ...bubblePayload(), pop: fresh });
       positionBubble();
       bubbleWin.showInactive();
     }
@@ -1054,18 +1040,18 @@ function showTrends() {
     },
   });
   trendsWin.loadFile(path.join(__dirname, 'renderer', 'trends.html'));
+  centerOnDrippysDisplay(trendsWin);
   trendsWin.on('closed', () => {
     trendsWin = null;
   });
 }
 
-function maybeShowWelcome() {
+// First launch: Drippy gives the tour himself; the welcome sheet follows.
+// The flag is written when the tour ends, so a crash mid-tour retries.
+function maybeStartTour() {
   const flag = path.join(app.getPath('userData'), 'welcomed');
   if (fs.existsSync(flag)) return;
-  try {
-    fs.writeFileSync(flag, new Date().toISOString());
-  } catch {}
-  showWelcome();
+  setTimeout(startTour, 1200); // let the blob settle on screen first
 }
 
 // ---------------------------------------------------------------------------
@@ -1114,12 +1100,18 @@ function positionSuggestion() {
   if (!sugWin || !win) return;
   const [wx, wy] = win.getPosition();
   const display = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H });
-  let x = wx - SUG_W + 20;
-  if (x < display.workArea.x) x = wx + WIN_W - 20;
-  // Sit above the blob so it never clashes with the warning bubble's spot.
-  let y = wy - sugHeight + 10;
-  y = Math.max(display.workArea.y, Math.min(y, display.workArea.y + display.workArea.height - sugHeight));
-  sugWin.setBounds({ x: Math.round(x), y: Math.round(y), width: SUG_W, height: sugHeight });
+  const wa = display.workArea;
+  // Hover just above Drippy's head, roughly centred on him, so it reads as
+  // his thought. Never clashes with the warning bubble's spot beside him.
+  const blobCenterX = wx + WIN_W / 2;
+  let x = Math.round(blobCenterX - SUG_W / 2);
+  x = Math.max(wa.x, Math.min(x, wa.x + wa.width - SUG_W));
+  let y = wy - sugHeight + 48;
+  y = Math.max(wa.y, Math.min(y, wa.y + wa.height - sugHeight));
+  sugWin.setBounds({ x, y, width: SUG_W, height: sugHeight });
+  // Tail aims down at the blob even when the card was clamped by an edge.
+  const tailX = Math.max(18, Math.min(SUG_W - 34, Math.round(blobCenterX - x - 7)));
+  sugWin.webContents.send('suggest:tail', { tailX });
 }
 
 function showSuggestion(sg) {
@@ -1156,14 +1148,41 @@ function showSuggestion(sg) {
 
 function armSuggestionAutoHide() {
   clearTimeout(sugAutoHide);
+  // Long enough to read the why line and reach the button, never nagging.
   sugAutoHide = setTimeout(() => {
     if (sugWin && !sugHovered) sugWin.hide();
-  }, 9000);
+  }, 12000);
 }
 
 function hideSuggestion() {
   clearTimeout(sugAutoHide);
   if (sugWin) sugWin.hide();
+}
+
+// The button on a suggestion DOES the thing (Jack's steer, 2026-07-20):
+// copy the better prompt, start the break, open the right window. The card
+// stays up briefly for 'copy' so its "Copied" confirmation can be seen.
+let breakTimer = null;
+
+function performSuggestionAction(action) {
+  if (!action) return;
+  if (action.kind === 'copy') {
+    require('electron').clipboard.writeText(action.payload || '');
+    console.log('[drippy] suggestion action — copied to clipboard');
+  } else if (action.kind === 'break') {
+    clearTimeout(breakTimer);
+    if (win && !win.isDestroyed()) win.webContents.send('drippy:morph', { shape: 'bike', hold: 4200 });
+    breakTimer = setTimeout(() => {
+      showSuggestion({ id: 'break-done', family: 'wellbeing', text: 'Five minutes, well taken. Welcome back.', why: null, action: null });
+    }, 5 * 60 * 1000);
+    console.log('[drippy] suggestion action — 5 minute break started');
+  } else if (action.kind === 'footprint') {
+    if (!footprintShown) toggleFootprint();
+  } else if (action.kind === 'open-trends') {
+    showTrends();
+  } else if (action.kind === 'open-feed') {
+    showFeed();
+  }
 }
 
 ipcMain.on('suggest:hover', (_e, { over }) => {
@@ -1172,9 +1191,12 @@ ipcMain.on('suggest:hover', (_e, { over }) => {
   else armSuggestionAutoHide();
 });
 ipcMain.on('suggest:act', () => {
-  if (sugCurrent) suggestions.outcome(sugCurrent.id, 'acted');
-  hideSuggestion();
+  if (!sugCurrent) return;
+  performSuggestionAction(sugCurrent.action);
+  suggestions.outcome(sugCurrent.id, 'acted');
+  if (!sugCurrent.action || sugCurrent.action.kind !== 'copy') hideSuggestion();
 });
+ipcMain.on('suggest:hide', () => hideSuggestion());
 ipcMain.on('suggest:dismiss', () => {
   if (sugCurrent) suggestions.outcome(sugCurrent.id, 'dismissed');
   hideSuggestion();
@@ -1200,10 +1222,157 @@ function showFeed() {
     webPreferences: { preload: path.join(__dirname, 'feed-preload.js'), contextIsolation: true },
   });
   feedWin.loadFile(path.join(__dirname, 'renderer', 'feed.html'));
+  centerOnDrippysDisplay(feedWin);
   feedWin.on('closed', () => {
     feedWin = null;
   });
 }
+
+// ---------------------------------------------------------------------------
+// First-run tour — Drippy introduces himself. A tour bubble sits above the
+// blob while the main process puppets it through each mode: demo states are
+// sent straight to the renderer, so no counters or history are touched.
+// ---------------------------------------------------------------------------
+
+const TOUR_W = 320;
+let tourWin = null;
+let tourHeight = 170;
+let tourStep = -1;
+let tourActive = false;
+let tourMorphTimer = null;
+
+const TOUR_STEPS = [
+  {
+    text: "Hello! I'm Drippy. I sit quietly on top of your windows and make the hidden side of AI visible: energy, privacy and habits. Drag me somewhere comfortable; wherever you drop me becomes home.",
+    state: { eyes: true },
+  },
+  {
+    text: 'When AI is at work on this Mac, I glow. My eyes open when Claude is in front of you, and while you type I keep them on your work.',
+    state: { eyes: true, gaze: true, glow: true },
+  },
+  {
+    text: 'If something sensitive is about to leave this Mac, say an API key on your clipboard, I turn violet before it goes. Wide eyes and a badge mean critical: hover me for what I found and what to do about it.',
+    state: { mode: 'privacyEvent', eyes: true, gaze: true, privacyLevel: 1 },
+  },
+  {
+    text: "Ask the menu bar drop (\u{1F4A7}) for my footprint ring and I show your day: green for the environment, amber for AI usage, violet for privacy. Hover me while it's up for the numbers.",
+    state: { mode: 'footprint', arcs: { usage: 0.55, env: 0.4, privacy: 0.33 } },
+  },
+  {
+    text: "Sometimes I become things, always for a reason. A bicycle means you've been at it a while: go stretch your legs. A magnifying glass means I've had a close look at your writing. Click me any time, just for fun.",
+    morphs: ['bike', 'glass'],
+  },
+  {
+    text: 'While you work I make small, practical suggestions, each with a button that does the thing: copy a sharper prompt, start a proper break, show what I spotted. Every one says why it fired, and all of them collect in \u{1F4A7} → Suggestions. That is the tour; my welcome sheet has the rest.',
+    state: { eyes: true },
+  },
+];
+
+function tourState(extra) {
+  if (!win || win.isDestroyed()) return;
+  win.webContents.send('drippy:update', {
+    mode: 'resting',
+    eyes: false,
+    gaze: false,
+    glow: false,
+    privacyLevel: 0,
+    dozing: false,
+    leanDir: leanDirection(),
+    arcs: footprintArcs(),
+    ...extra,
+  });
+}
+
+function positionTour() {
+  if (!tourWin || !win) return;
+  const [wx, wy] = win.getPosition();
+  const display = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H });
+  const wa = display.workArea;
+  const blobCenterX = wx + WIN_W / 2;
+  let x = Math.round(blobCenterX - TOUR_W / 2);
+  x = Math.max(wa.x, Math.min(x, wa.x + wa.width - TOUR_W));
+  let y = wy - tourHeight + 48;
+  y = Math.max(wa.y, Math.min(y, wa.y + wa.height - tourHeight));
+  tourWin.setBounds({ x, y, width: TOUR_W, height: tourHeight });
+  const tailX = Math.max(18, Math.min(TOUR_W - 34, Math.round(blobCenterX - x - 7)));
+  tourWin.webContents.send('tour:tail', { tailX });
+}
+
+function startTour() {
+  if (tourActive) return;
+  tourActive = true;
+  tourStep = -1;
+  console.log('[drippy] tour started');
+  noteActivity();
+  hideSuggestion();
+  footprintShown = false;
+  if (!tourWin) {
+    tourWin = new BrowserWindow({
+      width: TOUR_W,
+      height: tourHeight,
+      frame: false,
+      transparent: true,
+      resizable: false,
+      hasShadow: false,
+      skipTaskbar: true,
+      focusable: false,
+      show: false,
+      webPreferences: { preload: path.join(__dirname, 'tour-preload.js'), contextIsolation: true },
+    });
+    tourWin.setAlwaysOnTop(true, 'floating');
+    tourWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    tourWin.loadFile(path.join(__dirname, 'renderer', 'tour.html'));
+    tourWin.webContents.on('did-finish-load', advanceTour);
+  } else {
+    advanceTour();
+  }
+}
+
+function advanceTour() {
+  clearInterval(tourMorphTimer);
+  tourStep += 1;
+  if (tourStep >= TOUR_STEPS.length) return endTour(true);
+  const s = TOUR_STEPS[tourStep];
+  if (s.morphs) {
+    // The shapes step: Drippy cycles bike and glass while the card is up.
+    tourState({});
+    let i = 0;
+    const sendMorph = () => {
+      if (win && !win.isDestroyed()) win.webContents.send('drippy:morph', { shape: s.morphs[i++ % s.morphs.length], hold: 3050 });
+    };
+    sendMorph();
+    tourMorphTimer = setInterval(sendMorph, 3300);
+  } else {
+    if (win && !win.isDestroyed()) win.webContents.send('drippy:morph', { shape: 'none' });
+    tourState(s.state);
+  }
+  tourWin.webContents.send('tour:data', { text: s.text, step: tourStep, total: TOUR_STEPS.length });
+  positionTour();
+  tourWin.showInactive();
+  console.log(`[drippy] tour step ${tourStep + 1}/${TOUR_STEPS.length}${s.morphs ? ' (shapes)' : ''}`);
+}
+
+function endTour(finished) {
+  clearInterval(tourMorphTimer);
+  tourMorphTimer = null;
+  tourActive = false;
+  tourStep = -1;
+  if (tourWin) tourWin.hide();
+  if (win && !win.isDestroyed()) win.webContents.send('drippy:morph', { shape: 'none' });
+  console.log(`[drippy] tour ${finished ? 'finished' : 'skipped'}`);
+  try {
+    fs.writeFileSync(path.join(app.getPath('userData'), 'welcomed'), new Date().toISOString());
+  } catch {}
+  pushState(); // hand the blob back to reality
+  showWelcome(); // the trust moment: what Drippy can and cannot see
+}
+
+ipcMain.on('tour:next', () => tourActive && advanceTour());
+ipcMain.on('tour:skip', () => tourActive && endTour(false));
+ipcMain.on('tour:height', (_e, { h }) => {
+  tourHeight = Math.max(120, Math.min(320, Math.round(h)));
+  if (tourWin && !tourWin.isDestroyed() && tourActive) positionTour();
+});
 
 ipcMain.on('drippy:open-accessibility', () => {
   require('electron').shell.openExternal(
@@ -1228,7 +1397,7 @@ app.whenReady().then(() => {
   monitor.start();
   engagement.start();
   claudeCode.start();
-  maybeShowWelcome();
+  maybeStartTour();
 });
 
 app.on('before-quit', () => saveState(true));

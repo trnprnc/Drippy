@@ -56,15 +56,27 @@ html, body {
 .grabbed #squish { transform: scale(1.1, .9); transition: transform .12s ease-out; }
 .grabbed #bob, .grabbed #ground { animation-play-state: paused; }
 
-/* --- Doze: after a long idle Drippy droops and bobs slowly, sleepy, as it
-   slopes off to the corner (the window move is handled in the main process) --- */
-.dozing #bob { animation-duration: 9s; }
-.dozing #ground { animation-duration: 9s; opacity: .28; }
-.dozing #squish {
-  transform: translateY(5px) scale(1.04, 0.9);
-  transition: transform .9s ease-out;
+/* --- Doze: after a long idle Drippy condenses, in place, into a small
+   still droplet. Deliberate and legible: you always know he's there, and a
+   hover or click plumps him straight back up (spring via #squish). --- */
+.dozing #bob { animation: none; }
+.dozing #ground {
+  animation: none;
+  width: 18px;
+  left: 19px;
+  bottom: -2px;
+  opacity: .3;
 }
-.dozing #blob { animation-duration: 11s; filter: brightness(.94) saturate(.92); }
+.dozing #squish {
+  transform: translateY(15px) scale(.32);
+  transition: transform .8s cubic-bezier(.5, 0, .3, 1);
+}
+.dozing #blob {
+  /* a resting water drop: rounder, softly pointed crown */
+  border-radius: 52% 48% 50% 50% / 62% 62% 40% 40%;
+  animation-duration: 14s;
+  filter: brightness(.94) saturate(.9);
+}
 
 /* --- Shape-shifting (Clippy homage): hidden overlays until a click morphs
    Drippy into one, then it pops back to being a blob. Never during a
@@ -78,11 +90,11 @@ html, body {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 86px;
-  height: 59px;
+  width: 96px;
+  height: 66px;
   opacity: 0;
-  transform: translate(-50%, -50%) scale(.2) rotate(-10deg);
-  transition: opacity .25s ease-out, transform .4s cubic-bezier(.34, 1.56, .64, 1);
+  transform: translate(-50%, -50%) scale(.15) rotate(-14deg);
+  transition: opacity .25s ease-out, transform .45s cubic-bezier(.34, 1.56, .64, 1);
 }
 .shaped #squish {
   transform: scale(.12);
@@ -94,6 +106,53 @@ html, body {
 .shape-glass #shape-glass {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+
+/* Shape life — every part moves, but only while that shape is showing.
+   SVG parts animate via CSS transforms, so each needs its own box/origin. */
+.shape .rig, .shape .spokes, .shape .lensEyes,
+.shape .beye, .shape .leye, .shape .glint, .shape .spark {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes wheelSpin  { to { transform: rotate(360deg); } }
+@keyframes rideBob    { 0%, 100% { transform: translateY(0) rotate(0deg); }
+                        50% { transform: translateY(-2.5px) rotate(-1.4deg); } }
+@keyframes streakDash { 0% { opacity: 0; transform: translateX(5px); }
+                        30% { opacity: .55; }
+                        100% { opacity: 0; transform: translateX(-10px); } }
+@keyframes eyeBlinkSvg { 0%, 86%, 100% { transform: scaleY(1); }
+                         91% { transform: scaleY(.15); }
+                         96% { transform: scaleY(1); } }
+@keyframes lensSweep  { 0%, 100% { transform: rotate(-5deg); }
+                        50% { transform: rotate(5deg); } }
+@keyframes eyeDart    { 0%, 22%, 100% { transform: translateX(0); }
+                        34%, 52% { transform: translateX(2.5px); }
+                        66%, 84% { transform: translateX(-2px); } }
+@keyframes glintSweep { 0% { transform: rotate(24deg) translateX(-36px); opacity: 0; }
+                        8% { opacity: .9; }
+                        40% { transform: rotate(24deg) translateX(36px); opacity: 0; }
+                        100% { transform: rotate(24deg) translateX(36px); opacity: 0; } }
+
+/* Bicycle: pedalling bob, spinning spokes, speed streaks, saddle-face blink */
+.shape-bike #shape-bike .rig { animation: rideBob 1.5s ease-in-out infinite; }
+.shape-bike #shape-bike .spokes { animation: wheelSpin .85s linear infinite; }
+.shape-bike #shape-bike .streaks path { animation: streakDash 1s ease-out infinite; }
+.shape-bike #shape-bike .streaks path:nth-child(2) { animation-delay: .25s; }
+.shape-bike #shape-bike .streaks path:nth-child(3) { animation-delay: .55s; }
+.shape-bike #shape-bike .beye { animation: eyeBlinkSvg 3.2s ease-in-out infinite; }
+.shape-bike #shape-bike .streaks path { opacity: 0; }
+
+/* Magnifying glass: inspecting sweep, darting magnified eyes, passing glint */
+.shape-glass #shape-glass .rig { animation: lensSweep 2.8s ease-in-out infinite; }
+.shape-glass #shape-glass .lensEyes { animation: eyeDart 3.4s ease-in-out infinite; }
+.shape-glass #shape-glass .leye { animation: eyeBlinkSvg 2.9s ease-in-out infinite .6s; }
+.shape-glass #shape-glass .glint { animation: glintSweep 3.2s ease-in-out infinite .4s; }
+.shape-glass #shape-glass .spark { animation: sparkle 3.2s ease-in-out infinite 1.1s; }
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); }
+  12% { opacity: .95; transform: scale(1) rotate(18deg); }
+  26% { opacity: 0; transform: scale(.5) rotate(38deg); }
 }
 
 /* --- The blob --- */

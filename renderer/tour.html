@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; }
+  #card {
+    position: relative;
+    margin: 8px 8px 16px;
+    padding: 12px 14px 11px;
+    border-radius: 13px;
+    background: light-dark(rgba(255,255,255,.97), rgba(29,34,43,.97));
+    color: light-dark(#1a1a1a, #e8e8e8);
+    border: 1px solid oklch(0.66 0.11 200 / .55);
+    box-shadow: 0 10px 28px rgba(0,0,0,.35);
+    font: 13px/1.55 -apple-system, system-ui, sans-serif;
+    transform-origin: var(--tail-x, 50%) 100%;
+  }
+  /* Tail pointing down at Drippy. */
+  #card::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    left: var(--tail-x, 40px);
+    width: 14px;
+    height: 14px;
+    transform: rotate(45deg);
+    background: inherit;
+    border: inherit;
+    border-top: none;
+    border-left: none;
+    border-bottom-right-radius: 3px;
+  }
+  @keyframes popIn {
+    0% { opacity: 0; transform: scale(.72) translateY(7px); }
+    65% { transform: scale(1.035) translateY(-1px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  #card.pop { animation: popIn .34s cubic-bezier(.3, 1.3, .6, 1); }
+  #head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  #head .mini {
+    width: 15px; height: 14px; flex: none;
+    border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%;
+    background: linear-gradient(165deg, oklch(0.85 0.09 195), oklch(0.66 0.11 210));
+    box-shadow: inset 0 -2.5px 3.5px rgba(0,60,70,.35), inset 0 1px 2px rgba(255,255,255,.45);
+  }
+  #head b { font-size: 11.5px; font-weight: 600; letter-spacing: .03em; color: oklch(0.62 0.09 200); }
+  #text { min-height: 40px; }
+  #foot { display: flex; align-items: center; margin-top: 11px; gap: 6px; }
+  #dots { display: flex; gap: 5px; flex: 1; }
+  #dots i { width: 6px; height: 6px; border-radius: 50%; background: light-dark(rgba(0,0,0,.16), rgba(255,255,255,.2)); }
+  #dots i.on { background: oklch(0.66 0.11 200); }
+  button {
+    padding: 4px 13px; border-radius: 7px; cursor: pointer; font: 12px -apple-system, system-ui, sans-serif;
+    border: 1px solid light-dark(rgba(0,0,0,.18), rgba(255,255,255,.22));
+    background: light-dark(#fff, #2c333e); color: inherit;
+  }
+  #next { border-color: oklch(0.66 0.11 200 / .6); background: oklch(0.66 0.11 200 / .14); font-weight: 600; }
+  #next:hover { background: oklch(0.66 0.11 200 / .26); }
+  #skip { border: none; background: none; color: light-dark(rgba(0,0,0,.45), rgba(255,255,255,.45)); }
+  #skip:hover { color: light-dark(rgba(0,0,0,.7), rgba(255,255,255,.7)); }
+</style>
+</head>
+<body>
+  <div id="card">
+    <div id="head"><div class="mini"></div><b>MEET DRIPPY</b></div>
+    <div id="text"></div>
+    <div id="foot">
+      <div id="dots"></div>
+      <button id="skip" onclick="window.drippyTour.skip()">Skip tour</button>
+      <button id="next" onclick="window.drippyTour.next()">Next</button>
+    </div>
+  </div>
+<script>
+  const card = document.getElementById('card');
+  window.drippyTour.onTail(({ tailX }) => card.style.setProperty('--tail-x', tailX + 'px'));
+  window.drippyTour.onData((d) => {
+    document.getElementById('text').textContent = d.text;
+    document.getElementById('dots').innerHTML =
+      Array.from({ length: d.total }, (_, i) => `<i class="${i === d.step ? 'on' : ''}"></i>`).join('');
+    const last = d.step === d.total - 1;
+    document.getElementById('next').textContent = last ? 'Finish' : 'Next';
+    document.getElementById('skip').style.display = last ? 'none' : '';
+    card.classList.remove('pop');
+    void card.offsetWidth; // restart the entrance animation
+    card.classList.add('pop');
+    requestAnimationFrame(() => {
+      // offsetHeight: layout height, unaffected by the pop-in scale transform
+      window.drippyTour.reportHeight(card.offsetHeight + 24);
+    });
+  });
+</script>
+</body>
+</html>
