@@ -1,0 +1,166 @@
+# Drippy data storage — design
+
+Status: decided 2026-07-21 (decisions at the foot). Not yet implemented.
+The pill and its local history are unaffected until Phase 1 lands.
+
+## Why store data at all
+
+Drippy Commercial sells organisation-wide transparency on AI use (energy,
+water, carbon, spend, privacy posture), built from the same meters each
+employee already sees. Consumers get the same storage as an opt-in: their
+history survives the device, and several devices merge into one picture.
+Both require usage records to leave the device. This document defines
+exactly which records, in what shape, who can see them at which
+resolution, and how the same transparency Drippy applies to AI is applied
+to Drippy itself.
+
+## Principles (inherited, non-negotiable)
+
+1. **Verdicts, not content.** Unchanged from PRIVACY.md. No prompt text,
+   no clipboard text, no composer text exists anywhere in the pipeline,
+   so none can be stored. The cloud schema has no column that could hold
+   content.
+2. **Employee-first.** The employee sees everything about themselves; the
+   organisation sees aggregates. Drippy is never a surveillance tool, and
+   the line is structural (enforced by schema and query layer), not
+   policy.
+3. **Drippy meters himself.** Every record that leaves the device is
+   itself recorded and inspectable by the user: what was sent, when,
+   where, and under which policy. Transparency about the transparency
+   layer.
+4. **The device keeps working alone.** Local history remains the source
+   of truth for the pill, hover and trends. Sync is additive; offline
+   changes nothing.
+5. **Neutral numbers.** Drippy never communicates that usage is good or
+   bad; it provides the numbers and their provenance. An environmental
+   organisation and an AI-first startup will read the same dashboard in
+   opposite directions, and both are right. No leaderboards, no
+   red/green judgement colouring, no targets unless an org configures
+   its own.
+
+## What is stored (and what never is)
+
+Uploaded records are the existing local records, unchanged in kind:
+
+| Record | Fields (today's local shape) | Notes |
+| --- | --- | --- |
+| Day rollup | date, requests, fgRequests, aiSeconds, wh, waterMl, gco2, usd, tokensIn, tokensOut, privacyEvents, privacyByCat (category counts), apps (per-app requests/wh/tokens) | one row per device per day |
+| Request event | ts, app, fg, ms, tokens in/out, wh | coarse: no URLs, no titles, no content |
+| Privacy event | ts, source (clipboard/composer), category ids | categories only, e.g. `anthropic-key` |
+| Notice outcome | ts, notice id, family, shown/acted/dismissed | measures whether notices earn their keep |
+
+Never stored, on device or off: message content, prompts, clipboard or
+composer text, keystrokes, window titles, URLs, filenames, or the values
+that triggered a privacy verdict.
+
+## Tenancy and identity
+
+One model serves both tiers: a **workspace** is either personal (consumer)
+or organisational (commercial). Devices attach to a workspace; the ingest
+path, schemas and ledger are identical.
+
+- **Org workspace: org → teams → members → devices.** A member can have
+  several devices; records carry a device id and roll up to the member.
+  Devices enrol via MDM (the planned distribution channel) with a
+  per-device key issued at enrolment. Uploads are authenticated per
+  device; there are no shared credentials.
+- **Personal workspace: one member, their devices.** Sync is opt-in from
+  the welcome sheet, off by default; enrolment issues the same per-device
+  key. The consumer sees only themselves, so the aggregation floor does
+  not apply. Leaving sync on or off changes nothing about the pill.
+- Member identity is pseudonymous in the events store (member uuid). The
+  mapping to a directory identity (name, email) lives in a separate,
+  smaller table that the aggregate query layer never joins against.
+
+## Visibility model
+
+| Viewer | Sees |
+| --- | --- |
+| The employee | everything about their own devices, at full resolution, including their upload ledger |
+| Team/org dashboards | aggregates only: totals and distributions for energy, water, carbon, spend, request counts, and privacy events by category |
+| Org admins | the same aggregates, plus enrolment/coverage status (which devices are reporting), never per-member usage |
+
+Aggregation floor: a group figure is only shown when the group has at
+least k members. k is org-configurable (default 5) so each organisation
+can find its own use cases; a structural minimum of k = 3 remains,
+because below that a "group" figure is really an individual, which
+crosses the employee-first line. The floor is about identifiability,
+never about hiding or judging usage levels. Below the floor, the figure
+folds into the parent group. Privacy events are the most sensitive
+class: they are org-visible only as category counts at org level, never
+at team level, so a warning can never be walked back to a person.
+
+## The upload ledger (self-transparency)
+
+A local, append-only ledger records every sync: timestamp, record counts
+by type, byte size, destination, and the policy version in force. Shown
+in-app (a "What has been shared" view reachable from What Drippy can
+see). If Drippy ever cannot say what it sent, it must not send.
+
+## Sync protocol
+
+- Batch, not streaming: rollups and events are uploaded on day close and
+  at most hourly for the current day, batched as JSONL, idempotent on
+  (device id, record type, natural key) so retries are safe.
+- The device buffers while offline and reconciles later; local files are
+  never truncated by sync (retention below governs the cloud, the user
+  governs their disk).
+- Transport: TLS to a single ingest endpoint; payloads are the ledger
+  entries' exact contents, so the ledger is provably complete.
+
+## Retention
+
+- Cloud events: 90 days, then deleted (rollups carry the trends).
+- Cloud rollups: 24 months.
+- Member leaves org: member uuid unlinked from directory identity
+  immediately; remaining records count only towards historic aggregates.
+- Org offboarding: full tenant export (JSONL, same shapes as upload),
+  then deletion within 30 days.
+
+## Compliance posture (UK company)
+
+- UK GDPR / DPA 2018. TRNSPNC Ltd processes on behalf of the org
+  (controller); a DPA and a DPIA template ship with the commercial tier.
+  For personal workspaces TRNSPNC Ltd is the controller, and the privacy
+  policy will say so in the same plain terms as PRIVACY.md.
+- Data residency: UK/EU region only for the first release.
+- Lawful basis is the org's to establish; Drippy's contribution is data
+  minimisation by construction (verdicts, aggregates, k-floor) which
+  makes the DPIA short.
+
+## Backend
+
+Neon managed Postgres, UK/EU region, behind a thin ingest service (one
+endpoint, per-device keys, batch JSONL in, rows out). Nothing exotic
+until scale demands it. Aggregates are materialised views over the
+events/rollups tables; the k-floor and the identity separation live in
+that view layer, so raw tables are never queryable by dashboards.
+
+## Phasing
+
+1. **Phase 1 (build next):** upload contract + ledger on device; ingest
+   API + Neon tenant store; personal-workspace opt-in in the welcome
+   sheet; nothing else user-visible beyond the ledger view.
+2. **Phase 2:** org dashboard MVP (aggregates, coverage, factors
+   versioning, configurable k) and MDM enrolment flow.
+3. **Phase 3:** reconcile with provider Admin/Usage APIs (fidelity L3) so
+   org spend/energy figures graduate from estimated to measured, with
+   provenance stated, as in the trends window.
+
+## Decisions (Jack, 2026-07-21)
+
+1. **Granularity:** rollups + coarse events.
+2. **Consumer tier:** ships at launch, opt-in, same storage design
+   (personal workspaces).
+3. **Backend:** Neon managed Postgres, UK/EU.
+4. **Aggregation floor:** org-configurable (default 5, structural
+   minimum 3), paired with the neutrality principle: Drippy provides
+   transparency, never a verdict on whether usage is high or low, good
+   or bad; each organisation reads the numbers through its own values.
+
+## Still open
+
+- Consumer sign-in method (email magic link vs Sign in with Apple) and
+  where the personal workspace is created.
+- Pricing and packaging for both tiers.
+- MDM vendor targets and enrolment payload details.
