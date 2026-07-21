@@ -102,6 +102,13 @@ const daily = {
   tokensOut: 0,
   tokensIn: 0,
   apps: {},
+  // Drivers, kept alongside the derived figures so stored history can be
+  // restated when factor tables improve (DATA-STORAGE.md): per-model token
+  // classes ('estimated' bucket for network-observed traffic) and the raw
+  // bytes behind the estimates.
+  models: {},
+  bytesEstIn: 0,
+  bytesEstOut: 0,
 };
 let lastPrivacy = null; // { source, categories, at }
 let axPermissionNeeded = false;
@@ -120,6 +127,26 @@ let privacyLevel = 0; // 0 = none, 1 = critical (badge), 2 = caution (violet tin
 let privacyStartedAt = 0;
 let privacyClearTimer = null;
 let aiSecondsTimer = null;
+
+// The privacy incident being warned about right now. It is written to
+// history when the warning resolves, so one append-only line carries the
+// full anatomy of the near-miss: categories, tier, resolution and
+// time-to-clear (DATA-STORAGE.md). Buffered in memory for the warning's
+// lifetime only (15s at most).
+let pendingIncident = null;
+
+function flushIncident(resolution) {
+  if (!pendingIncident) return;
+  history.appendPrivacy({
+    ts: pendingIncident.ts,
+    source: pendingIncident.source,
+    cats: pendingIncident.cats,
+    topTier: pendingIncident.topTier,
+    resolution: pendingIncident.resolution || resolution,
+    msToClear: Date.now() - pendingIncident.at,
+  });
+  pendingIncident = null;
+}
 
 let userPresent = false; // a Claude surface is frontmost
 let userTyping = false; // and input is happening right now
@@ -250,8 +277,9 @@ function privacyEvent(level = 1) {
   updateBubble(); // refresh payload if the user is already hovering
 }
 
-function clearPrivacy() {
+function clearPrivacy(resolution = 'auto-cleared') {
   const wasCritical = privacyLevel === 1;
+  flushIncident(typeof resolution === 'string' ? resolution : 'auto-cleared');
   privacyLevel = 0;
   clearTimeout(privacyClearTimer);
   updateBubble();
@@ -260,10 +288,12 @@ function clearPrivacy() {
 }
 
 function acknowledgePrivacy() {
-  // Minimum ~4s on screen even when acknowledged early.
+  // The click is the resolution even when the visual lingers to its 4s
+  // minimum; record it on the incident now.
+  if (pendingIncident) pendingIncident.resolution = 'acknowledged';
   const elapsed = Date.now() - privacyStartedAt;
   if (elapsed >= 4000) {
-    clearPrivacy();
+    clearPrivacy('acknowledged');
   } else {
     clearTimeout(privacyClearTimer);
     privacyClearTimer = setTimeout(clearPrivacy, 4000 - elapsed);
@@ -283,6 +313,9 @@ function resetDay() {
   daily.fgRequests = 0;
   daily.privacyByCat = {};
   daily.apps = {};
+  daily.models = {};
+  daily.bytesEstIn = 0;
+  daily.bytesEstOut = 0;
   lastPrivacy = null;
   saveState();
   pushState();
@@ -370,10 +403,13 @@ monitor.on('request-start', ({ app: appName, pid }) => {
   console.log(`[drippy] request start — ${appName} (${fg ? 'yours' : 'background'})`);
   requestStarted(fg);
 });
-// Records one request's impact into today's totals, per-app breakdown and
-// history. `est` comes either from byte estimation (network monitor) or from
-// exact provider usage (Claude Code transcripts).
-function recordRequest({ app: appName, fg, ms, est }) {
+// Records one request's impact into today's totals, per-app and per-model
+// breakdowns and history. `est` comes either from byte estimation (network
+// monitor, pass `bytes`) or from exact provider usage (Claude Code
+// transcripts, pass `usage`). Events carry the drivers (token classes,
+// bytes, model, factor version), not just the derived figures, so history
+// can be restated when factor tables improve (DATA-STORAGE.md).
+function recordRequest({ app: appName, fg, ms, est, usage, bytes }) {
   recordUsage(est);
   if (fg) daily.fgRequests += 1;
   const a = (daily.apps[appName] = daily.apps[appName] || { requests: 0, wh: 0, tokensIn: 0, tokensOut: 0 });
@@ -381,14 +417,36 @@ function recordRequest({ app: appName, fg, ms, est }) {
   a.wh += est.wh;
   a.tokensIn += est.inputTokens;
   a.tokensOut += est.outputTokens;
+  const m = (daily.models[usage ? est.model : 'estimated'] =
+    daily.models[usage ? est.model : 'estimated'] || { requests: 0, in: 0, cw: 0, cr: 0, out: 0, wh: 0 });
+  m.requests += 1;
+  m.in += usage ? usage.inputTokens : est.inputTokens;
+  m.cw += usage ? usage.cacheCreationTokens : 0;
+  m.cr += usage ? usage.cacheReadTokens : 0;
+  m.out += est.outputTokens;
+  m.wh += est.wh;
+  if (bytes) {
+    daily.bytesEstIn += bytes.in;
+    daily.bytesEstOut += bytes.out;
+  }
   history.appendRequest({
     ts: new Date().toISOString(),
     app: appName,
     fg,
     ms,
+    basis: usage ? 'measured' : 'estimated',
+    ...(usage
+      ? {
+          model: est.model,
+          tier: est.tier,
+          tk: { in: usage.inputTokens, cw: usage.cacheCreationTokens, cr: usage.cacheReadTokens, out: usage.outputTokens },
+        }
+      : {}),
+    ...(bytes ? { bytes } : {}),
     in: est.inputTokens,
     out: est.outputTokens,
     wh: +est.wh.toFixed(3),
+    fv: impact.version,
   });
 }
 
@@ -402,7 +460,7 @@ monitor.on('request-end', ({ app: appName, pid, bytesIn, bytesOut, durationMs })
   fgFlows.delete(pid);
   if (appName !== CLI_APP) {
     const est = impact.fromBytes(bytesIn, bytesOut);
-    recordRequest({ app: appName, fg, ms: durationMs, est });
+    recordRequest({ app: appName, fg, ms: durationMs, est, bytes: { in: bytesIn, out: bytesOut } });
     console.log(
       `[drippy] request end — ${appName} (${fg ? 'yours' : 'background'}) · ${Math.round(durationMs / 1000)}s · ` +
         `≈${est.inputTokens} in / ${est.outputTokens} out tokens ≈ ${est.wh.toFixed(2)} Wh`
@@ -415,7 +473,7 @@ monitor.on('request-end', ({ app: appName, pid, bytesIn, bytesOut, durationMs })
 const claudeCode = new ClaudeCodeMonitor();
 claudeCode.on('usage', (u) => {
   const est = impact.fromUsage(u);
-  recordRequest({ app: 'Claude Code', fg: true, ms: 0, est });
+  recordRequest({ app: 'Claude Code', fg: true, ms: 0, est, usage: u });
   sig.ccInputEvents.push({ t: Date.now(), tokens: u.inputTokens + u.cacheReadTokens + u.cacheCreationTokens });
   sig.lastModel = est.model;
   sig.lastCacheRead = u.cacheReadTokens;
@@ -516,17 +574,33 @@ engagement.on('state', ({ present, typing, app: appName }) => {
 privacy.on('detected', ({ source, concerns }) => {
   // Count every detection so trends stay honest, including low-risk ones.
   for (const c of concerns) daily.privacyByCat[c.label] = (daily.privacyByCat[c.label] || 0) + 1;
-  history.appendPrivacy({ ts: new Date().toISOString(), source, cats: concerns.map((c) => c.id) });
 
   const topTier = Math.min(...concerns.map((c) => c.tier)); // 1 = most serious
   if (topTier >= 3) {
-    // Low risk (e.g. your own email): note it, but don't raise a warning.
+    // Low risk (e.g. your own email): recorded, never warned about.
+    history.appendPrivacy({
+      ts: new Date().toISOString(),
+      source,
+      cats: concerns.map((c) => ({ id: c.id, tier: c.tier })),
+      topTier,
+      resolution: 'noted',
+      msToClear: 0,
+    });
     console.log(`[drippy] noted (low risk) — ${concerns.map((c) => c.label).join(', ')} (${source})`);
     return;
   }
 
   // Show the warning built around the concerns that actually warrant it.
+  // A new detection mid-warning supersedes the pending incident record.
+  flushIncident('superseded');
   const warned = concerns.filter((c) => c.tier <= 2);
+  pendingIncident = {
+    ts: new Date().toISOString(),
+    source,
+    cats: warned.map((c) => ({ id: c.id, tier: c.tier })),
+    topTier,
+    at: Date.now(),
+  };
   lastPrivacy = { source, concerns: warned, at: new Date() };
   const level = topTier === 1 ? 1 : 2;
   if (level === 1) sig.criticalTimes.push(Date.now());
@@ -913,7 +987,7 @@ ipcMain.on('drippy:bubble-action', () => {
   const wasCritical = privacyLevel === 1;
   require('electron').clipboard.clear();
   console.log('[drippy] clipboard cleared via attention bubble');
-  clearPrivacy();
+  clearPrivacy('cleared-by-button');
   if (wasCritical) suggestions.evaluate({ type: 'critical-cleared-button' });
 });
 

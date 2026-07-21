@@ -40,14 +40,24 @@ to Drippy itself.
 
 ## What is stored (and what never is)
 
-Uploaded records are the existing local records, unchanged in kind:
+**Store drivers and context; derive figures.** Records carry the inputs
+that produced a number (tokens by class, bytes, model, factor version),
+not just the number. The cloud derives Wh, water, CO₂e and $ from
+versioned factor tables, so history is restated when factors improve,
+every figure is reproducible for an auditor, and Phase 3 reconciliation
+against provider APIs is a join, not a migration. The device's own
+locally derived figures ride along as a cross-check; a discrepancy
+beyond rounding is a data-quality signal, surfaced, never hidden.
 
-| Record | Fields (today's local shape) | Notes |
+| Record | Fields | Notes |
 | --- | --- | --- |
-| Day rollup | date, requests, fgRequests, aiSeconds, wh, waterMl, gco2, usd, tokensIn, tokensOut, privacyEvents, privacyByCat (category counts), apps (per-app requests/wh/tokens) | one row per device per day |
-| Request event | ts, app, fg, ms, tokens in/out, wh | coarse: no URLs, no titles, no content |
-| Privacy event | ts, source (clipboard/composer), category ids | categories only, e.g. `anthropic-key` |
+| Day rollup | date (ISO) + UTC offset, requests, fgRequests, aiSeconds, per-model token classes (fresh in, cache write, cache read, out) and per-app breakdown, estimated-traffic bytes, privacy incident counts by category and tier, device-derived wh/waterMl/gco2/usd + factors version | one row per device per day; carries enough drivers to restate after events expire |
+| Request event | ts (UTC), app, fg, ms, basis (measured/estimated), model + tier (measured), tokens {fresh in, cache write, cache read, out}, bytes {in, out} (estimated), device-derived wh, factors version | no URLs, no titles, no content |
+| Privacy incident | ts, source (clipboard/composer), app surface, categories with tiers, top tier, resolution (cleared-by-button / acknowledged / auto-cleared / noted), ms-to-clear | the full anatomy of a near-miss; never the value that triggered it |
 | Notice outcome | ts, notice id, family, shown/acted/dismissed | measures whether notices earn their keep |
+
+Intraday shape (time-of-day, session lengths) is derived server-side
+from event timestamps; nothing extra is collected for it.
 
 Never stored, on device or off: message content, prompts, clipboard or
 composer text, keystrokes, window titles, URLs, filenames, or the values
@@ -86,9 +96,17 @@ can find its own use cases; a structural minimum of k = 3 remains,
 because below that a "group" figure is really an individual, which
 crosses the employee-first line. The floor is about identifiability,
 never about hiding or judging usage levels. Below the floor, the figure
-folds into the parent group. Privacy events are the most sensitive
-class: they are org-visible only as category counts at org level, never
-at team level, so a warning can never be walked back to a person.
+folds into the parent group.
+
+**Privacy incidents: full clarity, no identity.** The org sees each
+incident as it is: an API key reached the clipboard at 14:32 during a
+Claude session, tier 1, cleared by the one-click remedy in 6 seconds.
+That is what an organisation needs to understand what is happening and
+train its people. What the incident record never carries at org level is
+who: no member, device or team attribution, so a near-miss can never
+become a mark against a person. The employee sees their own incidents in
+full. Aggregate views add the training signal on top: categories by
+tool, trend over time, share remedied and how fast.
 
 ## The upload ledger (self-transparency)
 
@@ -107,10 +125,17 @@ see). If Drippy ever cannot say what it sent, it must not send.
   governs their disk).
 - Transport: TLS to a single ingest endpoint; payloads are the ledger
   entries' exact contents, so the ledger is provably complete.
+- Every batch carries an envelope: device id, workspace id, sent-at,
+  app version, OS + version, factors version, timezone offset and
+  country (country-level only, for grid-intensity factors and
+  data-quality cohorts; it adds nothing to identifiability).
 
 ## Retention
 
-- Cloud events: 90 days, then deleted (rollups carry the trends).
+- Cloud request events: 90 days, then deleted (rollups carry the
+  drivers, so nothing restatable is lost).
+- Cloud privacy incidents: 12 months; they are rare, small, and the
+  training-trend story needs more than a quarter.
 - Cloud rollups: 24 months.
 - Member leaves org: member uuid unlinked from directory identity
   immediately; remaining records count only towards historic aggregates.
@@ -157,6 +182,14 @@ that view layer, so raw tables are never queryable by dashboards.
    minimum 3), paired with the neutrality principle: Drippy provides
    transparency, never a verdict on whether usage is high or low, good
    or bad; each organisation reads the numbers through its own values.
+5. **Drivers, not derivatives** (second round, same day): records carry
+   token classes, bytes, model and factor version; the cloud derives and
+   restates figures. Request events gain the model dimension; privacy
+   events become full incidents (tier, resolution, time-to-clear),
+   org-visible in detail but identity-free; rollup dates are ISO with a
+   UTC offset; batches carry the envelope above. The device starts
+   capturing the richer shapes immediately, ahead of Phase 1, so history
+   accrues at commercial grade from today.
 
 ## Still open
 

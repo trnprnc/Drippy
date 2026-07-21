@@ -1,8 +1,9 @@
-// Local usage history — append-only JSONL on this device, nothing leaves.
+// Local usage history — append-only JSONL on this device.
 //   history/days.jsonl          one line per completed day (the trend source)
 //   history/events-YYYY-MM.jsonl per-request and per-privacy-event records
-// Records contain app names, byte/token estimates and PII *categories* only —
-// never content (see PRIVACY.md).
+// Records contain app names, drivers (token classes, bytes, model, factor
+// version) and PII *categories* only — never content (see PRIVACY.md and
+// DATA-STORAGE.md for the shapes and what may leave the device).
 
 const fs = require('fs');
 const path = require('path');
