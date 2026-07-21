@@ -103,6 +103,32 @@ nav .dl:hover { background: oklch(0.66 0.11 205 / .26); }
 .blob.small .eye { width: 4.5px; height: 7.5px; border-radius: 2.25px; }
 .blob.violet { background: linear-gradient(165deg, oklch(0.8 0.08 300), oklch(0.62 0.1 310)); }
 .blob.dim { filter: brightness(.88) saturate(.85); }
+/* The 2.0 resting form: a softly pointed droplet, no eyes. */
+.blob.dropletform { border-radius: 52% 48% 50% 50% / 60% 60% 42% 42%; }
+.blob.small.dropletform { width: 26px; height: 25px; }
+
+/* --- Hover-card mock (replaces the old shape showcase) --- */
+.quirk.statcard { text-align: left; }
+.mockcard {
+  background: var(--bg);
+  border: 1px solid oklch(0.66 0.11 205 / .45);
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 13.5px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
+}
+.mocktitle { font-weight: 700; display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+.mocktitle i {
+  width: 13px; height: 12px; border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%;
+  background: linear-gradient(165deg, oklch(0.85 0.09 195), oklch(0.66 0.11 210));
+}
+.mockrow { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
+.mockrow .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; transform: translateY(1px); }
+.mockrow b { width: 72px; flex: none; font-size: 12.5px; }
+.mockrow span:last-child { color: var(--ink-2); font-size: 12.5px; }
+.mockfoot { margin-top: 9px; font-size: 11.5px; color: var(--ink-3); }
+.mockprose { margin: 2px 0 0; font-size: 13px; color: var(--ink-2); }
+.mockprose b { color: var(--ink); }
 
 /* --- Hero --- */
 header.hero { text-align: center; padding: 44px 0 26px; }

@@ -11,7 +11,7 @@
 <div class="wrap">
 
   <nav>
-    <a class="brand" href="/"><span class="blob small" style="animation:none"></span> Drippy</a>
+    <a class="brand" href="/"><span class="blob small dropletform" style="animation:none"></span> Drippy</a>
     <span class="spacer"></span>
     <a href="/guide"><b>User guide</b></a>
     <a href="/privacy">Privacy</a>
@@ -20,7 +20,7 @@
 
   <div class="prose">
     <h1>User guide</h1>
-    <p>Drippy is your AI transparency companion: a small always-on-top blob that makes the hidden side of AI usage visible. He watches three things on your Mac and speaks in colour and posture, never sound: how much AI you use, what it costs the environment, and whether anything private is about to slip out. Everything happens on your Mac. Drippy has no account, no cloud and no analytics.</p>
+    <p>Drippy is the transparency layer for your AI use. He is a small droplet that sits on top of your windows and meters what your AI usage really costs: energy, water, carbon, money and privacy. Everything happens on your Mac. Drippy has no account, no cloud and no analytics.</p>
     <p>This guide covers the test build (macOS, Apple silicon).</p>
 
     <h2>Installing</h2>
@@ -33,65 +33,48 @@
     <p>Drippy starts automatically at login. Quit him any time from 💧 → Quit Drippy.</p>
 
     <h2>First run</h2>
-    <p>Drippy introduces himself with a short tour: six little cards above his head that walk through everything below. Skip it if you like; replay it any time from 💧 → Replay the tour. After the tour his welcome sheet opens, which explains exactly what he can and cannot see. That sheet stays available under 💧 → About Drippy.</p>
+    <p>Drippy introduces himself with a short four-card tour. Skip it if you like; replay it any time from 💧 → Replay the tour. After the tour his welcome sheet opens, which explains exactly what he can and cannot see. That sheet stays available under 💧 → About Drippy.</p>
 
     <h2>Reading Drippy</h2>
-    <p>Drippy is silent by default. His body is the interface:</p>
+    <p>Drippy is deliberately small and deliberately quiet. The window is click-through: clicks land on whatever is beneath it, except on the droplet itself. The whole visual language:</p>
     <table>
       <tr><th>What you see</th><th>What it means</th></tr>
-      <tr><td>Calm bobbing, no eyes</td><td>Resting. No AI activity on this Mac.</td></tr>
-      <tr><td>Eyes open</td><td>Claude is in front of you, or your request is running. The eyes are always about you, not the machine.</td></tr>
-      <tr><td>Eyes shift, body tips</td><td>You are typing; Drippy watches your work.</td></tr>
-      <tr><td>Cyan glow, breathing</td><td>AI energy is flowing on this Mac, from your request or a background agent.</td></tr>
-      <tr><td>Violet, gentle squint</td><td>Caution: something mildly sensitive (a phone number, a date of birth) is in your clipboard or composer.</td></tr>
-      <tr><td>Violet, wide eyes, red "!" badge</td><td>Critical: a secret (an API key, card number, password) is about to leave your Mac. The menu bar eyes go wide too. Hover him for details.</td></tr>
-      <tr><td>Dimmed, shrunk, with a ring</td><td>Your day's footprint (see below).</td></tr>
-      <tr><td>A small still droplet</td><td>Dozing. After a long idle he condenses in place to stay out of your way, and plumps back up the moment you hover, click or start working.</td></tr>
-      <tr><td>Suddenly a bicycle</td><td>A wellbeing nudge: you have been at it a while, go stretch your legs.</td></tr>
-      <tr><td>Suddenly a magnifying glass</td><td>An authenticity nudge: he has had a close look at your writing.</td></tr>
+      <tr><td>A still droplet</td><td>Quiet. No AI activity on this Mac.</td></tr>
+      <tr><td>Cyan glow, breathing</td><td>AI energy is flowing right now, from your request or a background agent. Both are metered.</td></tr>
+      <tr><td>Violet droplet</td><td>Caution: something mildly sensitive (a phone number, a date of birth) is in your clipboard or composer.</td></tr>
+      <tr><td>Full size, wide eyes, red "!" badge</td><td>Critical: a secret (an API key, card number, password) is about to leave your Mac. This is the only state in which Drippy takes up space uninvited. The menu bar eyes go wide too.</td></tr>
     </table>
-    <p>Click Drippy any time and he will playfully morph into his shapes. Drag him anywhere; where you drop him becomes home.</p>
+    <p>Drag the droplet anywhere; where you drop him becomes home.</p>
+
+    <h2>The hover card: today's numbers</h2>
+    <p>Hover the droplet at any moment for today so far: energy (Wh and g CO₂e), water (mL), AI usage (requests and tokens), privacy warnings, and the value of your measured usage at Anthropic's current API list rates. The footer translates the day into everyday equivalents: phone charges, glasses of water, kilometres in a petrol car. The same numbers live in the 💧 menu.</p>
+    <p>During a privacy warning the hover card shows the warning instead: what was spotted, where it is, why it matters, and (for clipboard secrets) a one-click "Clear clipboard" remedy.</p>
+
+    <h2>Click: usage trends</h2>
+    <p>Click the droplet (or 💧 → Usage trends) for your last 30 days: energy, requests and privacy events per day, weekly totals, and a breakdown by app. All of it is stored locally in <code>~/Library/Application Support/Drippy/history/</code> and never uploaded.</p>
+    <p>About the numbers: network-observed usage is estimated from traffic volume and carries a wide uncertainty (about ±3×). Claude Code usage is exact, read from its own local session logs (token counts only, never message content). Spend is computed only from those exact counts, at current list prices with cache reads and writes priced correctly; estimated traffic is never priced.</p>
 
     <h2>Privacy warnings</h2>
     <p>While you are using Claude, Drippy checks your clipboard and (optionally) your typing for sensitive content before it is sent. Detection happens entirely on-device and the content is discarded instantly; only the category ("Anthropic API key", "phone number") is kept.</p>
-    <p>When Drippy turns violet, hover him. A bubble explains what he spotted, where it is, and what to do about it. For clipboard secrets there is a one-click "Clear clipboard" remedy. Click Drippy to acknowledge and dismiss the warning.</p>
-    <p>Warnings are tiered so he never cries wolf:</p>
     <ul>
-      <li><b>Critical</b> (badge, wide eyes): credentials, API keys, payment details, government IDs. These are exploitable and hard to revoke.</li>
-      <li><b>Caution</b> (a quiet squint, no badge): a phone number or date of birth.</li>
+      <li><b>Critical</b> (full size, badge, wide eyes): credentials, API keys, payment details, government IDs. These are exploitable and hard to revoke.</li>
+      <li><b>Caution</b> (a violet droplet): a phone number or date of birth.</li>
       <li><b>Noted only</b> (no warning): your own email address. It appears in your trends but Drippy will not interrupt you for it.</li>
     </ul>
+    <p>Click the droplet during a warning to acknowledge and dismiss it.</p>
 
-    <h2>Suggestions: a voice of reason</h2>
-    <p>While you work, Drippy offers small, practical suggestions in a bubble above him. Each card tells you why it fired ("because: 9 requests in the last 30 minutes"), and its button does the thing rather than just nodding at it:</p>
+    <h2>Notices</h2>
+    <p>When the meters show something worth knowing, Drippy raises a small card above the droplet. Every notice says why it fired ("because: 14 requests today, mostly short answers") and its button does the thing:</p>
     <ul>
-      <li><b>Copy critique prompt</b> puts a ready-made "attack this idea" prompt on your clipboard.</li>
-      <li><b>Take 5 minutes now</b> starts a real five-minute break timer; Drippy tells you when it is up.</li>
-      <li><b>What gave it away?</b> expands exactly which AI tells he spotted in text you copied.</li>
-      <li><b>Copy fresh-start brief</b>, <b>Copy question template</b> and friends drop ready-to-fill prompts on your clipboard.</li>
-      <li>Others open the right window for you (trends, the footprint ring, the feed).</li>
+      <li><b>Copy batch template</b> or <b>Copy fresh-start brief</b> puts the lighter-usage remedy on your clipboard.</li>
+      <li><b>Copy '/model sonnet'</b> when a big model has been doing small jobs.</li>
+      <li><b>Open usage trends</b> when a background agent has been drawing energy solo for half an hour, or on a heavy day.</li>
+      <li>Guard notices suggest key-hygiene habits after near-misses.</li>
     </ul>
-    <p>Suggestions never steal focus and fade away on their own; the quiet × dismisses one. Acting and dismissing both teach Drippy how often that kind of nudge should return. Every suggestion is kept in a reviewable feed at 💧 → Suggestions, so nothing is ever lost.</p>
-
-    <h2>Your day's footprint</h2>
-    <p>Choose 💧 → Show day's footprint. Drippy dims and wears a ring of three gauges, each filling toward a typical day's reference:</p>
-    <ul>
-      <li><b>Green</b>: environment (energy, carbon, water).</li>
-      <li><b>Amber</b>: AI usage (requests and tokens).</li>
-      <li><b>Violet</b>: privacy events.</li>
-    </ul>
-    <p>Hover him while the ring is up for the numbers behind each arc. Click him (or untick the menu item) to put the ring away. The day rolls over at midnight and yesterday joins your history.</p>
-
-    <h2>Usage trends</h2>
-    <p>💧 → Usage trends shows your last 30 days: energy, requests and privacy events per day, totals for the week, and a breakdown by app. All of it is stored locally in <code>~/Library/Application Support/Drippy/history/</code> and never uploaded.</p>
-    <p>About the numbers: network-observed usage is estimated from traffic volume and carries a wide uncertainty (about ±3×). Claude Code usage is exact, read from its own local session logs (token counts only, never message content). Impact factors are versioned and source-cited.</p>
-
-    <h2>The menu bar drop</h2>
-    <p>The 💧 icon mirrors Drippy's state (its eyes go wide during a critical warning) and its menu holds everything: the live status line, today's requests, tokens and estimated energy, water and carbon, the last privacy event, the footprint toggle, Suggestions, Usage trends, About Drippy, Replay the tour, Reset day and Quit.</p>
+    <p>Notices never steal focus and fade on their own; the quiet × dismisses one. Every notice is kept in a reviewable feed at 💧 → Notices.</p>
 
     <h2>One optional permission</h2>
     <p>To warn you about sensitive content <em>as you type it</em> into Claude, Drippy needs macOS Accessibility access (System Settings → Privacy &amp; Security → Accessibility). This is optional: without it the clipboard guard and everything else still work. Drippy never stores what he reads there; text is checked on-device and discarded.</p>
-    <p>If the permission is missing, the menu shows a shortcut to grant it.</p>
 
     <h2>What Drippy can see, and what he cannot</h2>
     <ul>
@@ -106,7 +89,7 @@
       <tr><th>What</th><th>Where</th></tr>
       <tr><td>Today's counters and position</td><td><code>~/Library/Application Support/Drippy/</code></td></tr>
       <tr><td>Usage history</td><td><code>~/Library/Application Support/Drippy/history/</code></td></tr>
-      <tr><td>Suggestion feed and learning</td><td><code>~/Library/Application Support/Drippy/suggestions-state.json</code></td></tr>
+      <tr><td>Notice feed and learning</td><td><code>~/Library/Application Support/Drippy/suggestions-state.json</code></td></tr>
       <tr><td>Log file</td><td><code>~/Library/Logs/Drippy.log</code></td></tr>
     </table>
     <p>Delete those and Drippy forgets everything. 💧 → Reset day clears just today's counters.</p>
@@ -120,14 +103,15 @@
       <li>Watches Anthropic traffic (Claude Desktop, Claude Code, browser Claude) only; other AI providers come later.</li>
       <li>Not yet notarised, hence the first-launch step above.</li>
       <li>Impact figures for network-observed apps are estimates with wide bands, by design, until finer sensing lands.</li>
+      <li>"Value" is what the usage would cost at API list rates; if you pay via a subscription your bill will differ.</li>
     </ul>
 
     <h2>Feedback</h2>
-    <p>Tell us the moment Drippy feels wrong: a warning that should not have fired, a suggestion that missed, a number that looks off. The log file above plus a rough time of day is usually enough for us to trace it.</p>
+    <p>Tell us the moment Drippy feels wrong: a warning that should not have fired, a notice that missed, a number that looks off. The log file above plus a rough time of day is usually enough for us to trace it.</p>
   </div>
 
   <footer>
-    <span>Drippy 1.0.0 test build</span>
+    <span>Drippy 2.0.0 test build</span>
     <span class="spacer"></span>
     <a href="/">Home</a>
     <a href="/privacy">Privacy design</a>

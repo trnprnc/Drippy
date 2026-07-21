@@ -34,10 +34,13 @@ process.on('unhandledRejection', (reason) => {
   console.log(`[drippy] unhandled rejection: ${reason}`);
 });
 
-// Window is larger than the 56x52 blob so the breathing glow halo, drop
-// shadow and the 64px footprint ring render without clipping.
-const WIN_W = 160;
-const WIN_H = 170;
+// Window is larger than the 56x52 full-size form so the breathing glow halo
+// and drop shadow render without clipping. The window ignores the mouse
+// except over the droplet, so its size costs nothing in the way.
+// The window holds the fully-expanded bar plus its glow halo. It is
+// click-through except over the capsule, so its width costs nothing.
+const WIN_W = 360;
+const WIN_H = 96;
 
 let win = null;
 let tray = null;
@@ -71,11 +74,10 @@ function savePosition() {
 
 // ---------------------------------------------------------------------------
 // State machine
-//   mode: resting | aiActive | privacyEvent | footprint
-//   - aiActive while >=1 monitored request is in flight; back to resting ~2s
-//     after the last one completes.
-//   - privacyEvent overrides aiActive; lasts min ~4s or until acknowledged.
-//   - footprint shown on user request (tray) — daily accumulators drive arcs.
+//   mode: ambient | privacyEvent
+//   - ambient: the droplet; glow while >=1 monitored request is in flight
+//     (with a ~2s linger so back-to-back requests don't stutter).
+//   - privacyEvent overrides; lasts min ~4s or until acknowledged.
 // ---------------------------------------------------------------------------
 
 const daily = {
@@ -87,17 +89,13 @@ const daily = {
   wh: 0,
   gco2: 0,
   waterMl: 0,
+  usd: 0, // API-rate value of measured (exact) usage only
   tokensOut: 0,
   tokensIn: 0,
   apps: {},
 };
 let lastPrivacy = null; // { source, categories, at }
 let axPermissionNeeded = false;
-// Rough daily reference budgets, used only to proportion the footprint arcs.
-// Daily reference points: the footprint ring's three arcs fill toward these,
-// so a light day shows short arcs and a heavy day fuller ones. The arcs are
-// Drippy's three pillars: AI usage, environment, and privacy.
-const FOOTPRINT_REF = { requests: 40, gco2: 20, privacy: 3 };
 
 // Requests are split by attribution: foreground (started while the user was
 // engaged with a Claude surface — "yours") vs background (agents, other
@@ -109,10 +107,9 @@ let fgLinger = false;
 let bgLinger = false;
 let fgLingerTimer = null;
 let bgLingerTimer = null;
-let privacyLevel = 0; // 0 = none, 1 = critical (badge), 2 = caution (squint)
+let privacyLevel = 0; // 0 = none, 1 = critical (badge), 2 = caution (violet tint)
 let privacyStartedAt = 0;
 let privacyClearTimer = null;
-let footprintShown = false;
 let aiSecondsTimer = null;
 
 let userPresent = false; // a Claude surface is frontmost
@@ -122,92 +119,64 @@ function totalInFlight() {
   return inFlightFg + inFlightBg;
 }
 
-// The attention progression:
-//   eyes forward — AI is in use (Claude open in front of you, or your
-//                  request is running)
-//   eyes on the work (gaze) — you're actively typing/working
-//   warning — privacy concern: eyes STAY on the work (that's where the
-//             problem is); hover Drippy for details and a recommendation
+// The whole visual language, deliberately small:
 //   glow — AI energy flowing on this machine (any request, yours or not)
+//   violet droplet — caution-level privacy event
+//   full size + wide eyes + badge — critical privacy event, the only state
+//   in which Drippy takes up space uninvited
 function visualFlags() {
-  if (privacyLevel > 0) return { eyes: false, gaze: true, glow: false, privacyLevel };
-  const fg = inFlightFg > 0 || fgLinger;
-  return {
-    eyes: userPresent || fg,
-    gaze: userTyping,
-    glow: fg || inFlightBg > 0 || bgLinger,
-    privacyLevel: 0,
-  };
+  if (privacyLevel > 0) return { glow: false, privacyLevel };
+  return { glow: totalInFlight() > 0 || fgLinger || bgLinger, privacyLevel: 0 };
 }
 
 function currentMode() {
-  if (privacyLevel > 0) return 'privacyEvent';
-  const f = visualFlags();
-  if (f.eyes || f.glow) return 'live'; // flags drive the visuals
-  if (footprintShown) return 'footprint';
-  return 'resting';
+  return privacyLevel > 0 ? 'privacyEvent' : 'ambient';
 }
 
 function trayStateLabel() {
   if (privacyLevel === 1) return 'warning: hover Drippy for details';
   if (privacyLevel === 2) return 'heads-up: hover Drippy for details';
-  const f = visualFlags();
   if (inFlightFg > 0 || fgLinger) return 'your request is running';
-  if (f.glow && f.eyes) return 'attentive · background AI activity';
-  if (f.glow) return 'background AI activity';
-  if (f.gaze) return 'watching you work';
-  if (f.eyes) return 'attentive';
-  if (footprintShown) return "day's footprint";
-  return 'resting';
+  if (visualFlags().glow) return 'background AI activity';
+  return 'quiet';
 }
 
-function footprintArcs() {
-  // Each arc is a gauge that fills 0..1 toward its daily reference (capped).
-  // usage = how much AI you leaned on, env = what it cost the planet,
-  // privacy = how often sensitive data nearly slipped out.
-  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+// Today's numbers ride along in every update so the expanded bar shows them
+// live. Measured spend (daily.usd) is exact-usage only.
+function statsPayload() {
   return {
-    usage: clamp01(daily.requests / FOOTPRINT_REF.requests),
-    env: clamp01(daily.gco2 / FOOTPRINT_REF.gco2),
-    privacy: clamp01(daily.privacyEvents / FOOTPRINT_REF.privacy),
+    wh: daily.wh,
+    waterMl: daily.waterMl,
+    gco2: daily.gco2,
+    usd: daily.usd,
+    requests: daily.requests,
+    privacyEvents: daily.privacyEvents,
   };
 }
 
-function leanDirection() {
-  // Eyes look toward the work. Without a real window monitor we assume the
-  // active window sits toward the centre of the current display.
-  if (!win) return -1;
-  const [x] = win.getPosition();
-  const display = screen.getDisplayMatching({ x, y: win.getPosition()[1], width: WIN_W, height: WIN_H });
-  const winCenter = x + WIN_W / 2;
-  const screenCenter = display.bounds.x + display.bounds.width / 2;
-  return winCenter > screenCenter ? -1 : 1; // -1 = lean left, 1 = lean right
+function sendUpdate() {
+  if (!win || win.isDestroyed() || tourActive) return;
+  win.webContents.send('drippy:update', { mode: currentMode(), ...visualFlags(), stats: statsPayload() });
 }
 
 function pushState() {
   if (!win || win.isDestroyed()) return;
-  // While the tour is puppeting the blob, real state stays out of the way
+  // While the tour is puppeting the capsule, real state stays out of the way
   // (the tray keeps telling the truth underneath).
   if (tourActive) {
     updateTrayMenu();
     updateTrayIcon();
     return;
   }
-  const mode = currentMode();
-  const flags = mode === 'footprint' ? { eyes: false, gaze: false, glow: false, privacyLevel: 0 } : visualFlags();
-  win.webContents.send('drippy:update', {
-    mode,
-    ...flags,
-    dozing,
-    leanDir: leanDirection(),
-    arcs: footprintArcs(),
-  });
+  sendUpdate();
   updateTrayMenu();
   updateTrayIcon();
 }
 
+// Keep the bar's readout current even when only the accumulators move.
+setInterval(sendUpdate, 4000).unref();
+
 function requestStarted(fg) {
-  noteActivity();
   const now = Date.now();
   if (fg) {
     sig.fgReqTimes.push(now);
@@ -266,9 +235,8 @@ function requestEnded(fg) {
   pushState();
 }
 
-// level 1 = critical (full alarm + badge), 2 = caution (a quiet squint).
+// level 1 = critical (full alarm + badge), 2 = caution (a violet droplet).
 function privacyEvent(level = 1) {
-  noteActivity();
   daily.privacyEvents += 1;
   saveState();
   privacyLevel = level;
@@ -301,13 +269,6 @@ function acknowledgePrivacy() {
   }
 }
 
-function toggleFootprint() {
-  noteActivity();
-  footprintShown = !footprintShown;
-  pushState();
-  updateBubble(); // show/hide the footprint breakdown if hovering
-}
-
 function resetDay() {
   daily.aiSeconds = 0;
   daily.requests = 0;
@@ -315,6 +276,7 @@ function resetDay() {
   daily.wh = 0;
   daily.gco2 = 0;
   daily.waterMl = 0;
+  daily.usd = 0;
   daily.tokensOut = 0;
   daily.tokensIn = 0;
   daily.fgRequests = 0;
@@ -329,6 +291,7 @@ function recordUsage(est) {
   daily.wh += est.wh;
   daily.gco2 += est.gco2;
   daily.waterMl += est.waterMl;
+  daily.usd += est.usd || 0; // exact usage only; estimates carry no price
   daily.tokensOut += est.outputTokens;
   daily.tokensIn += est.inputTokens || 0;
   saveState();
@@ -519,23 +482,15 @@ const suggestions = new SuggestionEngine({ stateDir: app.getPath('userData'), si
 suggestions.on('suggest', (sg) => {
   if (tourActive) return; // the tour has the floor; the engine can speak later
   history.appendSuggestion({ ts: new Date().toISOString(), id: sg.id, family: sg.family });
-  console.log(`[drippy] suggests — [${sg.family}] ${sg.text}`);
+  console.log(`[drippy] notices — [${sg.family}] ${sg.text}`);
   showSuggestion(sg);
-  // Drippy embodies the point: a bike for "go take a break" (wellbeing),
-  // a magnifying glass for "I had a close look at your writing" (authenticity).
-  const shape = sg.family === 'wellbeing' ? 'bike' : sg.family === 'authenticity' ? 'glass' : null;
-  if (shape && win && !win.isDestroyed()) win.webContents.send('drippy:morph', shape);
 });
 setInterval(() => {
   prune();
   suggestions.evaluate();
 }, 30 * 1000).unref();
 
-// Eyes open the moment the user starts working in Claude — quiet
-// acknowledgment that Drippy sees the activity. Glow stays reserved for an
-// actual request in flight.
 const privacy = new PrivacySensor();
-privacy.on('aitell', (t) => suggestions.evaluate({ type: 'aitell', signals: t.signals }));
 
 const engagement = new EngagementSensor();
 engagement.on('state', ({ present, typing, app: appName }) => {
@@ -552,7 +507,6 @@ engagement.on('state', ({ present, typing, app: appName }) => {
   } else if (!present) {
     sig.presentSince = 0;
   }
-  if (present || typing) noteActivity(); // you're back — wake and reset idle
   console.log(`[drippy] engagement — present:${present} typing:${typing}${present ? ` (${appName})` : ''}`);
   monitor.setHot(present); // react in ~1s while you're actually there
   if (typingStarted) monitor.poke(); // a send is probably imminent
@@ -642,7 +596,6 @@ function setDemo(enabled) {
 let dragPoll = null;
 
 function startDrag() {
-  noteActivity(); // a drag wakes Drippy and it becomes the new home
   if (bubbleWin) bubbleWin.hide();
   hideSuggestion(); // popups don't trail along mid-drag
   const cursor = screen.getCursorScreenPoint();
@@ -662,54 +615,6 @@ function endDrag() {
   savePosition(); // wherever you put it becomes home
   pushState(); // refresh lean for the new position
 }
-
-// ---------------------------------------------------------------------------
-// Doze — after a long idle Drippy condenses, in place, into a small still
-// droplet: clearly deliberate, clearly still there, clearly clickable. Any
-// sign of life (hover, drag, AI activity) plumps him straight back up.
-// ---------------------------------------------------------------------------
-
-const DOZE_AFTER_MS = Number(process.env.DRIPPY_DOZE_MS) || 90 * 1000;
-let dozing = false;
-let lastActivityAt = Date.now();
-
-function idleEnough() {
-  return (
-    !dozing &&
-    !dragPoll &&
-    !tourActive &&
-    !userPresent &&
-    totalInFlight() === 0 &&
-    !fgLinger &&
-    !bgLinger &&
-    privacyLevel === 0 &&
-    !footprintShown &&
-    Date.now() - lastActivityAt > DOZE_AFTER_MS
-  );
-}
-
-function dozeOff() {
-  if (dozing || !win) return;
-  dozing = true;
-  hideSuggestion(); // a condensed Drippy leaves no bubble hanging mid-air
-  console.log('[drippy] condensing into a droplet');
-  pushState(); // renderer melts down in place
-}
-
-// Any sign of life resets the idle clock and plumps Drippy back up.
-function noteActivity() {
-  lastActivityAt = Date.now();
-  if (dozing) {
-    dozing = false;
-    console.log('[drippy] plumping back up');
-    pushState();
-    suggestions.evaluate({ type: 'doze-wake' });
-  }
-}
-
-setInterval(() => {
-  if (idleEnough()) dozeOff();
-}, 5000).unref();
 
 // ---------------------------------------------------------------------------
 // Window & tray
@@ -737,13 +642,18 @@ function createWindow() {
 
   win.setAlwaysOnTop(true, 'floating');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // Never in the way: the window ignores the mouse entirely except when the
+  // renderer's hit-test says the cursor is over Drippy himself. Forwarded
+  // mouse moves keep the hit-test running while ignoring.
+  win.setIgnoreMouseEvents(true, { forward: true });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   win.webContents.on('did-finish-load', pushState);
 
   if (!pos) {
-    // First launch: bottom-right of the primary display.
+    // First launch: docked to the bottom-right edge, so the capsule tab
+    // sits flush against the corner.
     const { workArea } = screen.getPrimaryDisplay();
-    win.setPosition(workArea.x + workArea.width - WIN_W - 40, workArea.y + workArea.height - WIN_H - 40);
+    win.setPosition(workArea.x + workArea.width - WIN_W + 2, workArea.y + workArea.height - WIN_H - 6);
   }
 }
 
@@ -760,6 +670,7 @@ function updateTrayMenu() {
   const watchLabel = monitorStatus.watching
     ? `Watching: ${monitorStatus.apps.join(', ') || 'Anthropic traffic'}`
     : 'No Anthropic traffic';
+  const eq = impact.equivalents(daily);
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: `Drippy v${app.getVersion()}: ${trayStateLabel()}`, enabled: false },
@@ -773,6 +684,8 @@ function updateTrayMenu() {
         label: `≈ ${daily.wh.toFixed(1)} Wh · ${daily.waterMl.toFixed(0)} mL water · ${daily.gco2.toFixed(1)} g CO₂e`,
         enabled: false,
       },
+      ...(eq ? [{ label: `≈ ${eq}`, enabled: false }] : []),
+      ...(daily.usd > 0 ? [{ label: `$${daily.usd.toFixed(2)} at API rates (measured, Claude Code)`, enabled: false }] : []),
       { label: `Estimates ±3× · factors v${impact.version}`, enabled: false },
       ...(lastPrivacy
         ? [
@@ -794,7 +707,6 @@ function updateTrayMenu() {
           ]
         : []),
       { type: 'separator' },
-      { label: "Show day's footprint", type: 'checkbox', checked: footprintShown, click: toggleFootprint },
       // Simulation and demo controls are development-only; never shipped.
       ...(app.isPackaged
         ? []
@@ -803,20 +715,20 @@ function updateTrayMenu() {
             { label: 'Simulate critical warning', click: () => simulatePrivacy(1) },
             { label: 'Simulate caution (squint)', click: () => simulatePrivacy(2) },
             {
-              label: 'Simulate suggestion',
+              label: 'Simulate notice',
               click: () =>
                 showSuggestion({
-                  id: 'ask-critique',
-                  family: 'practice',
-                  text: 'AI loves to agree with you. Ask it to attack the idea instead; the pushback is the value.',
-                  why: '9 requests in the last 30 minutes',
-                  action: { label: 'Copy critique prompt', kind: 'copy', payload: 'Attack this idea. What breaks first, and why? Be specific and blunt; no praise, no hedging.' },
+                  id: 'batch-small',
+                  family: 'usage',
+                  text: 'Ten tiny questions cost more than one good one. Batching the small stuff into a single ask would shrink this.',
+                  why: '14 requests today, mostly short answers',
+                  action: { label: 'Copy batch template', kind: 'copy', payload: 'Several small questions at once; answer each briefly:\n1. \n2. \n3. ' },
                 }),
             },
             { label: 'Demo mode', type: 'checkbox', checked: demoEnabled, click: () => setDemo(!demoEnabled) },
           ]),
       { type: 'separator' },
-      { label: 'Suggestions…', click: showFeed },
+      { label: 'Notices…', click: showFeed },
       { label: 'Usage trends…', click: showTrends },
       { label: 'About Drippy: what it can see…', click: showWelcome },
       { label: 'Replay the tour', click: startTour },
@@ -916,9 +828,18 @@ let blobHovered = false;
 let bubbleHovered = false;
 let bubbleHideTimer = null;
 
-// Ring colours (match renderer/setRing) for the footprint breakdown rows.
-const RING_COLORS = { usage: 'oklch(0.82 0.13 85)', env: 'oklch(0.78 0.14 155)', privacy: 'oklch(0.72 0.12 300)' };
+// Pillar colours for the stats rows (validated per-mode chart palette).
+const ROW_COLORS = {
+  usage: 'oklch(0.82 0.13 85)',
+  env: 'oklch(0.78 0.14 155)',
+  water: 'oklch(0.72 0.11 220)',
+  privacy: 'oklch(0.72 0.12 300)',
+  value: 'oklch(0.75 0.05 250)',
+};
 
+// The hover card: Drippy's primary transparency surface. A privacy warning
+// takes priority; otherwise it is always today's numbers, with everyday
+// equivalents so they mean something.
 function bubblePayload() {
   if (privacyLevel > 0 && lastPrivacy) {
     const concerns = lastPrivacy.concerns; // already sorted most-severe first
@@ -935,24 +856,22 @@ function bubblePayload() {
       action: lastPrivacy.source === 'clipboard' ? 'Clear clipboard' : null,
     };
   }
-  if (footprintShown) {
-    const tokens = Math.round(daily.tokensIn + daily.tokensOut);
-    return {
-      kind: 'footprint',
-      title: "Today's footprint",
-      rows: [
-        { color: RING_COLORS.usage, label: 'AI usage', value: `${daily.requests} requests · ~${tokens.toLocaleString()} tokens` },
-        {
-          color: RING_COLORS.env,
-          label: 'Environment',
-          value: `${daily.wh.toFixed(1)} Wh · ${daily.gco2.toFixed(1)} g CO₂e · ${daily.waterMl.toFixed(0)} mL water`,
-        },
-        { color: RING_COLORS.privacy, label: 'Privacy', value: `${daily.privacyEvents} warning${daily.privacyEvents === 1 ? '' : 's'} today` },
-      ],
-      footer: `Each arc fills toward a daily reference · estimates ±3× · factors v${impact.version}`,
-    };
-  }
-  return null;
+  const tokens = Math.round(daily.tokensIn + daily.tokensOut);
+  const eq = impact.equivalents(daily);
+  return {
+    kind: 'stats',
+    title: 'Today, so far',
+    rows: [
+      { color: ROW_COLORS.env, label: 'Energy', value: `${daily.wh.toFixed(1)} Wh · ${daily.gco2.toFixed(1)} g CO₂e` },
+      { color: ROW_COLORS.water, label: 'Water', value: `${daily.waterMl.toFixed(0)} mL` },
+      { color: ROW_COLORS.usage, label: 'AI usage', value: `${daily.requests} request${daily.requests === 1 ? '' : 's'} · ~${tokens.toLocaleString()} tokens` },
+      { color: ROW_COLORS.privacy, label: 'Privacy', value: `${daily.privacyEvents} warning${daily.privacyEvents === 1 ? '' : 's'}` },
+      ...(daily.usd > 0
+        ? [{ color: ROW_COLORS.value, label: 'Value', value: `$${daily.usd.toFixed(2)} at API rates (measured)` }]
+        : []),
+    ],
+    footer: `${eq ? `≈ ${eq} · ` : ''}estimates ±3× · click me for trends`,
+  };
 }
 
 const { recommendationFor: impactRecommend } = require('./pii');
@@ -965,21 +884,25 @@ const POPUP_TUCK = 44;
 function positionBubble() {
   const [wx, wy] = win.getPosition();
   const display = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H });
-  // Prefer the side toward the screen centre (usually the work side).
-  let x = wx - BUBBLE_W + POPUP_TUCK;
-  let side = 'right'; // bubble left of Drippy, tail on its right edge
-  if (x < display.workArea.x) {
-    x = wx + WIN_W - POPUP_TUCK;
-    side = 'left';
+  const wa = display.workArea;
+  // The capsule lives at the window's bottom-right; sit the warning card to
+  // its left, tail pointing right at it, vertically level with it.
+  let x = wx + WIN_W - BUBBLE_W - 44;
+  let side = 'right';
+  if (x < wa.x) {
+    x = wa.x + 8;
   }
-  let y = wy + Math.round(WIN_H / 2 - bubbleHeight / 2);
-  y = Math.max(display.workArea.y, Math.min(y, display.workArea.y + display.workArea.height - bubbleHeight));
-  bubbleWin.setBounds({ x: Math.round(x), y: Math.round(y), width: BUBBLE_W, height: bubbleHeight });
+  const capsuleCenterY = wy + WIN_H - 14 - 20;
+  let y = Math.round(capsuleCenterY - bubbleHeight / 2);
+  y = Math.max(wa.y, Math.min(y, wa.y + wa.height - bubbleHeight));
+  bubbleWin.setBounds({ x: Math.round(x), y, width: BUBBLE_W, height: bubbleHeight });
   bubbleWin.webContents.send('bubble:tail', { side });
 }
 
 function updateBubble() {
-  const shouldShow = (privacyLevel > 0 || footprintShown) && (blobHovered || bubbleHovered);
+  // The expanded bar shows the everyday numbers itself, so the hover card is
+  // reserved for privacy warnings, where the detail and remedy live.
+  const shouldShow = privacyLevel > 0 && (blobHovered || bubbleHovered) && !tourActive;
   if (shouldShow) {
     // Spring-in only on a fresh appearance, not on payload refreshes.
     const fresh = !bubbleWin || !bubbleWin.isVisible();
@@ -1014,10 +937,10 @@ function updateBubble() {
       bubbleWin.showInactive();
     }
   } else if (bubbleWin) {
-    // Grace period so the cursor can travel from blob to bubble.
+    // Grace period so the cursor can travel from Drippy to the card.
     clearTimeout(bubbleHideTimer);
     bubbleHideTimer = setTimeout(() => {
-      if (bubbleWin && !((privacyLevel > 0 || footprintShown) && (blobHovered || bubbleHovered))) bubbleWin.hide();
+      if (bubbleWin && !(blobHovered || bubbleHovered)) bubbleWin.hide();
     }, 400);
   }
 }
@@ -1062,9 +985,13 @@ ipcMain.handle('drippy:history', () => ({
 }));
 
 ipcMain.on('drippy:hover', (_e, { over }) => {
-  if (over) noteActivity(); // hovering wakes Drippy
   blobHovered = over;
   updateBubble();
+});
+// Renderer hit-test result: interactive only over Drippy himself, so every
+// other pixel of the window lets clicks fall through to whatever is below.
+ipcMain.on('drippy:hit', (_e, { over }) => {
+  if (win && !win.isDestroyed()) win.setIgnoreMouseEvents(!over, { forward: true });
 });
 ipcMain.on('drippy:bubble-hover', (_e, { over }) => {
   bubbleHovered = over;
@@ -1101,16 +1028,15 @@ function positionSuggestion() {
   const [wx, wy] = win.getPosition();
   const display = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H });
   const wa = display.workArea;
-  // Hover just above Drippy's head, roughly centred on him, so it reads as
-  // his thought. Never clashes with the warning bubble's spot beside him.
-  const blobCenterX = wx + WIN_W / 2;
-  let x = Math.round(blobCenterX - SUG_W / 2);
+  // Rise just above the capsule (bottom-right), tail pointing down at it.
+  const capsuleCenterX = wx + WIN_W - 24;
+  const capsuleTopY = wy + WIN_H - 14 - 34;
+  let x = Math.round(capsuleCenterX - SUG_W + 34);
   x = Math.max(wa.x, Math.min(x, wa.x + wa.width - SUG_W));
-  let y = wy - sugHeight + 48;
+  let y = capsuleTopY - sugHeight - 4;
   y = Math.max(wa.y, Math.min(y, wa.y + wa.height - sugHeight));
   sugWin.setBounds({ x, y, width: SUG_W, height: sugHeight });
-  // Tail aims down at the blob even when the card was clamped by an edge.
-  const tailX = Math.max(18, Math.min(SUG_W - 34, Math.round(blobCenterX - x - 7)));
+  const tailX = Math.max(18, Math.min(SUG_W - 34, Math.round(capsuleCenterX - x - 7)));
   sugWin.webContents.send('suggest:tail', { tailX });
 }
 
@@ -1159,25 +1085,14 @@ function hideSuggestion() {
   if (sugWin) sugWin.hide();
 }
 
-// The button on a suggestion DOES the thing (Jack's steer, 2026-07-20):
-// copy the better prompt, start the break, open the right window. The card
-// stays up briefly for 'copy' so its "Copied" confirmation can be seen.
-let breakTimer = null;
-
+// The button on a notice DOES the thing (Jack's steer, 2026-07-20): copy
+// the remedy, open the right window. The card stays up briefly for 'copy'
+// so its "Copied" confirmation can be seen.
 function performSuggestionAction(action) {
   if (!action) return;
   if (action.kind === 'copy') {
     require('electron').clipboard.writeText(action.payload || '');
-    console.log('[drippy] suggestion action — copied to clipboard');
-  } else if (action.kind === 'break') {
-    clearTimeout(breakTimer);
-    if (win && !win.isDestroyed()) win.webContents.send('drippy:morph', { shape: 'bike', hold: 4200 });
-    breakTimer = setTimeout(() => {
-      showSuggestion({ id: 'break-done', family: 'wellbeing', text: 'Five minutes, well taken. Welcome back.', why: null, action: null });
-    }, 5 * 60 * 1000);
-    console.log('[drippy] suggestion action — 5 minute break started');
-  } else if (action.kind === 'footprint') {
-    if (!footprintShown) toggleFootprint();
+    console.log('[drippy] notice action — copied to clipboard');
   } else if (action.kind === 'open-trends') {
     showTrends();
   } else if (action.kind === 'open-feed') {
@@ -1239,46 +1154,33 @@ let tourWin = null;
 let tourHeight = 170;
 let tourStep = -1;
 let tourActive = false;
-let tourMorphTimer = null;
 
 const TOUR_STEPS = [
   {
-    text: "Hello! I'm Drippy. I sit quietly on top of your windows and make the hidden side of AI visible: energy, privacy and habits. Drag me somewhere comfortable; wherever you drop me becomes home.",
-    state: { eyes: true },
+    text: "Hello, I'm Drippy: your AI transparency layer. I track what your AI use really costs in energy, water, carbon and privacy. I tuck into this corner and stay out of the way; clicks pass straight through everything except me. Drag me anywhere.",
+    state: {},
   },
   {
-    text: 'When AI is at work on this Mac, I glow. My eyes open when Claude is in front of you, and while you type I keep them on your work.',
-    state: { eyes: true, gaze: true, glow: true },
+    text: 'When AI is at work on this Mac, I glow: your requests or a background agent’s, I meter both. No glow, no AI running. That is the whole signal.',
+    state: { glow: true },
   },
   {
-    text: 'If something sensitive is about to leave this Mac, say an API key on your clipboard, I turn violet before it goes. Wide eyes and a badge mean critical: hover me for what I found and what to do about it.',
-    state: { mode: 'privacyEvent', eyes: true, gaze: true, privacyLevel: 1 },
+    text: 'If something private is about to leave this Mac, say an API key on your clipboard, I turn violet. For anything serious I swell up with a badge: hover me then for exactly what I found and the one-click remedy.',
+    state: { mode: 'privacyEvent', privacyLevel: 1 },
   },
   {
-    text: "Ask the menu bar drop (\u{1F4A7}) for my footprint ring and I show your day: green for the environment, amber for AI usage, violet for privacy. Hover me while it's up for the numbers.",
-    state: { mode: 'footprint', arcs: { usage: 0.55, env: 0.4, privacy: 0.33 } },
-  },
-  {
-    text: "Sometimes I become things, always for a reason. A bicycle means you've been at it a while: go stretch your legs. A magnifying glass means I've had a close look at your writing. Click me any time, just for fun.",
-    morphs: ['bike', 'glass'],
-  },
-  {
-    text: 'While you work I make small, practical suggestions, each with a button that does the thing: copy a sharper prompt, start a proper break, show what I spotted. Every one says why it fired, and all of them collect in \u{1F4A7} → Suggestions. That is the tour; my welcome sheet has the rest.',
-    state: { eyes: true },
+    text: "Hover me any time and I open into a bar with today's numbers. Click me for 30-day trends, and the menu bar drop (\u{1F4A7}) has the rest. That is the tour; my welcome sheet next has the full privacy story.",
+    state: {},
   },
 ];
 
 function tourState(extra) {
   if (!win || win.isDestroyed()) return;
   win.webContents.send('drippy:update', {
-    mode: 'resting',
-    eyes: false,
-    gaze: false,
+    mode: 'ambient',
     glow: false,
     privacyLevel: 0,
-    dozing: false,
-    leanDir: leanDirection(),
-    arcs: footprintArcs(),
+    stats: statsPayload(),
     ...extra,
   });
 }
@@ -1303,9 +1205,8 @@ function startTour() {
   tourActive = true;
   tourStep = -1;
   console.log('[drippy] tour started');
-  noteActivity();
   hideSuggestion();
-  footprintShown = false;
+  if (bubbleWin) bubbleWin.hide();
   if (!tourWin) {
     tourWin = new BrowserWindow({
       width: TOUR_W,
@@ -1329,36 +1230,20 @@ function startTour() {
 }
 
 function advanceTour() {
-  clearInterval(tourMorphTimer);
   tourStep += 1;
   if (tourStep >= TOUR_STEPS.length) return endTour(true);
   const s = TOUR_STEPS[tourStep];
-  if (s.morphs) {
-    // The shapes step: Drippy cycles bike and glass while the card is up.
-    tourState({});
-    let i = 0;
-    const sendMorph = () => {
-      if (win && !win.isDestroyed()) win.webContents.send('drippy:morph', { shape: s.morphs[i++ % s.morphs.length], hold: 3050 });
-    };
-    sendMorph();
-    tourMorphTimer = setInterval(sendMorph, 3300);
-  } else {
-    if (win && !win.isDestroyed()) win.webContents.send('drippy:morph', { shape: 'none' });
-    tourState(s.state);
-  }
+  tourState(s.state);
   tourWin.webContents.send('tour:data', { text: s.text, step: tourStep, total: TOUR_STEPS.length });
   positionTour();
   tourWin.showInactive();
-  console.log(`[drippy] tour step ${tourStep + 1}/${TOUR_STEPS.length}${s.morphs ? ' (shapes)' : ''}`);
+  console.log(`[drippy] tour step ${tourStep + 1}/${TOUR_STEPS.length}`);
 }
 
 function endTour(finished) {
-  clearInterval(tourMorphTimer);
-  tourMorphTimer = null;
   tourActive = false;
   tourStep = -1;
   if (tourWin) tourWin.hide();
-  if (win && !win.isDestroyed()) win.webContents.send('drippy:morph', { shape: 'none' });
   console.log(`[drippy] tour ${finished ? 'finished' : 'skipped'}`);
   try {
     fs.writeFileSync(path.join(app.getPath('userData'), 'welcomed'), new Date().toISOString());
@@ -1383,8 +1268,10 @@ ipcMain.on('drippy:open-accessibility', () => {
 ipcMain.on('drippy:drag-start', startDrag);
 ipcMain.on('drippy:drag-end', endDrag);
 ipcMain.on('drippy:click', () => {
+  // A warning click acknowledges it; any other click opens the trends
+  // window — the droplet is a doorway to the numbers, nothing else.
   if (privacyLevel > 0) acknowledgePrivacy();
-  else if (footprintShown) toggleFootprint();
+  else showTrends();
 });
 
 app.whenReady().then(() => {

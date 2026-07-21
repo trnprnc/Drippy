@@ -1,4 +1,8 @@
-/* Drippy — direction "1e Blink". Values from the design handoff; treat as final. */
+/* Drippy — the transparency layer, as a docked capsule (Mac prototype).
+   Rest: a small tab tucked against the bottom-right edge. Hover: it slides
+   out into a bar and reveals today's numbers. Glow = AI energy flowing.
+   Violet = privacy. It only swells to full size for a critical warning.
+   The window is click-through everywhere except the capsule itself. */
 
 html, body {
   margin: 0;
@@ -9,342 +13,135 @@ html, body {
   user-select: none;
 }
 
-#stage {
+/* Dock: the capsule hugs the right edge, sitting low in the window. */
+#dock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0 0 14px 0;
+  cursor: grab;
+}
+#dock.dragging { cursor: grabbing; }
+
+/* --- The capsule --- */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 6px 16px rgba(0,0,0,.4), 0 0 14px 2px rgba(103,232,249,.5); }
+  50%      { box-shadow: 0 6px 16px rgba(0,0,0,.4), 0 0 22px 5px rgba(103,232,249,.72); }
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+
+#capsule {
   position: relative;
-  width: 100%;
-  height: 100%;
+  display: flex;
+  align-items: center;
+  height: 34px;
+  max-width: 34px;                 /* rest: just the glyph shows */
+  padding: 0 13px 0 11px;
+  box-sizing: border-box;
+  border-radius: 18px 0 0 18px;    /* rounded left, flat against the edge */
+  background: linear-gradient(160deg, oklch(0.83 0.09 200), oklch(0.6 0.11 214));
+  box-shadow: 0 6px 16px rgba(0,0,0,.4), inset 0 1px 2px rgba(255,255,255,.35);
+  overflow: hidden;
+  transform-origin: right center;
+  transition:
+    max-width .34s cubic-bezier(.34, 1.2, .5, 1),
+    background .4s ease-out,
+    transform .35s cubic-bezier(.34, 1.45, .6, 1),
+    box-shadow .4s ease-out,
+    height .3s ease-out,
+    border-radius .3s ease-out;
+}
+
+/* The glyph: a small teal droplet, always present, the brand's through-line. */
+#glyph {
+  flex: none;
+  width: 12px;
+  height: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: grab;
 }
-#stage.dragging { cursor: grabbing; }
-
-#holder {
-  position: relative;
-  width: 56px;
-  height: 52px;
-}
-
-/* --- Keyframes (from spec) --- */
-@keyframes bob    { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-@keyframes morph  { 0%   { border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%; }
-                    100% { border-radius: 53% 47% 45% 55% / 47% 55% 45% 53%; } }
-@keyframes blinkK { 0%, 91%, 100% { transform: scaleY(1); } 94% { transform: scaleY(.12); } 97% { transform: scaleY(1); } }
-@keyframes shadowB { 0%, 100% { transform: scaleX(1); opacity: .35; } 50% { transform: scaleX(.82); opacity: .22; } }
-@keyframes pulse  { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
-
-/* --- Ground shadow --- */
-#ground {
-  position: absolute;
-  left: 6px;
-  bottom: -12px;
-  width: 44px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, .5);
-  filter: blur(4px);
-  animation: shadowB 5s ease-in-out infinite;
-  transition: opacity .4s ease-out;
-}
-
-/* --- Bob wrapper (vertical float) + squish wrapper (drag feedback) --- */
-#bob { animation: bob 5s ease-in-out infinite; }
-#squish {
-  transition: transform .35s cubic-bezier(.34, 1.56, .64, 1); /* spring back */
-}
-.grabbed #squish { transform: scale(1.1, .9); transition: transform .12s ease-out; }
-.grabbed #bob, .grabbed #ground { animation-play-state: paused; }
-
-/* --- Doze: after a long idle Drippy condenses, in place, into a small
-   still droplet. Deliberate and legible: you always know he's there, and a
-   hover or click plumps him straight back up (spring via #squish). --- */
-.dozing #bob { animation: none; }
-.dozing #ground {
-  animation: none;
-  width: 18px;
-  left: 19px;
-  bottom: -2px;
-  opacity: .3;
-}
-.dozing #squish {
-  transform: translateY(15px) scale(.32);
-  transition: transform .8s cubic-bezier(.5, 0, .3, 1);
-}
-.dozing #blob {
-  /* a resting water drop: rounder, softly pointed crown */
+.drop {
+  width: 11px;
+  height: 12px;
   border-radius: 52% 48% 50% 50% / 62% 62% 40% 40%;
-  animation-duration: 14s;
-  filter: brightness(.94) saturate(.9);
+  background: rgba(255, 255, 255, .95);
+  box-shadow: inset 0 -2px 3px rgba(0, 60, 70, .3);
 }
 
-/* --- Shape-shifting (Clippy homage): hidden overlays until a click morphs
-   Drippy into one, then it pops back to being a blob. Never during a
-   warning or the footprint. --- */
-#shapes {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.shape {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 96px;
-  height: 66px;
+/* The readout: numbers (or a warning word), clipped at rest, revealed on hover. */
+#readout {
+  margin-left: 9px;
+  white-space: nowrap;
+  color: #fff;
+  font: 500 12.5px/1 -apple-system, system-ui, sans-serif;
   opacity: 0;
-  transform: translate(-50%, -50%) scale(.15) rotate(-14deg);
-  transition: opacity .25s ease-out, transform .45s cubic-bezier(.34, 1.56, .64, 1);
+  transition: opacity .2s ease-out .05s;
 }
-.shaped #squish {
-  transform: scale(.12);
-  opacity: 0;
-  transition: transform .3s ease-in, opacity .25s ease-in;
-}
-.shaped #ground { animation-play-state: paused; opacity: .3; }
-.shape-bike #shape-bike,
-.shape-glass #shape-glass {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1) rotate(0deg);
-}
+#readout .warn { display: none; }
+.stat { font-variant-numeric: tabular-nums; }
+.sep { opacity: .5; margin: 0 5px; }
 
-/* Shape life — every part moves, but only while that shape is showing.
-   SVG parts animate via CSS transforms, so each needs its own box/origin. */
-.shape .rig, .shape .spokes, .shape .lensEyes,
-.shape .beye, .shape .leye, .shape .glint, .shape .spark {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-@keyframes wheelSpin  { to { transform: rotate(360deg); } }
-@keyframes rideBob    { 0%, 100% { transform: translateY(0) rotate(0deg); }
-                        50% { transform: translateY(-2.5px) rotate(-1.4deg); } }
-@keyframes streakDash { 0% { opacity: 0; transform: translateX(5px); }
-                        30% { opacity: .55; }
-                        100% { opacity: 0; transform: translateX(-10px); } }
-@keyframes eyeBlinkSvg { 0%, 86%, 100% { transform: scaleY(1); }
-                         91% { transform: scaleY(.15); }
-                         96% { transform: scaleY(1); } }
-@keyframes lensSweep  { 0%, 100% { transform: rotate(-5deg); }
-                        50% { transform: rotate(5deg); } }
-@keyframes eyeDart    { 0%, 22%, 100% { transform: translateX(0); }
-                        34%, 52% { transform: translateX(2.5px); }
-                        66%, 84% { transform: translateX(-2px); } }
-@keyframes glintSweep { 0% { transform: rotate(24deg) translateX(-36px); opacity: 0; }
-                        8% { opacity: .9; }
-                        40% { transform: rotate(24deg) translateX(36px); opacity: 0; }
-                        100% { transform: rotate(24deg) translateX(36px); opacity: 0; } }
-
-/* Bicycle: pedalling bob, spinning spokes, speed streaks, saddle-face blink */
-.shape-bike #shape-bike .rig { animation: rideBob 1.5s ease-in-out infinite; }
-.shape-bike #shape-bike .spokes { animation: wheelSpin .85s linear infinite; }
-.shape-bike #shape-bike .streaks path { animation: streakDash 1s ease-out infinite; }
-.shape-bike #shape-bike .streaks path:nth-child(2) { animation-delay: .25s; }
-.shape-bike #shape-bike .streaks path:nth-child(3) { animation-delay: .55s; }
-.shape-bike #shape-bike .beye { animation: eyeBlinkSvg 3.2s ease-in-out infinite; }
-.shape-bike #shape-bike .streaks path { opacity: 0; }
-
-/* Magnifying glass: inspecting sweep, darting magnified eyes, passing glint */
-.shape-glass #shape-glass .rig { animation: lensSweep 2.8s ease-in-out infinite; }
-.shape-glass #shape-glass .lensEyes { animation: eyeDart 3.4s ease-in-out infinite; }
-.shape-glass #shape-glass .leye { animation: eyeBlinkSvg 2.9s ease-in-out infinite .6s; }
-.shape-glass #shape-glass .glint { animation: glintSweep 3.2s ease-in-out infinite .4s; }
-.shape-glass #shape-glass .spark { animation: sparkle 3.2s ease-in-out infinite 1.1s; }
-@keyframes sparkle {
-  0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); }
-  12% { opacity: .95; transform: scale(1) rotate(18deg); }
-  26% { opacity: 0; transform: scale(.5) rotate(38deg); }
-}
-
-/* --- The blob --- */
-#blob {
-  position: relative;
-  width: 56px;
-  height: 52px;
-  border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%;
-  background: linear-gradient(165deg, oklch(0.85 0.09 195), oklch(0.66 0.11 210));
-  box-shadow:
-    0 10px 20px rgba(0, 0, 0, .45),
-    inset 0 -8px 14px rgba(0, 60, 70, .35),
-    inset 0 3px 6px rgba(255, 255, 255, .45);
-  animation: morph 7s ease-in-out infinite alternate;
-  transition:
-    box-shadow .4s ease-out,
-    transform .4s ease-out,
-    filter .4s ease-out,
-    border-radius .4s ease-out;
-}
-
-/* Colour cross-fade layers — gradients can't transition, so overlays fade in. */
-.skin {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  opacity: 0;
-  transition: opacity .4s ease-out;
-  pointer-events: none;
-}
-#skinPrivacy {
-  background: linear-gradient(165deg, oklch(0.8 0.08 300), oklch(0.62 0.1 310));
-  box-shadow:
-    inset 0 -8px 14px rgba(50, 20, 80, .35),
-    inset 0 3px 6px rgba(255, 255, 255, .4);
-}
-#skinDim {
-  background: linear-gradient(165deg, oklch(0.78 0.07 200), oklch(0.6 0.09 212));
-  box-shadow:
-    inset 0 -6px 10px rgba(0, 60, 70, .4),
-    inset 0 2px 5px rgba(255, 255, 255, .35);
-}
-
-/* --- Notification badge: a recognisable "hover me for details" nudge that
-   appears at the blob's top-right during a warning --- */
+/* --- Badge: critical warnings only --- */
 #badge {
   position: absolute;
   top: -3px;
-  right: -5px;
-  width: 17px;
-  height: 17px;
+  left: 4px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  background: oklch(0.7 0.19 25); /* alert red-coral */
+  background: oklch(0.7 0.19 25);
   box-shadow: 0 1px 4px rgba(0, 0, 0, .45), 0 0 0 2px rgba(255, 255, 255, .25);
   color: #fff;
-  font: 700 12px/17px -apple-system, system-ui, sans-serif;
+  font: 700 11px/15px -apple-system, system-ui, sans-serif;
   text-align: center;
   opacity: 0;
   transform: scale(0);
   transition: opacity .2s ease-out, transform .25s cubic-bezier(.34, 1.6, .64, 1);
-  pointer-events: none;
   z-index: 6;
 }
 #badge::after { content: "!"; }
-/* Badge appears for critical (tier 1) warnings only, never the caution squint. */
-.privacy-critical #badge {
-  opacity: 1;
-  transform: scale(1);
-  animation: badgeNudge 1.4s ease-in-out infinite .25s;
-}
-@keyframes badgeNudge {
-  0%, 100% { transform: scale(1) translateY(0); }
-  50% { transform: scale(1.1) translateY(-1.5px); }
-}
-
-/* --- Eyes: exist only when Drippy has something to show --- */
-#eyes {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 16px;
-  display: flex;
-  justify-content: center;
-  gap: 9px;
-  opacity: 0;
-  transform: scale(.6);
-  transition: opacity .25s ease-out, transform .25s ease-out, top .25s ease-out, gap .25s ease-out;
-  pointer-events: none;
-}
-.eye {
-  width: 6px;
-  height: 10px;
-  border-radius: 3px;
-  background: #0b2530;
-  transition: width .25s, height .25s, border-radius .25s, background .25s;
-}
-
-/* --- Footprint ring --- */
-#ring {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 64px;
-  height: 64px;
-  margin: -32px 0 0 -32px;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity .4s ease-out;
-  -webkit-mask: radial-gradient(closest-side, transparent 84%, #000 86%);
-  mask: radial-gradient(closest-side, transparent 84%, #000 86%);
-  pointer-events: none;
-}
 
 /* ==========================================================================
-   MODES
+   STATES
    ========================================================================== */
 
-/* The attention progression:
-   eyes forward (AI in use) → eyes on the work (typing) → warning keeps
-   eyes on the work. Glow = AI energy flowing, breathing so peripheral
-   vision catches it. */
-
-/* EYES FORWARD — Claude is open in front of you, or your request runs */
-.has-eyes #eyes {
+/* EXPANDED — on hover, or whenever there is something to say. */
+.hovered #capsule,
+.privacy-critical #capsule {
+  max-width: 320px;
+}
+.hovered #readout,
+.privacy-critical #readout {
   opacity: 1;
-  transform: scale(1);
-}
-.has-eyes .eye { animation: blinkK 6s ease-in-out infinite; }
-
-/* EYES ON THE WORK — you're actively typing: eyes shift toward the
-   composer and the body tips with them */
-.has-gaze #eyes { transform: scale(1) translateX(var(--lean-x, 4px)); }
-.has-gaze #blob { transform: rotate(var(--lean-rot, -5deg)); }
-
-/* GLOW — any AI request on this machine (yours or background agents).
-   Layered halo that breathes: motion is what the corner of the eye sees. */
-@keyframes glowPulse {
-  0%, 100% {
-    box-shadow:
-      0 0 10px 2px rgba(103, 232, 249, .45),
-      0 0 26px 8px rgba(103, 232, 249, .18),
-      0 10px 20px rgba(0, 0, 0, .45),
-      inset 0 -8px 14px rgba(0, 60, 70, .35),
-      inset 0 3px 6px rgba(255, 255, 255, .45);
-  }
-  50% {
-    box-shadow:
-      0 0 15px 4px rgba(103, 232, 249, .62),
-      0 0 36px 11px rgba(103, 232, 249, .3),
-      0 10px 20px rgba(0, 0, 0, .45),
-      inset 0 -8px 14px rgba(0, 60, 70, .35),
-      inset 0 3px 6px rgba(255, 255, 255, .45);
-  }
-}
-.has-glow #blob {
-  animation:
-    morph 4s ease-in-out infinite alternate,
-    glowPulse 2.2s ease-in-out infinite;
 }
 
-/* PRIVACY — violet, whole-body pulse. Eyes stay ON THE WORK: the problem is
-   there, so Drippy keeps looking there (has-gaze supplies the translate).
-   Two tiers: critical (wide eyes + badge) and caution (a gentle squint). */
-.mode-privacyEvent #blob {
-  border-radius: 50% 50% 52% 48% / 52% 52% 48% 48%;
-  box-shadow:
-    0 0 18px 3px oklch(0.72 0.12 300 / .5),
-    0 0 36px 10px oklch(0.72 0.12 300 / .25),
-    0 10px 20px rgba(0, 0, 0, .45),
-    inset 0 3px 6px rgba(255, 255, 255, .4);
+/* GLOW — AI energy flowing on this machine. */
+.has-glow #capsule {
+  background: linear-gradient(160deg, oklch(0.86 0.10 198), oklch(0.64 0.12 210));
+  animation: glowPulse 2.2s ease-in-out infinite;
 }
-.mode-privacyEvent #skinPrivacy { opacity: 1; }
-.mode-privacyEvent #eyes { opacity: 1; top: 15px; gap: 8px; }
-.mode-privacyEvent.has-gaze #blob { transform: rotate(var(--lean-rot, -5deg)); }
-.mode-privacyEvent .eye { width: 8px; border-radius: 4px; background: #1c0b30; }
 
-/* Tier 1 critical: wide eyes, firmer pulse. Badge appears (rule above). */
-.privacy-critical #blob { animation: pulse 1.6s ease-in-out infinite; }
-.privacy-critical .eye { height: 13px; }
-.privacy-critical.has-gaze #eyes { transform: translateX(var(--lean-x, 4px)); }
-
-/* Tier 2 caution: a squint (half-closed eyes), gentler pulse, no badge. */
-.privacy-caution #blob { animation: pulse 2.6s ease-in-out infinite; }
-.privacy-caution .eye { height: 12px; }
-.privacy-caution #eyes { transform: scaleY(.34); }
-.privacy-caution.has-gaze #eyes { transform: scaleY(.34) translateX(var(--lean-x, 4px)); }
-
-/* DAY'S FOOTPRINT — dimmed, shrunk to 44x41, eyeless, ringed */
-.mode-footprint #blob {
-  transform: scale(.785); /* 44/56 */
-  filter: brightness(.9);
+/* PRIVACY CAUTION (tier 2) — the capsule turns violet, nothing more. */
+.privacy-caution #capsule {
+  background: linear-gradient(160deg, oklch(0.8 0.08 300), oklch(0.6 0.1 312));
+  animation: pulse 2.6s ease-in-out infinite;
 }
-.mode-footprint #skinDim { opacity: 1; }
-.mode-footprint #ring { opacity: 1; }
-.mode-footprint #ground { opacity: .6; }
+
+/* PRIVACY CRITICAL (tier 1) — the one time Drippy takes up space: it swells,
+   flushes violet, shows a badge, and forces itself open with a warning word. */
+.privacy-critical #capsule {
+  height: 40px;
+  border-radius: 22px 0 0 22px;
+  background: linear-gradient(160deg, oklch(0.78 0.14 305), oklch(0.56 0.16 312));
+  animation: pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 6px 18px rgba(0,0,0,.45), 0 0 20px 3px oklch(0.72 0.12 300 / .55), inset 0 1px 2px rgba(255,255,255,.3);
+}
+.privacy-critical #badge { opacity: 1; transform: scale(1); }
+.privacy-critical #readout .warn { display: inline; }
+.privacy-critical #readout .stats { display: none; }
+
+/* Grab feedback. */
+.grabbed #capsule { transform: scale(.97); transition: transform .12s ease-out; }

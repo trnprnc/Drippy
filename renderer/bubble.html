@@ -49,7 +49,7 @@
   #card.tail-right { transform-origin: 100% 50%; }
   #card.tail-left { transform-origin: 0% 50%; }
   #title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 7px; }
-  /* Drippy's blob, tinted to the moment: red critical, violet caution, teal footprint. */
+  /* Drippy's droplet, tinted to the moment: red critical, violet caution, teal stats. */
   #title i {
     width: 13px; height: 12px; flex: none;
     border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%;
@@ -100,12 +100,12 @@
   const TINTS = {
     critical: 'linear-gradient(165deg, oklch(0.78 0.16 25), oklch(0.6 0.19 25))',
     caution: 'linear-gradient(165deg, oklch(0.8 0.08 300), oklch(0.62 0.1 310))',
-    footprint: 'linear-gradient(165deg, oklch(0.85 0.09 195), oklch(0.66 0.11 210))',
+    stats: 'linear-gradient(165deg, oklch(0.85 0.09 195), oklch(0.66 0.11 210))',
   };
 
   window.drippyBubble.onData((d) => {
     $('titleText').textContent = d.title;
-    const warning = d.kind !== 'footprint';
+    const warning = d.kind === 'warning';
     const card = $('card');
 
     // Warning layout: detail + recommendation + optional action.
@@ -124,8 +124,8 @@
       $('titleDot').style.animation = 'pulse 1.6s ease-in-out infinite';
       card.style.borderColor = critical ? 'oklch(0.7 0.19 25 / .55)' : 'oklch(0.72 0.12 300 / .5)';
     } else {
-      // Footprint breakdown: one coloured row per pillar.
-      $('titleDot').style.background = TINTS.footprint;
+      // Today's numbers: one coloured row per pillar.
+      $('titleDot').style.background = TINTS.stats;
       $('titleDot').style.animation = 'none';
       card.style.borderColor = 'oklch(0.66 0.11 210 / .45)';
       $('rows').innerHTML = (d.rows || [])

@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.0.0 (2026-07-20) — the transparency layer
+
+Drippy optimises for one purpose now: making the true cost of your AI use
+visible. Clean and precise; everything that did not serve that purpose has
+been removed (Jack's steer, 2026-07-20).
+
+- **Always present, never in the way.** The blob is gone. Drippy lives as a
+  small still droplet, and the window is genuinely click-through except over
+  the droplet itself: clicks land on whatever is beneath. He swells to full
+  size for exactly one thing, a critical privacy warning. Glow = AI energy
+  flowing; violet = privacy caution. That is the entire visual language.
+- **Hover = today's numbers.** Energy, water, carbon, requests, privacy
+  events and measured spend, always one hover away. Click = 30-day trends.
+  The footprint ring and its mode are gone; the numbers moved to where your
+  cursor already is.
+- **New measure: spend.** Exact Claude Code token counts are priced at
+  Anthropic's current list rates (cache-aware) and shown as "$x.xx at API
+  rates (measured)". Estimated traffic is never priced; no false precision.
+- **New measure: everyday equivalents.** Wh, mL and gCO₂e are translated
+  into phone charges, glasses of water and petrol-car kilometres, in the
+  hover card and the menu bar. Factors are cited in impact-factors.json.
+- **Removed:** the writing-style detector (aitell) and authenticity nudges,
+  prompt-craft and wellbeing coaching, the break timer, the bicycle and
+  magnifying-glass morphs, the doze animation and the footprint ring.
+  Suggestions became **notices**: transparency-grounded observations only
+  (usage, guard, onboarding), each stating why it fired, with a button that
+  does the thing.
+- The tour is now four cards; welcome sheet, guide and site rewritten to
+  match.
+
 ## 1.0.0 (2026-07-20) — ready for first test users
 
 - **Suggestions earn their keep.** Every card now says why it fired

@@ -1,14 +1,12 @@
-# Drippy: AI transparency companion
+# Drippy: the transparency layer
 
-A small living blob that floats above your desktop and makes the hidden
-impacts of AI usage visible: energy and water, privacy, and how much AI is
-actually running on your machine. Pro-transparent-AI, not anti-AI. Silent by
-default. Drippy speaks in colour and posture, never sounds or popups.
+A small droplet that sits above your desktop and meters what your AI usage
+really costs: energy, water, carbon, money and privacy. Pro-transparent-AI,
+not anti-AI. Always present, never in the way: the window is click-through
+except over the droplet itself, and Drippy only ever takes up space for a
+critical privacy warning.
 
-At rest Drippy is an anonymous, eyeless blob. **Eyes exist only when it has
-something to show you.**
-
-New here? Drippy gives a guided tour on first launch (replay it any time
+New here? Drippy gives a four-card tour on first launch (replay it any time
 from the 💧 menu). The full manual is [USER-GUIDE.md](USER-GUIDE.md).
 
 ## Install (macOS, Apple Silicon)
@@ -28,17 +26,16 @@ from the 💧 menu). The full manual is [USER-GUIDE.md](USER-GUIDE.md).
 Requirements: Apple Silicon Mac, macOS 13+. Everything runs locally, with no
 account and no cloud. See [PRIVACY.md](PRIVACY.md).
 
-## How to read the face
-
-The face follows your attention in a progression:
+## How to read the droplet
 
 | Signal | Meaning |
 |---|---|
-| Eyes forward | AI is in use: Claude is open in front of you, or your request is running |
-| Eyes on the work | you're actively typing; eyes shift toward the composer and the body tips with them |
+| Still droplet | quiet; no AI activity on this Mac |
 | Breathing glow (cyan) | AI energy flowing on this machine, yours *or* a background agent's (a Claude Code session, for example) |
-| Warning: violet, wide eyes still on the work, pulsing | sensitive content detected on your clipboard or in the composer, *before it leaves your machine*: API keys and tokens (Anthropic, OpenAI, GitHub, AWS, Stripe, Slack, Google, JWTs), private key files, database connection strings, .env-style secrets, cards and bank details, government IDs, emails, phones, dates of birth. **Hover Drippy** for what it found, why it matters, and the remedy; click to acknowledge |
-| Dim + ring | your day's footprint: green environment · amber energy · violet privacy |
+| Violet droplet | caution-level sensitive content (phone number, date of birth) in your clipboard or composer |
+| Full size + wide eyes + "!" | critical: a secret detected *before it leaves your machine*: API keys and tokens (Anthropic, OpenAI, GitHub, AWS, Stripe, Slack, Google, JWTs), private key files, database connection strings, .env-style secrets, cards and bank details, government IDs. **Hover Drippy** for what it found, why it matters, and the remedy; click to acknowledge |
+| Hover | today's numbers: energy, water, carbon, requests, privacy, measured spend, everyday equivalents |
+| Click | 30-day usage trends |
 
 The 💧 menu shows live status, today's totals (requests, tokens in/out,
 Wh / water / CO₂e with their uncertainty band), the last privacy event, and,

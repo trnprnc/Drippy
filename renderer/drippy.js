@@ -1,129 +1,94 @@
-const stage = document.getElementById('stage');
-const ring = document.getElementById('ring');
-
-const MODES = ['resting', 'privacyEvent', 'footprint'];
-
-// The attention progression: eyes forward (AI in use) → eyes on the work
-// (typing) → warning keeps eyes on the work. Glow = AI energy flowing.
-function applyState({ mode, eyes, gaze, glow, leanDir, arcs, privacyLevel, dozing }) {
-  // A warning or the footprint always interrupts a playful transform.
-  if (mode === 'privacyEvent' || mode === 'footprint') clearShape();
-  for (const m of MODES) document.body.classList.toggle(`mode-${m}`, m === mode);
-  document.body.classList.toggle('has-eyes', !!eyes);
-  document.body.classList.toggle('has-gaze', !!gaze);
-  document.body.classList.toggle('has-glow', !!glow);
-  document.body.classList.toggle('dozing', !!dozing);
-  // Privacy tier: 1 = critical (wide eyes + badge), 2 = caution (squint).
-  document.body.classList.toggle('privacy-critical', privacyLevel === 1);
-  document.body.classList.toggle('privacy-caution', privacyLevel === 2);
-
-  // Lean: body rotates 5° and eyes shift 4px toward the work
-  // (leanDir = 1 means the work is to Drippy's right; spec card shows
-  // rotate(-5deg) + translateX(4px), mirrored for the other side).
-  document.body.style.setProperty('--lean-rot', `${leanDir === -1 ? 5 : -5}deg`);
-  document.body.style.setProperty('--lean-x', `${leanDir === -1 ? -4 : 4}px`);
-
-  if (arcs) setRing(arcs);
-}
-
-// Three arcs with ~12° gaps: green environment, amber usage/energy, violet privacy.
-// Three pillar gauges: environment (green), AI usage (amber), privacy
-// (violet). Each occupies a third of the ring and fills toward its daily
-// reference, over a faint track. Hover Drippy in footprint mode for numbers.
-function setRing({ usage, env, privacy }) {
-  const GAP = 14;
-  const span = (360 - GAP * 3) / 3; // per-pillar segment
-  const track = 'oklch(0.72 0.03 250 / .16)';
-  const parts = [];
-  let d = 0;
-  const gauge = (color, val) => {
-    const fill = Math.max(0, Math.min(1, val || 0)) * span;
-    if (fill > 0.5) parts.push(`${color} ${d}deg ${d + fill}deg`);
-    if (fill < span - 0.5) parts.push(`${track} ${d + fill}deg ${d + span}deg`);
-    d += span;
-    parts.push(`transparent ${d}deg ${d + GAP}deg`);
-    d += GAP;
-  };
-  gauge('oklch(0.78 0.14 155)', env); // green
-  gauge('oklch(0.82 0.13 85)', usage); // amber
-  gauge('oklch(0.72 0.12 300)', privacy); // violet
-  ring.style.background = `conic-gradient(from -90deg, ${parts.join(', ')})`;
-}
-
-// ---------------------------------------------------------------------------
-// Drag (window moved by main process via cursor polling) + click detection
-// ---------------------------------------------------------------------------
+const dock = document.getElementById('dock');
+const capsule = document.getElementById('capsule');
 
 // No-op bridge when opened in a plain browser (design preview / dev).
 if (!window.drippy) {
   window.drippy = {
-    onUpdate: () => {}, dragStart: () => {}, dragEnd: () => {}, click: () => {}, hover: () => {}, onMorph: () => {},
+    onUpdate: () => {}, dragStart: () => {}, dragEnd: () => {}, click: () => {}, hover: () => {}, hit: () => {},
   };
 }
 
-let downAt = null;
+// ---------------------------------------------------------------------------
+// State: ambient (capsule) | privacyEvent. Glow overlays either. The daily
+// numbers ride along so the expanded bar can show them live.
+// ---------------------------------------------------------------------------
 
-stage.addEventListener('mouseenter', () => window.drippy.hover(true));
-stage.addEventListener('mouseleave', () => window.drippy.hover(false));
+function fmtStats(s) {
+  if (!s) return;
+  const wh = s.wh || 0;
+  document.getElementById('sEnergy').textContent = `${wh < 10 ? wh.toFixed(1) : Math.round(wh)} Wh`;
+  document.getElementById('sWater').textContent = `${Math.round(s.waterMl || 0)} mL`;
+  // Spend is measured (Claude Code) only; before any exact usage, show the
+  // request count instead of a misleading $0.00.
+  document.getElementById('sSpend').textContent =
+    s.usd > 0 ? `$${s.usd.toFixed(2)}` : `${s.requests || 0} req`;
+}
 
-stage.addEventListener('mousedown', (e) => {
-  if (e.button !== 0) return;
-  downAt = { x: e.screenX, y: e.screenY };
-  document.body.classList.add('grabbed');
-  stage.classList.add('dragging');
-  window.drippy.dragStart();
+function applyState({ mode, glow, privacyLevel, stats }) {
+  document.body.classList.toggle('mode-privacyEvent', mode === 'privacyEvent');
+  document.body.classList.toggle('mode-ambient', mode !== 'privacyEvent');
+  document.body.classList.toggle('has-glow', !!glow);
+  document.body.classList.toggle('privacy-critical', privacyLevel === 1);
+  document.body.classList.toggle('privacy-caution', privacyLevel === 2);
+  fmtStats(stats);
+}
+
+// ---------------------------------------------------------------------------
+// Click-through: the window ignores the mouse except over the capsule. Main
+// forwards mouse moves while ignoring; we hit-test against the capsule's
+// current rendered bounds (so the interactive area grows as it expands).
+// ---------------------------------------------------------------------------
+
+const HIT_PAD = 6;
+let overDrippy = false;
+let dragging = false;
+
+function hitTest(x, y) {
+  const r = capsule.getBoundingClientRect();
+  return x >= r.left - HIT_PAD && x <= r.right + HIT_PAD && y >= r.top - HIT_PAD && y <= r.bottom + HIT_PAD;
+}
+
+function setOver(over) {
+  if (over === overDrippy) return;
+  overDrippy = over;
+  document.body.classList.toggle('hovered', over);
+  window.drippy.hit(over); // main toggles setIgnoreMouseEvents
+  window.drippy.hover(over); // main shows the warning card during a warning
+}
+
+document.addEventListener('mousemove', (e) => {
+  if (dragging) return;
+  setOver(hitTest(e.clientX, e.clientY));
+});
+document.addEventListener('mouseout', (e) => {
+  if (!e.relatedTarget && !dragging) setOver(false);
 });
 
-// Shape-shifting with purpose. The bicycle rides in with a wellbeing nudge
-// ("go take a break"); the magnifying glass appears when Drippy has looked
-// closely at your writing (an authenticity nudge). Clicking Drippy also
-// cycles them, as a bit of fun. Never during a warning or the footprint.
-const SHAPES = ['bike', 'glass'];
-let shapeIdx = 0;
-let shapeTimer = null;
+// ---------------------------------------------------------------------------
+// Drag (window moved by main via cursor polling) + click detection
+// ---------------------------------------------------------------------------
 
-function clearShape() {
-  clearTimeout(shapeTimer);
-  document.body.classList.remove('shaped', 'shape-bike', 'shape-glass');
-}
+let downAt = null;
 
-function morphTo(shape, holdMs = 3200) {
-  const b = document.body;
-  if (b.classList.contains('mode-privacyEvent') || b.classList.contains('mode-footprint')) return;
-  b.classList.remove('shape-bike', 'shape-glass');
-  b.classList.add('shaped', `shape-${shape}`);
-  clearTimeout(shapeTimer);
-  shapeTimer = setTimeout(clearShape, holdMs);
-}
-
-function tryTransform() {
-  if (document.body.classList.contains('shaped')) {
-    clearShape(); // click again to pop straight back
-    return;
-  }
-  morphTo(SHAPES[shapeIdx++ % SHAPES.length]);
-}
-
-// A wellbeing suggestion turns Drippy into a bike; an authenticity one into
-// a magnifying glass. Held a touch longer so it's clearly readable. The
-// tour sends { shape, hold } objects ('none' pops him straight back).
-window.drippy.onMorph((m) => {
-  const shape = typeof m === 'string' ? m : m && m.shape;
-  if (!shape || shape === 'none') return clearShape();
-  morphTo(shape, (m && m.hold) || 4200);
+dock.addEventListener('mousedown', (e) => {
+  if (e.button !== 0 || !overDrippy) return;
+  downAt = { x: e.screenX, y: e.screenY };
+  dragging = true;
+  document.body.classList.add('grabbed');
+  dock.classList.add('dragging');
+  window.drippy.dragStart();
 });
 
 window.addEventListener('mouseup', (e) => {
   if (!downAt) return;
   const moved = Math.hypot(e.screenX - downAt.x, e.screenY - downAt.y);
   downAt = null;
+  dragging = false;
   document.body.classList.remove('grabbed');
-  stage.classList.remove('dragging');
+  dock.classList.remove('dragging');
   window.drippy.dragEnd();
-  if (moved < 4) {
-    tryTransform();
-    window.drippy.click();
-  }
+  if (moved < 4) window.drippy.click();
+  setOver(hitTest(e.clientX, e.clientY));
 });
 
 window.drippy.onUpdate(applyState);

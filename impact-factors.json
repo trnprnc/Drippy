@@ -1,6 +1,6 @@
 {
-  "version": "2026.07.4",
-  "updated": "2026-07-14",
+  "version": "2026.07.5",
+  "updated": "2026-07-20",
   "status": "provisional",
   "notes": "No AI provider publishes per-request figures for Claude. These factors are grounded in current (2026) peer-reviewed and industry measurements of LLM inference energy, carry an uncertainty band shown in the UI, and are revised continually. Token counts for Claude Code are EXACT (read from local session transcripts), so on that path the only remaining uncertainty is these energy factors. Data vintage: 2026.",
   "sources": [
@@ -10,7 +10,9 @@
     { "id": "model-tiers-2026", "note": "Energy per token scales ~with active parameters (Anthropic does not publish these). Tiers span the measured 0.0001-0.002 Wh/token range relative to a Sonnet-class baseline (1.0). To be replaced with measured figures from ML.ENERGY and Hugging Face AI Energy Score." },
     { "id": "grid-carbon-2026", "note": "US regional grid ~321 gCO2e/kWh (IEA-derived, 2026); the US hosts ~45% of AI datacentre capacity and Claude runs primarily in US regions, so US intensity is used rather than the ~396 gCO2e/kWh global average. Will become datacentre-region-aware." },
     { "id": "water-onsite-2026", "note": "Onsite cooling water use effectiveness ~1.1 L/kWh (Google best-in-class fleet; hyperscaler-disclosed range ~0.2-1.8; liquid cooling cuts onsite use 70-90%). This alone gives ~0.26-0.32 mL for a short query (Gemini/ChatGPT scope-1 figures)." },
-    { "id": "water-offsite-2026", "note": "Offsite water to GENERATE the electricity, which is comparable to or larger than onsite cooling. US thermoelectric consumptive average ~1.25 L/kWh (EIA); we use consumptive (evaporated) not withdrawal, the honest metric. Grid-mix and region dependent; LBNL cites up to 7.6 L/kWh for dirtier grids. Including offsite raises per-query water 5-20x over onsite alone." }
+    { "id": "water-offsite-2026", "note": "Offsite water to GENERATE the electricity, which is comparable to or larger than onsite cooling. US thermoelectric consumptive average ~1.25 L/kWh (EIA); we use consumptive (evaporated) not withdrawal, the honest metric. Grid-mix and region dependent; LBNL cites up to 7.6 L/kWh for dirtier grids. Including offsite raises per-query water 5-20x over onsite alone." },
+    { "id": "api-pricing-2026", "note": "Anthropic published API list prices, checked 2026-07-20 (platform.claude.com/docs/en/pricing): Fable 5 $10/$50 per Mtok in/out; Opus 4.6-4.8 $5/$25; Sonnet 4.6/5 $3/$15 (Sonnet 5 intro $2/$10 until 2026-08-31, sticker used here); Haiku 4.5 $1/$5. Cache reads bill at 0.1x input, 5-minute cache writes at 1.25x input. Spend is computed ONLY from exact Claude Code token counts and shown as 'API-rate value': what the usage would cost at list rates, which is not necessarily what the user pays (subscriptions differ)." },
+    { "id": "equivalents-2026", "note": "Rough everyday equivalents to make the numbers legible, deliberately conservative: smartphone full charge ~15 Wh (roughly 12-19 Wh across 2024-2026 flagship battery capacities incl. charger loss); drinking glass 250 mL; average new petrol car ~120 gCO2e/km (EEA 2024-2026 fleet averages ~107-120 g/km WLTP; rounded)." }
   ],
   "assumptions": {
     "whPer1kOutputTokens": 1.0,
@@ -31,5 +33,21 @@
       "fable": 1.0,
       "default": 1.0
     }
+  },
+  "pricing": {
+    "usdPerMtok": {
+      "fable": { "in": 10, "out": 50 },
+      "opus": { "in": 5, "out": 25 },
+      "sonnet": { "in": 3, "out": 15 },
+      "haiku": { "in": 1, "out": 5 },
+      "default": { "in": 3, "out": 15 }
+    },
+    "cacheReadInputMultiplier": 0.1,
+    "cacheWriteInputMultiplier": 1.25
+  },
+  "equivalents": {
+    "phoneChargeWh": 15,
+    "glassMl": 250,
+    "carGCo2PerKm": 120
   }
 }
