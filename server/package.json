@@ -1,0 +1,15 @@
+{
+  "name": "drippy-ingest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Drippy Phase 1 ingest service (DATA-STORAGE.md). DB=memory for development, DATABASE_URL (Neon UK/EU) for production.",
+  "main": "ingest.js",
+  "scripts": {
+    "start": "node ingest.js",
+    "dev": "DB=memory node ingest.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}

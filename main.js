@@ -8,6 +8,7 @@ const PrivacySensor = require('./privacy');
 const ClaudeCodeMonitor = require('./claude-code');
 const impact = require('./impact');
 const history = require('./history');
+const sync = require('./sync');
 const { SuggestionEngine } = require('./suggestions');
 
 // Drippy may run detached from any terminal (launched via `open` so macOS
@@ -377,6 +378,7 @@ setInterval(() => {
     currentDay = today;
     resetDay();
     saveState(true);
+    sync.poke('day-close');
   }
 }, 60 * 1000).unref();
 
@@ -1230,6 +1232,19 @@ ipcMain.on('tour:height', (_e, { h }) => {
   if (tourWin && !tourWin.isDestroyed() && tourActive) positionTour();
 });
 
+// Sync opt-in and the upload ledger, surfaced in the welcome sheet
+// ("What has been shared"). Off by default; setEnabled(true) enrols the
+// device into a personal workspace on first use.
+ipcMain.handle('sync:info', () => sync.info());
+ipcMain.handle('sync:set', async (_e, enabled) => {
+  try {
+    return await sync.setEnabled(!!enabled);
+  } catch (err) {
+    console.log(`[drippy] sync opt-in failed — ${err.message || err}`);
+    return { ...sync.info(), error: String(err.message || err) };
+  }
+});
+
 ipcMain.on('drippy:open-accessibility', () => {
   require('electron').shell.openExternal(
     'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'
@@ -1250,6 +1265,20 @@ app.whenReady().then(() => {
   if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: true });
   history.init(app.getPath('userData'));
   loadState();
+  sync.init({
+    dir: app.getPath('userData'),
+    getToday: () => ({ date: currentDay, ...daily }),
+    getMeta: () => ({
+      appVersion: app.getVersion(),
+      os: process.platform,
+      osVersion: process.getSystemVersion(),
+      factorsVersion: impact.version,
+      tzOffsetMin: -new Date().getTimezoneOffset(),
+      country: app.getLocaleCountryCode() || '',
+    }),
+    // Development default only; production endpoints arrive with Phase 2.
+    defaultEndpoint: app.isPackaged ? null : process.env.DRIPPY_SYNC_ENDPOINT || 'http://127.0.0.1:8787',
+  });
   createWindow();
   monitor.start();
   engagement.start();

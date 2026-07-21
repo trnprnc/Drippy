@@ -31,6 +31,15 @@
 - **Local-storage claims removed** from the app and docs (trends header,
   welcome sheet, README, USER-GUIDE, PRIVACY) ahead of commercial data
   storage design.
+- **Sync, off by default (Phase 1 of DATA-STORAGE.md).** An opt-in in the
+  welcome sheet enrols this device into a personal workspace and batches
+  local history (drivers and verdicts, in whitelisted shapes) to the
+  ingest service hourly and at day close. Every batch is written to an
+  append-only upload ledger before it is sent and its outcome after,
+  shown in the welcome sheet as "What has been shared". The ingest
+  service (server/) runs on a memory store for development and Neon
+  Postgres for production; records are rebuilt through whitelists at the
+  door, so no field that could hold content survives on either side.
 
 ## 2.0.0 (2026-07-20) — the transparency layer
 

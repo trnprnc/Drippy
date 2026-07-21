@@ -53,6 +53,11 @@ npm install
 npm run start:app   # run from source, detached via LaunchServices. Required
                     # for Accessibility permission to attribute correctly.
 npm run dist        # build dist/Drippy-<version>.dmg + .zip
+
+# sync ingest (Phase 1, see DATA-STORAGE.md) — optional, off by default:
+cd server && npm run dev   # memory store on :8787; the dev app points at it.
+                           # Toggle sync in the welcome sheet ("What has been
+                           # shared"). Production: DATABASE_URL=<Neon> npm start
 ```
 
 Logs: `~/Library/Logs/Drippy.log` · State: `~/Library/Application Support/Drippy/`

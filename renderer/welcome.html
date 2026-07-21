@@ -71,10 +71,56 @@
   <p style="font-size:13px;margin:0">Catching sensitive data <em>as you type it</em>, before it is sent, needs macOS Accessibility access. Without it Drippy sees only what you copy, not what you type.</p>
   <button class="btn" onclick="window.drippyInfo.openAccessibility()">Open Accessibility settings…</button>
 
+  <h2>What has been shared</h2>
+  <p style="font-size:13px;margin:0 0 6px">
+    Off by default. When on, your usage history syncs to your personal workspace in the same shapes
+    as your local trends: drivers and verdicts. Every batch that leaves this device is listed here.
+  </p>
+  <label style="font-size:13px;display:flex;align-items:center;gap:7px">
+    <input type="checkbox" id="syncTog"> Sync my usage history
+  </label>
+  <div id="syncErr" style="font-size:12px;color:#c25b4e;margin-top:4px;display:none"></div>
+  <div id="ledger" style="font-size:12px;margin-top:8px;line-height:1.7"></div>
+
   <div class="foot">
     Impact figures are estimates (±3×) from a versioned, source-cited factor table. See METHODOLOGY.md.
     Factors <span id="fv"></span>
   </div>
-  <script>document.getElementById('fv').textContent = window.drippyInfo.factorsVersion;</script>
+  <script>
+    document.getElementById('fv').textContent = window.drippyInfo.factorsVersion;
+
+    const tog = document.getElementById('syncTog');
+    const ledgerEl = document.getElementById('ledger');
+    const errEl = document.getElementById('syncErr');
+
+    function fmtKb(b) { return b >= 1024 ? (b / 1024).toFixed(1) + ' KB' : b + ' B'; }
+    function fmtCounts(c) {
+      const names = { rollup: 'day', request: 'request', privacy: 'privacy', notice: 'notice' };
+      return Object.entries(c || {}).map(([k, n]) => `${n} ${names[k] || k}${n === 1 ? '' : 's'}`).join(', ');
+    }
+
+    function render(info) {
+      tog.checked = !!info.enabled;
+      errEl.style.display = info.error ? 'block' : 'none';
+      errEl.textContent = info.error ? `Could not enable sync: ${info.error}` : '';
+      const rows = (info.ledger || []).map((e) => {
+        const when = new Date(e.at).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        const status = e.status === 'ok' ? 'ok' : e.status === 'failed' ? 'failed' : 'sending';
+        return `<div>${when} · ${e.records} record${e.records === 1 ? '' : 's'} (${fmtCounts(e.counts)}) · ${fmtKb(e.bytes || 0)} · ${status}</div>`;
+      });
+      ledgerEl.innerHTML = rows.length
+        ? rows.join('')
+        : `<span style="opacity:.55">${info.enabled ? 'Nothing has left this device yet.' : 'Nothing has left this device.'}</span>`;
+    }
+
+    tog.addEventListener('change', async () => {
+      tog.disabled = true;
+      render(await window.drippyInfo.syncSet(tog.checked));
+      tog.disabled = false;
+    });
+
+    window.drippyInfo.syncInfo().then(render);
+    setInterval(() => window.drippyInfo.syncInfo().then(render), 15000);
+  </script>
 </body>
 </html>

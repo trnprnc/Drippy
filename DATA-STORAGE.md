@@ -1,7 +1,9 @@
 # Drippy data storage — design
 
-Status: decided 2026-07-21 (decisions at the foot). Not yet implemented.
-The pill and its local history are unaffected until Phase 1 lands.
+Status: decided 2026-07-21 (decisions at the foot). Phase 1 is built:
+the device upload contract and ledger (sync.js), the ingest service
+(server/) and the welcome-sheet opt-in. Sync stays off by default; the
+pill and its local history are unaffected either way.
 
 ## Why store data at all
 
@@ -178,9 +180,16 @@ that view layer, so raw tables are never queryable by dashboards.
 
 ## Phasing
 
-1. **Phase 1 (build next):** upload contract + ledger on device; ingest
-   API + Neon tenant store; personal-workspace opt-in in the welcome
-   sheet; nothing else user-visible beyond the ledger view.
+1. **Phase 1 (built 2026-07-21):** upload contract + ledger on device
+   (sync.js: whitelisted shapes, hourly + day-close batches, cursor,
+   intent-then-outcome ledger lines); ingest service (server/ingest.js
+   with a memory store for development and store-pg.js + schema.sql for
+   Neon); personal-workspace opt-in and the "What has been shared" view
+   in the welcome sheet. Before production traffic: provision the Neon
+   project (UK/EU) and apply schema.sql, put the ingest behind TLS on a
+   real host, and replace open personal enrolment with the chosen
+   sign-in. The Postgres store is written but has only run against the
+   memory twin so far.
 2. **Phase 2:** org dashboard MVP (aggregates, coverage, factors
    versioning, configurable k) and MDM enrolment flow.
 3. **Phase 3:** reconcile with provider Admin/Usage APIs (fidelity L3) so
