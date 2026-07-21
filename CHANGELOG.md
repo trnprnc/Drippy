@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.1 (2026-07-21) — read Claude's composer
+
+- **The type-as-you-go privacy scan now actually works against Claude.**
+  Claude is a Chromium/Electron app that does not expose its web-based
+  composer to macOS Accessibility by default, so `AXFocusedUIElement`
+  failed and the typed-text scan silently read nothing (the clipboard
+  guard was unaffected). Drippy now sets `AXManualAccessibility` on the
+  Claude process to force Chromium to build its accessibility tree,
+  after which the composer is a readable text field. This restores
+  catching sensitive data at the point of entry, before Send.
+
 ## 2.1.0 (2026-07-21) — menu-bar pill and cloud sync
 
 - **Drippy is now the menu-bar pill, full stop.** A small dark pill living

@@ -32,9 +32,19 @@ const SESSION_LINGER_MS = 3 * 60 * 1000; // keep scanning this long after leavin
 const COMPOSER_POLL_MS = 2500; // while typing
 const AX_RETRY_MS = 20 * 1000; // cheap probe — notice a fresh grant quickly
 
+// Claude is a Chromium/Electron app: by default it does NOT expose its
+// web-content accessibility tree (including the focused composer) to the
+// macOS AX API, so AXFocusedUIElement fails with -1728 and the scan reads
+// nothing. Setting AXManualAccessibility forces Chromium to build the tree,
+// after which the composer is a readable AXTextArea. It is idempotent and
+// wrapped in try so a failure to set it never blocks the read.
 const COMPOSER_SCRIPT =
-  'tell application "System Events" to tell (first process whose name is "Claude") to ' +
-  'get value of attribute "AXValue" of (get value of attribute "AXFocusedUIElement")';
+  'tell application "System Events" to tell (first process whose name is "Claude")\n' +
+  '  try\n' +
+  '    set value of attribute "AXManualAccessibility" to true\n' +
+  '  end try\n' +
+  '  get value of attribute "AXValue" of (value of attribute "AXFocusedUIElement")\n' +
+  'end tell';
 
 // The composer query returns a generic -1728 when Accessibility permission
 // is missing, hiding the real cause. This probe is cheap and errors with an
