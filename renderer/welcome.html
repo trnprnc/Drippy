@@ -44,7 +44,7 @@
     <div class="blob"></div>
     <div>
       <h1>Drippy</h1>
-      <p class="tag">The transparency layer for your AI use. A small pill in the menu bar, never in the way: clicks pass straight through everything except him.</p>
+      <p class="tag">The transparency layer for your AI use: what it really costs in energy, water, carbon, spend and privacy.</p>
     </div>
   </div>
 
@@ -87,7 +87,7 @@
     Factors <span id="fv"></span>
   </div>
   <script>
-    document.getElementById('fv').textContent = window.drippyInfo.factorsVersion;
+    window.drippyInfo.factorsVersion().then((v) => (document.getElementById('fv').textContent = v));
 
     const tog = document.getElementById('syncTog');
     const ledgerEl = document.getElementById('ledger');

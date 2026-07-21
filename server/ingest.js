@@ -13,6 +13,7 @@
 //   POST /v1/batch  Bearer <key> → { ok, accepted, duplicates }
 //   GET  /v1/stats  Bearer <key> → this device's own row counts
 
+require('./env');
 const http = require('http');
 const crypto = require('crypto');
 

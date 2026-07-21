@@ -1245,10 +1245,19 @@ ipcMain.handle('sync:set', async (_e, enabled) => {
   }
 });
 
-ipcMain.on('drippy:open-accessibility', () => {
-  require('electron').shell.openExternal(
-    'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'
-  );
+ipcMain.handle('drippy:factors-version', () => impact.version);
+
+ipcMain.on('drippy:open-accessibility', async () => {
+  console.log('[drippy] opening Accessibility settings');
+  const { shell } = require('electron');
+  try {
+    await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility');
+  } catch (err) {
+    // Deep link schemes shift between macOS releases; the app itself is
+    // the stable fallback.
+    console.log(`[drippy] settings deep link failed (${err.message || err}); opening System Settings`);
+    shell.openPath('/System/Applications/System Settings.app');
+  }
 });
 
 ipcMain.on('drippy:drag-start', startDrag);

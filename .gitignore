@@ -12,3 +12,7 @@ build/icon-1024.png
 # local state & logs
 *.log
 .DS_Store
+
+# secrets (Neon connection string etc.)
+.env.local
+server/.env.local

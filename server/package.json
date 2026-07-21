@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node ingest.js",
     "dev": "DB=memory node ingest.js",
+    "migrate": "node migrate.js",
     "test": "node test.js"
   },
   "dependencies": {
