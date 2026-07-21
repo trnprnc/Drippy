@@ -5,20 +5,15 @@ if you can trust it more than the things it watches. This document describes
 exactly what Drippy can see, what it cannot, and why, and how those promises
 are enforced *structurally* in the code, not just by policy.
 
-## The three rules
+## The rules
 
-1. **Everything stays on your Mac.** Drippy has no account, no cloud, no
-   telemetry, and no analytics. Its only network activity is DNS lookups of
-   `claude.ai` / `api.anthropic.com` (to learn which addresses to watch).
-   It never transmits anything, anywhere.
-
-2. **Verdicts, not content.** Wherever Drippy touches text (clipboard,
+1. **Verdicts, not content.** Wherever Drippy touches text (clipboard,
    composer), the text is scanned in memory and discarded in the same
    function call. Only a category verdict survives, such as "API key" or
    "email address", never the value. There is no code path that stores,
    logs, or transmits scanned content.
 
-3. **Metadata before content.** Drippy prefers the least-invasive signal that
+2. **Metadata before content.** Drippy prefers the least-invasive signal that
    can do the job, and each deeper level is separately opt-in.
 
 **Why the clipboard is watched during a session, not just when Claude is
@@ -66,20 +61,18 @@ personal detail is not.)
 
 ## What Drippy stores on disk
 
-- `~/Library/Application Support/Drippy/position.json`: where you left the blob
+- `~/Library/Application Support/Drippy/position.json`: where you left the pill
 - `~/Library/Application Support/Drippy/state.json`: today's counters (request
   count, token estimates, Wh/water/CO₂e, privacy-event count and last category)
 - `~/Library/Logs/Drippy.log`: operational log with state changes, app names,
   byte/token estimates, and privacy event *categories*. Never content.
 - `~/Library/Application Support/Drippy/history/`: your local usage history
   (per-day rollups and per-event records: timestamps, app names, token/energy
-  estimates, privacy categories). This powers the Usage trends window. It
-  never leaves the device; any future community or aggregate sharing will be
-  strictly opt-in and documented here first.
+  estimates, privacy categories). This powers the Usage trends window.
 
 Delete any of these at any time; Drippy recreates them empty.
 
-## The estimates in the tray
+## The estimates
 
 Impact numbers are derived from traffic *volume* (bytes ≈ tokens ≈ energy),
 never from reading your conversations. See [METHODOLOGY.md](METHODOLOGY.md).
@@ -88,6 +81,5 @@ never from reading your conversations. See [METHODOLOGY.md](METHODOLOGY.md).
 
 Drippy's source is small and readable. `monitor.js`, `engagement.js`,
 `privacy.js` and `pii.js` are the complete sensing surface (about 500 lines).
-Check that `scanText()` results are the only thing that leaves `privacy.js`,
-and that the app makes no HTTP requests. We intend to keep it that way and to
-publish the source so you don't have to take our word for it.
+Check that `scanText()` results are the only thing that leaves `privacy.js`.
+We intend to publish the source so you don't have to take our word for it.

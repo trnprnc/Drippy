@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased
+
+- **Drippy is now the menu-bar pill, full stop.** A small dark pill living
+  in the menu bar strip, the Mac cousin of the iPhone island widget. A teal
+  shimmer sweeps through it while AI is at work, violet means a privacy
+  caution, and it swells below the bar with a badge for a critical warning.
+  Hover opens today's numbers, each pillar wearing its colour dot; click
+  opens usage trends. It slides along the bar when dragged and, on notched
+  Macs, starts just to the right of the notch. The corner capsule and the
+  separate menu bar icon (tray) are gone: right-click on the pill now holds
+  everything the tray held (trends, notices, the welcome sheet, the tour,
+  reset, quit).
+- **Usage trends, sharpened.** 7-day tiles for energy, water, requests,
+  privacy events and measured spend; a 7-day line with everyday
+  equivalents; a fuller data table (requests, tokens in/out, Wh, mL,
+  g CO₂e, privacy, measured spend per day); and a plain provenance note
+  stating which numbers are measured, which are estimated, and how wide
+  the estimate band is.
+- **Language pass.** Nothing instructs or judges: the critical pill says
+  "Sensitive data" and trusts the hover, the stats card footer dropped
+  "click me", and notices state what the meters show without editorialising
+  ("A heavier AI day than most" rather than "Fine if it earned its keep").
+- **Right-click menu slimmed to essentials.** Usage trends, What Drippy can
+  see, Reset day, Quit. Notices and Replay the tour left the menu; all
+  simulation and demo-mode machinery was deleted outright.
+- **Tour tightened.** Nothing that states the obvious, nothing negative,
+  nothing OS-specific: four short cards on what Drippy tracks, the glow,
+  the privacy warning and the three interactions.
+- **Local-storage claims removed** from the app and docs (trends header,
+  welcome sheet, README, USER-GUIDE, PRIVACY) ahead of commercial data
+  storage design.
+
 ## 2.0.0 (2026-07-20) — the transparency layer
 
 Drippy optimises for one purpose now: making the true cost of your AI use

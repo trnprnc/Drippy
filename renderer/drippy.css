@@ -1,8 +1,10 @@
-/* Drippy — the transparency layer, as a docked capsule (Mac prototype).
-   Rest: a small tab tucked against the bottom-right edge. Hover: it slides
-   out into a bar and reveals today's numbers. Glow = AI energy flowing.
-   Violet = privacy. It only swells to full size for a critical warning.
-   The window is click-through everywhere except the capsule itself. */
+/* Drippy — the transparency layer, as a menu-bar pill.
+   A small dark pill living in the menu bar strip, the Mac cousin of the
+   iPhone island widget. Rest: just the droplet. Hover: it opens into a
+   wide pill with today's numbers, each pillar wearing its colour dot.
+   Glow = AI energy flowing. Violet = privacy caution. It only swells and
+   hangs below the bar for a critical warning.
+   The window is click-through everywhere except the pill itself. */
 
 html, body {
   margin: 0;
@@ -13,38 +15,35 @@ html, body {
   user-select: none;
 }
 
-/* Dock: the capsule hugs the right edge, sitting low in the window. */
+/* Dock: the pill sits top-centre, padded down to the middle of the strip. */
 #dock {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  padding: 0 0 14px 0;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--mb-pad, 2px) 0 0 0;
   cursor: grab;
 }
 #dock.dragging { cursor: grabbing; }
 
-/* --- The capsule --- */
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 6px 16px rgba(0,0,0,.4), 0 0 14px 2px rgba(103,232,249,.5); }
-  50%      { box-shadow: 0 6px 16px rgba(0,0,0,.4), 0 0 22px 5px rgba(103,232,249,.72); }
-}
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
 
+/* --- The pill --- */
 #capsule {
   position: relative;
   display: flex;
   align-items: center;
-  height: 34px;
-  max-width: 34px;                 /* rest: just the glyph shows */
-  padding: 0 13px 0 11px;
+  height: 22px;
+  max-width: 46px;                 /* rest: just the droplet shows */
+  padding: 0 16px;
   box-sizing: border-box;
-  border-radius: 18px 0 0 18px;    /* rounded left, flat against the edge */
-  background: linear-gradient(160deg, oklch(0.83 0.09 200), oklch(0.6 0.11 214));
-  box-shadow: 0 6px 16px rgba(0,0,0,.4), inset 0 1px 2px rgba(255,255,255,.35);
+  border-radius: 11px;
+  transform-origin: center top;
+  background: linear-gradient(180deg, rgba(30, 34, 42, .94), rgba(15, 18, 24, .94));
+  border: 0.5px solid rgba(255, 255, 255, .16);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .4), inset 0 1px 1px rgba(255, 255, 255, .07);
   overflow: hidden;
-  transform-origin: right center;
   transition:
     max-width .34s cubic-bezier(.34, 1.2, .5, 1),
     background .4s ease-out,
@@ -54,7 +53,7 @@ html, body {
     border-radius .3s ease-out;
 }
 
-/* The glyph: a small teal droplet, always present, the brand's through-line. */
+/* The glyph: the droplet carries the brand colour on the dark pill. */
 #glyph {
   flex: none;
   width: 12px;
@@ -67,21 +66,32 @@ html, body {
   width: 11px;
   height: 12px;
   border-radius: 52% 48% 50% 50% / 62% 62% 40% 40%;
-  background: rgba(255, 255, 255, .95);
-  box-shadow: inset 0 -2px 3px rgba(0, 60, 70, .3);
+  background: linear-gradient(165deg, oklch(0.88 0.08 195), oklch(0.68 0.11 210));
+  box-shadow: inset 0 -2px 3px rgba(0, 40, 55, .45), 0 0 6px oklch(0.75 0.1 200 / .5);
 }
 
-/* The readout: numbers (or a warning word), clipped at rest, revealed on hover. */
+/* The readout: numbers (or a warning), clipped at rest, revealed on hover. */
 #readout {
-  margin-left: 9px;
+  margin-left: 8px;
   white-space: nowrap;
   color: #fff;
-  font: 500 12.5px/1 -apple-system, system-ui, sans-serif;
+  font: 500 11.5px/1 -apple-system, system-ui, sans-serif;
   opacity: 0;
   transition: opacity .2s ease-out .05s;
 }
 #readout .warn { display: none; }
 .stat { font-variant-numeric: tabular-nums; }
+.stat::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+#sEnergy::before { background: oklch(0.78 0.14 155); }
+#sWater::before  { background: oklch(0.72 0.11 220); }
+#sSpend::before  { background: oklch(0.82 0.13 85); }
 .sep { opacity: .5; margin: 0 5px; }
 
 /* --- Badge: critical warnings only --- */
@@ -108,40 +118,61 @@ html, body {
    STATES
    ========================================================================== */
 
-/* EXPANDED — on hover, or whenever there is something to say. */
+/* EXPANDED — on hover, or forced open by a critical warning. */
 .hovered #capsule,
 .privacy-critical #capsule {
-  max-width: 320px;
+  max-width: 340px;
 }
 .hovered #readout,
 .privacy-critical #readout {
   opacity: 1;
 }
-
-/* GLOW — AI energy flowing on this machine. */
-.has-glow #capsule {
-  background: linear-gradient(160deg, oklch(0.86 0.10 198), oklch(0.64 0.12 210));
-  animation: glowPulse 2.2s ease-in-out infinite;
+.hovered #capsule {
+  border-color: rgba(255, 255, 255, .26);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .45), inset 0 1px 1px rgba(255, 255, 255, .09);
 }
 
-/* PRIVACY CAUTION (tier 2) — the capsule turns violet, nothing more. */
+/* GLOW — AI energy as a teal shimmer sweeping along the lit pill. */
+@keyframes pillSweep {
+  0%   { background-position: 150% 0, 0 0; }
+  100% { background-position: -50% 0, 0 0; }
+}
+.has-glow #capsule {
+  background:
+    linear-gradient(100deg, transparent 30%, oklch(0.78 0.13 200 / .5) 50%, transparent 70%) no-repeat,
+    linear-gradient(180deg, oklch(0.48 0.09 205 / .95), oklch(0.32 0.09 212 / .95));
+  background-size: 200% 100%, 100% 100%;
+  animation: pillSweep 2.2s ease-in-out infinite;
+  border-color: oklch(0.8 0.11 200 / .75);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .4), 0 0 14px 3px oklch(0.72 0.13 205 / .6);
+}
+/* The droplet goes bright while energy flows. */
+.has-glow .drop {
+  background: rgba(255, 255, 255, .95);
+  box-shadow: inset 0 -2px 3px rgba(0, 60, 70, .3), 0 0 8px oklch(0.85 0.1 200 / .8);
+}
+
+/* PRIVACY CAUTION (tier 2) — the pill flushes violet, nothing more. */
 .privacy-caution #capsule {
-  background: linear-gradient(160deg, oklch(0.8 0.08 300), oklch(0.6 0.1 312));
+  background: linear-gradient(180deg, oklch(0.42 0.09 305 / .96), oklch(0.28 0.09 312 / .96));
+  border-color: oklch(0.72 0.12 300 / .7);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .4), 0 0 10px 1px oklch(0.72 0.12 300 / .4);
   animation: pulse 2.6s ease-in-out infinite;
 }
 
-/* PRIVACY CRITICAL (tier 1) — the one time Drippy takes up space: it swells,
-   flushes violet, shows a badge, and forces itself open with a warning word. */
+/* PRIVACY CRITICAL (tier 1) — the one time Drippy takes up space uninvited:
+   it swells, hangs below the bar, shows the badge and the warning word. */
 .privacy-critical #capsule {
-  height: 40px;
-  border-radius: 22px 0 0 22px;
-  background: linear-gradient(160deg, oklch(0.78 0.14 305), oklch(0.56 0.16 312));
+  height: 30px;
+  border-radius: 15px;
+  background: linear-gradient(180deg, oklch(0.5 0.14 310 / .97), oklch(0.34 0.14 312 / .97));
+  border-color: oklch(0.72 0.14 305 / .8);
   animation: pulse 1.5s ease-in-out infinite;
-  box-shadow: 0 6px 18px rgba(0,0,0,.45), 0 0 20px 3px oklch(0.72 0.12 300 / .55), inset 0 1px 2px rgba(255,255,255,.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .5), 0 0 18px 3px oklch(0.72 0.12 300 / .55);
 }
 .privacy-critical #badge { opacity: 1; transform: scale(1); }
 .privacy-critical #readout .warn { display: inline; }
 .privacy-critical #readout .stats { display: none; }
 
 /* Grab feedback. */
-.grabbed #capsule { transform: scale(.97); transition: transform .12s ease-out; }
+.grabbed #capsule { transform: scale(.96); transition: transform .12s ease-out; }

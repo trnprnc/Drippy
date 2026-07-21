@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -34,16 +34,21 @@ process.on('unhandledRejection', (reason) => {
   console.log(`[drippy] unhandled rejection: ${reason}`);
 });
 
-// Window is larger than the 56x52 full-size form so the breathing glow halo
-// and drop shadow render without clipping. The window ignores the mouse
-// except over the droplet, so its size costs nothing in the way.
-// The window holds the fully-expanded bar plus its glow halo. It is
-// click-through except over the capsule, so its width costs nothing.
-const WIN_W = 360;
-const WIN_H = 96;
+// Drippy lives as a small dark pill in the menu bar strip: the Mac cousin
+// of the iPhone island widget. The window envelope holds the fully expanded
+// pill plus its glow halo, and is click-through except over the pill
+// itself, so the extra size costs nothing.
+const WIN_W = 400;
+const WIN_H = 120;
+
+// The menu bar strip height on this display: ~25pt on plain Macs, ~33-37pt
+// on notched ones. Falls back to 24 if the bar is hidden or auto-hiding.
+function menuBarHeightFor(display) {
+  const h = display.workArea.y - display.bounds.y;
+  return h > 0 ? h : 24;
+}
 
 let win = null;
-let tray = null;
 
 // ---------------------------------------------------------------------------
 // Position persistence
@@ -53,13 +58,17 @@ const positionFile = () => path.join(app.getPath('userData'), 'position.json');
 
 function loadPosition() {
   try {
-    const { x, y } = JSON.parse(fs.readFileSync(positionFile(), 'utf8'));
+    const s = JSON.parse(fs.readFileSync(positionFile(), 'utf8'));
+    if (!s.pill) return null;
+    const { x, y } = s.pill;
     // Only restore if still on a connected display.
     const visible = screen.getAllDisplays().some((d) => {
       const b = d.bounds;
       return x + WIN_W > b.x && x < b.x + b.width && y + WIN_H > b.y && y < b.y + b.height;
     });
-    if (visible) return { x, y };
+    if (!visible) return null;
+    // The pill is pinned to the menu bar strip: only its x roams.
+    return { x, y: screen.getDisplayMatching({ x, y, width: WIN_W, height: WIN_H }).bounds.y };
   } catch {}
   return null;
 }
@@ -68,7 +77,7 @@ function savePosition() {
   if (!win) return;
   const [x, y] = win.getPosition();
   try {
-    fs.writeFileSync(positionFile(), JSON.stringify({ x, y }));
+    fs.writeFileSync(positionFile(), JSON.stringify({ pill: { x, y } }));
   } catch {}
 }
 
@@ -133,9 +142,9 @@ function currentMode() {
   return privacyLevel > 0 ? 'privacyEvent' : 'ambient';
 }
 
-function trayStateLabel() {
-  if (privacyLevel === 1) return 'warning: hover Drippy for details';
-  if (privacyLevel === 2) return 'heads-up: hover Drippy for details';
+function stateLabel() {
+  if (privacyLevel === 1) return 'privacy warning';
+  if (privacyLevel === 2) return 'privacy heads-up';
   if (inFlightFg > 0 || fgLinger) return 'your request is running';
   if (visualFlags().glow) return 'background AI activity';
   return 'quiet';
@@ -161,16 +170,8 @@ function sendUpdate() {
 
 function pushState() {
   if (!win || win.isDestroyed()) return;
-  // While the tour is puppeting the capsule, real state stays out of the way
-  // (the tray keeps telling the truth underneath).
-  if (tourActive) {
-    updateTrayMenu();
-    updateTrayIcon();
-    return;
-  }
-  sendUpdate();
-  updateTrayMenu();
-  updateTrayIcon();
+  // While the tour is puppeting the pill, real state stays out of the way.
+  if (!tourActive) sendUpdate();
 }
 
 // Keep the bar's readout current even when only the accumulators move.
@@ -355,9 +356,7 @@ const monitor = new AnthropicMonitor();
 let monitorStatus = { watching: false, apps: [] };
 
 monitor.on('watch', (s) => {
-  const changed = s.watching !== monitorStatus.watching || s.apps.join() !== monitorStatus.apps.join();
   monitorStatus = s;
-  if (changed) updateTrayMenu();
 });
 // A request is "yours" if it starts while (or just after) you were engaged
 // with a Claude surface; everything else is background (agents, telemetry).
@@ -541,52 +540,11 @@ privacy.on('ax-permission-needed', () => {
   console.log(
     '[drippy] typed-text privacy scan needs permissions: System Settings → Privacy & Security → Accessibility (and Automation) → allow Drippy/Electron'
   );
-  updateTrayMenu();
 });
 privacy.on('ax-ready', () => {
   axPermissionNeeded = false;
   console.log('[drippy] typed-text privacy scan active');
-  updateTrayMenu();
 });
-
-// ---------------------------------------------------------------------------
-// Demo mode — stands in for the real activity monitor until one exists.
-// ---------------------------------------------------------------------------
-
-let demoEnabled = false;
-let demoTimer = null;
-
-// Dev-only: fire a warning with a realistic fake concern so the bubble works.
-function simulatePrivacy(level = 1) {
-  const fake =
-    level === 1
-      ? { id: 'anthropic-key', label: 'Anthropic API key', severity: 'critical', tier: 1 }
-      : { id: 'phone', label: 'phone number', severity: 'medium', tier: 2 };
-  lastPrivacy = { source: 'clipboard', concerns: [fake], at: new Date() };
-  privacyEvent(level);
-}
-
-function demoTick() {
-  if (!demoEnabled) return;
-  if (Math.random() < 0.18) {
-    simulatePrivacy(Math.random() < 0.6 ? 1 : 2);
-  } else {
-    const fg = Math.random() < 0.5;
-    requestStarted(fg);
-    setTimeout(() => {
-      recordUsage(impact.fromBytes(20000 + Math.random() * 80000));
-      requestEnded(fg);
-    }, 3000 + Math.random() * 5000);
-  }
-  demoTimer = setTimeout(demoTick, 7000 + Math.random() * 8000);
-}
-
-function setDemo(enabled) {
-  demoEnabled = enabled;
-  clearTimeout(demoTimer);
-  if (enabled) demoTimer = setTimeout(demoTick, 1500);
-  updateTrayMenu();
-}
 
 // ---------------------------------------------------------------------------
 // Dragging — main process polls the cursor so the blob tracks smoothly even
@@ -601,11 +559,11 @@ function startDrag() {
   const cursor = screen.getCursorScreenPoint();
   const [wx, wy] = win.getPosition();
   const offX = cursor.x - wx;
-  const offY = cursor.y - wy;
+  // The pill lives in the menu bar strip: it slides along it, never off it.
   clearInterval(dragPoll);
   dragPoll = setInterval(() => {
     const c = screen.getCursorScreenPoint();
-    win.setPosition(Math.round(c.x - offX), Math.round(c.y - offY));
+    win.setPosition(Math.round(c.x - offX), wy);
   }, 16);
 }
 
@@ -617,7 +575,7 @@ function endDrag() {
 }
 
 // ---------------------------------------------------------------------------
-// Window & tray
+// Window
 // ---------------------------------------------------------------------------
 
 function createWindow() {
@@ -634,144 +592,78 @@ function createWindow() {
     fullscreenable: false,
     minimizable: false,
     maximizable: false,
+    // macOS otherwise constrains the frame out of the menu bar strip,
+    // which is exactly where the pill lives.
+    enableLargerThanScreen: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
     },
   });
 
-  win.setAlwaysOnTop(true, 'floating');
+  // 'status' level renders above the menu bar itself, yet below open
+  // dropdown menus. Level is set after setVisibleOnAllWorkspaces, which
+  // quietly resets it on macOS.
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  win.setAlwaysOnTop(true, 'status');
   // Never in the way: the window ignores the mouse entirely except when the
   // renderer's hit-test says the cursor is over Drippy himself. Forwarded
   // mouse moves keep the hit-test running while ignoring.
   win.setIgnoreMouseEvents(true, { forward: true });
-  win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  const primary = screen.getPrimaryDisplay();
+  win.loadFile(path.join(__dirname, 'renderer', 'index.html'), {
+    query: { mbh: String(menuBarHeightFor(primary)) },
+  });
   win.webContents.on('did-finish-load', pushState);
 
   if (!pos) {
-    // First launch: docked to the bottom-right edge, so the capsule tab
-    // sits flush against the corner.
-    const { workArea } = screen.getPrimaryDisplay();
-    win.setPosition(workArea.x + workArea.width - WIN_W + 2, workArea.y + workArea.height - WIN_H - 6);
+    // Default: centred in the menu bar like the iPhone island. On a
+    // notched Mac (taller bar) the centre IS the notch, so sit just to
+    // its right where there are actual pixels.
+    const b = primary.bounds;
+    const notched = menuBarHeightFor(primary) > 30;
+    const cx = b.x + b.width / 2 + (notched ? 190 : 0);
+    win.setPosition(Math.round(cx - WIN_W / 2), b.y);
   }
+  const [px, py] = win.getPosition();
+  console.log(`[drippy] pill at ${px},${py} (menu bar ${menuBarHeightFor(primary)}px)`);
 }
 
-function simulateRequest() {
-  requestStarted(true);
-  setTimeout(() => {
-    recordUsage(impact.fromBytes(55000)); // a typical ~500-token response
-    requestEnded(true);
-  }, 5000);
-}
-
-function updateTrayMenu() {
-  if (!tray) return;
+// Right-click menu on the pill — with no Dock icon and no tray, this is
+// the doorway to everything that is not a hover or a click. Facts only,
+// no advice.
+function showContextMenu() {
+  if (!win || win.isDestroyed()) return;
   const watchLabel = monitorStatus.watching
     ? `Watching: ${monitorStatus.apps.join(', ') || 'Anthropic traffic'}`
     : 'No Anthropic traffic';
-  const eq = impact.equivalents(daily);
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: `Drippy v${app.getVersion()}: ${trayStateLabel()}`, enabled: false },
-      { label: watchLabel, enabled: false },
-      { type: 'separator' },
-      {
-        label: `Today: ${daily.requests} requests · ~${Math.round(daily.tokensIn)} in / ${Math.round(daily.tokensOut)} out tokens`,
-        enabled: false,
-      },
-      {
-        label: `≈ ${daily.wh.toFixed(1)} Wh · ${daily.waterMl.toFixed(0)} mL water · ${daily.gco2.toFixed(1)} g CO₂e`,
-        enabled: false,
-      },
-      ...(eq ? [{ label: `≈ ${eq}`, enabled: false }] : []),
-      ...(daily.usd > 0 ? [{ label: `$${daily.usd.toFixed(2)} at API rates (measured, Claude Code)`, enabled: false }] : []),
-      { label: `Estimates ±3× · factors v${impact.version}`, enabled: false },
-      ...(lastPrivacy
-        ? [
-            {
-              label: `Privacy: ${lastPrivacy.concerns.map((c) => c.label).join(', ')} via ${lastPrivacy.source} · ${lastPrivacy.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-              enabled: false,
-            },
-          ]
-        : []),
-      ...(axPermissionNeeded
-        ? [
-            {
-              label: 'Enable typed-text privacy scan (grant Accessibility)…',
-              click: () =>
-                require('electron').shell.openExternal(
-                  'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'
-                ),
-            },
-          ]
-        : []),
-      { type: 'separator' },
-      // Simulation and demo controls are development-only; never shipped.
-      ...(app.isPackaged
-        ? []
-        : [
-            { label: 'Simulate AI request (5s)', click: simulateRequest },
-            { label: 'Simulate critical warning', click: () => simulatePrivacy(1) },
-            { label: 'Simulate caution (squint)', click: () => simulatePrivacy(2) },
-            {
-              label: 'Simulate notice',
-              click: () =>
-                showSuggestion({
-                  id: 'batch-small',
-                  family: 'usage',
-                  text: 'Ten tiny questions cost more than one good one. Batching the small stuff into a single ask would shrink this.',
-                  why: '14 requests today, mostly short answers',
-                  action: { label: 'Copy batch template', kind: 'copy', payload: 'Several small questions at once; answer each briefly:\n1. \n2. \n3. ' },
-                }),
-            },
-            { label: 'Demo mode', type: 'checkbox', checked: demoEnabled, click: () => setDemo(!demoEnabled) },
-          ]),
-      { type: 'separator' },
-      { label: 'Notices…', click: showFeed },
-      { label: 'Usage trends…', click: showTrends },
-      { label: 'About Drippy: what it can see…', click: showWelcome },
-      { label: 'Replay the tour', click: startTour },
-      { label: 'Reset day', click: resetDay },
-      { label: 'Quit Drippy', click: () => app.quit() },
-    ])
-  );
+  Menu.buildFromTemplate([
+    { label: `Drippy v${app.getVersion()}: ${stateLabel()}`, enabled: false },
+    { label: watchLabel, enabled: false },
+    ...(axPermissionNeeded
+      ? [
+          {
+            label: 'Enable typed-text privacy scan (grant Accessibility)…',
+            click: () =>
+              require('electron').shell.openExternal(
+                'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'
+              ),
+          },
+        ]
+      : []),
+    { type: 'separator' },
+    { label: 'Usage trends', click: showTrends },
+    { label: 'What Drippy can see', click: showWelcome },
+    { type: 'separator' },
+    { label: 'Reset day', click: resetDay },
+    { label: 'Quit Drippy', click: () => app.quit() },
+  ]).popup({ window: win });
 }
 
-function trayIcon(name) {
-  // Monochrome template image (Drippy's exact blob + eyes); macOS tints it to
-  // match the light/dark menu bar. Generated by build/tray-icon-gen.js.
-  const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', `${name}.png`));
-  if (!icon.isEmpty()) icon.setTemplateImage(true);
-  return icon;
-}
-
-let trayNormalIcon = null;
-let trayAlertIcon = null;
-let trayShowingAlert = false;
-
-// The menu bar reacts too: Drippy's eyes go wide during a critical warning
-// (tier 1 only). A tier-2 caution stays a normal glance in the menu bar.
-function updateTrayIcon() {
-  if (!tray || !trayNormalIcon || trayNormalIcon.isEmpty()) return;
-  const alert = privacyLevel === 1;
-  if (alert === trayShowingAlert) return;
-  trayShowingAlert = alert;
-  tray.setImage(alert && !trayAlertIcon.isEmpty() ? trayAlertIcon : trayNormalIcon);
-  console.log(`[drippy] menu-bar eyes ${alert ? 'wide (warning)' : 'normal'}`);
-}
-
-function createTray() {
-  trayNormalIcon = trayIcon('trayTemplate');
-  trayAlertIcon = trayIcon('trayAlertTemplate');
-  tray = trayNormalIcon.isEmpty() ? new Tray(nativeImage.createEmpty()) : new Tray(trayNormalIcon);
-  if (trayNormalIcon.isEmpty()) tray.setTitle('💧'); // fallback if asset missing
-  tray.setToolTip('Drippy, your AI transparency companion');
-  updateTrayMenu();
-}
+ipcMain.on('drippy:menu', showContextMenu);
 
 // ---------------------------------------------------------------------------
-// Welcome / About window — shown on first run and from the tray. This is the
+// Welcome / About window — shown on first run and from the right-click menu.
 // trust moment: what Drippy can see, what it can't, and the one optional
 // permission.
 // ---------------------------------------------------------------------------
@@ -870,33 +762,35 @@ function bubblePayload() {
         ? [{ color: ROW_COLORS.value, label: 'Value', value: `$${daily.usd.toFixed(2)} at API rates (measured)` }]
         : []),
     ],
-    footer: `${eq ? `≈ ${eq} · ` : ''}estimates ±3× · click me for trends`,
+    footer: `${eq ? `≈ ${eq} · ` : ''}estimates ±3×`,
   };
 }
 
 const { recommendationFor: impactRecommend } = require('./pii');
 
-// Popups sit close enough to feel spoken by Drippy: beside him, overlapping
-// the window's empty halo margin but never the blob itself, with a tail
-// pointing back at him.
-const POPUP_TUCK = 44;
-
-function positionBubble() {
+// Popups hang just below the pill with a tail pointing up at it, close
+// enough to feel spoken by Drippy.
+// Screen-space anchor: the pill's centre X (it expands symmetrically, so
+// this holds in every state) and the y just under the menu bar strip.
+function pillAnchor() {
   const [wx, wy] = win.getPosition();
   const display = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H });
-  const wa = display.workArea;
-  // The capsule lives at the window's bottom-right; sit the warning card to
-  // its left, tail pointing right at it, vertically level with it.
-  let x = wx + WIN_W - BUBBLE_W - 44;
-  let side = 'right';
-  if (x < wa.x) {
-    x = wa.x + 8;
-  }
-  const capsuleCenterY = wy + WIN_H - 14 - 20;
-  let y = Math.round(capsuleCenterY - bubbleHeight / 2);
-  y = Math.max(wa.y, Math.min(y, wa.y + wa.height - bubbleHeight));
-  bubbleWin.setBounds({ x: Math.round(x), y, width: BUBBLE_W, height: bubbleHeight });
-  bubbleWin.webContents.send('bubble:tail', { side });
+  return {
+    cx: wx + WIN_W / 2,
+    below: wy + menuBarHeightFor(display) + 8,
+    wa: display.workArea,
+  };
+}
+
+function positionBubble() {
+  const { cx, below, wa } = pillAnchor();
+  let x = Math.round(cx - BUBBLE_W / 2);
+  x = Math.max(wa.x, Math.min(x, wa.x + wa.width - BUBBLE_W));
+  const y = Math.max(wa.y, Math.min(below, wa.y + wa.height - bubbleHeight));
+  bubbleWin.setBounds({ x, y, width: BUBBLE_W, height: bubbleHeight });
+  // Tail x is card-local: the card sits 14px inside the window margin.
+  const tailX = Math.max(14, Math.min(BUBBLE_W - 56, Math.round(cx - x - 14 - 7)));
+  bubbleWin.webContents.send('bubble:tail', { side: 'up', tailX });
 }
 
 function updateBubble() {
@@ -979,10 +873,22 @@ function maybeStartTour() {
 
 // ---------------------------------------------------------------------------
 
-ipcMain.handle('drippy:history', () => ({
-  days: history.readDays(60),
-  today: { date: currentDay, ...daily },
-}));
+ipcMain.handle('drippy:history', () => {
+  const days = history.readDays(60);
+  const today = { date: currentDay, ...daily };
+  // 7-day totals and their everyday equivalents, computed here where the
+  // factors live, so the trends page states them rather than deriving them.
+  const week = [...days, today].slice(-7).reduce(
+    (a, d) => ({
+      wh: a.wh + (d.wh || 0),
+      waterMl: a.waterMl + (d.waterMl || 0),
+      gco2: a.gco2 + (d.gco2 || 0),
+      usd: a.usd + (d.usd || 0),
+    }),
+    { wh: 0, waterMl: 0, gco2: 0, usd: 0 }
+  );
+  return { days, today, week: { ...week, equivalents: impact.equivalents(week) }, factorsVersion: impact.version };
+});
 
 ipcMain.on('drippy:hover', (_e, { over }) => {
   blobHovered = over;
@@ -1025,19 +931,14 @@ let sugAutoHide = null;
 
 function positionSuggestion() {
   if (!sugWin || !win) return;
-  const [wx, wy] = win.getPosition();
-  const display = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H });
-  const wa = display.workArea;
-  // Rise just above the capsule (bottom-right), tail pointing down at it.
-  const capsuleCenterX = wx + WIN_W - 24;
-  const capsuleTopY = wy + WIN_H - 14 - 34;
-  let x = Math.round(capsuleCenterX - SUG_W + 34);
+  // Drop just below the pill, tail pointing up at it.
+  const { cx, below, wa } = pillAnchor();
+  let x = Math.round(cx - SUG_W / 2);
   x = Math.max(wa.x, Math.min(x, wa.x + wa.width - SUG_W));
-  let y = capsuleTopY - sugHeight - 4;
-  y = Math.max(wa.y, Math.min(y, wa.y + wa.height - sugHeight));
+  const y = Math.max(wa.y, Math.min(below, wa.y + wa.height - sugHeight));
   sugWin.setBounds({ x, y, width: SUG_W, height: sugHeight });
-  const tailX = Math.max(18, Math.min(SUG_W - 34, Math.round(capsuleCenterX - x - 7)));
-  sugWin.webContents.send('suggest:tail', { tailX });
+  const tailX = Math.max(18, Math.min(SUG_W - 34, Math.round(cx - x - 15)));
+  sugWin.webContents.send('suggest:tail', { tailX, below: true });
 }
 
 function showSuggestion(sg) {
@@ -1157,19 +1058,19 @@ let tourActive = false;
 
 const TOUR_STEPS = [
   {
-    text: "Hello, I'm Drippy: your AI transparency layer. I track what your AI use really costs in energy, water, carbon and privacy. I tuck into this corner and stay out of the way; clicks pass straight through everything except me. Drag me anywhere.",
+    text: "Hello, I'm Drippy: your AI transparency layer. I track what your AI use really costs in energy, water, carbon and privacy. Drag me along the bar to wherever suits you.",
     state: {},
   },
   {
-    text: 'When AI is at work on this Mac, I glow: your requests or a background agent’s, I meter both. No glow, no AI running. That is the whole signal.',
+    text: 'When AI is at work, I glow: your requests or a background agent’s, I meter both.',
     state: { glow: true },
   },
   {
-    text: 'If something private is about to leave this Mac, say an API key on your clipboard, I turn violet. For anything serious I swell up with a badge: hover me then for exactly what I found and the one-click remedy.',
+    text: 'If something private is about to be sent, say an API key on your clipboard, I turn violet. For anything serious I swell up with a badge; hovering shows exactly what I found and the one-click remedy.',
     state: { mode: 'privacyEvent', privacyLevel: 1 },
   },
   {
-    text: "Hover me any time and I open into a bar with today's numbers. Click me for 30-day trends, and the menu bar drop (\u{1F4A7}) has the rest. That is the tour; my welcome sheet next has the full privacy story.",
+    text: 'Hover opens today’s numbers; a click opens 30-day trends; right-click holds the rest. The welcome sheet next has the full privacy story.',
     state: {},
   },
 ];
@@ -1187,17 +1088,13 @@ function tourState(extra) {
 
 function positionTour() {
   if (!tourWin || !win) return;
-  const [wx, wy] = win.getPosition();
-  const display = screen.getDisplayMatching({ x: wx, y: wy, width: WIN_W, height: WIN_H });
-  const wa = display.workArea;
-  const blobCenterX = wx + WIN_W / 2;
-  let x = Math.round(blobCenterX - TOUR_W / 2);
+  const { cx, below, wa } = pillAnchor();
+  let x = Math.round(cx - TOUR_W / 2);
   x = Math.max(wa.x, Math.min(x, wa.x + wa.width - TOUR_W));
-  let y = wy - tourHeight + 48;
-  y = Math.max(wa.y, Math.min(y, wa.y + wa.height - tourHeight));
+  const y = Math.max(wa.y, Math.min(below, wa.y + wa.height - tourHeight));
   tourWin.setBounds({ x, y, width: TOUR_W, height: tourHeight });
-  const tailX = Math.max(18, Math.min(TOUR_W - 34, Math.round(blobCenterX - x - 7)));
-  tourWin.webContents.send('tour:tail', { tailX });
+  const tailX = Math.max(18, Math.min(TOUR_W - 34, Math.round(cx - x - 15)));
+  tourWin.webContents.send('tour:tail', { tailX, below: true });
 }
 
 function startTour() {
@@ -1280,7 +1177,6 @@ app.whenReady().then(() => {
   history.init(app.getPath('userData'));
   loadState();
   createWindow();
-  createTray();
   monitor.start();
   engagement.start();
   claudeCode.start();

@@ -25,10 +25,12 @@
   }
   h1 { font-size: 17px; margin: 0; }
   .sub { color: var(--ink-3); font-size: 12px; margin: 2px 0 16px; }
-  .tiles { display: flex; gap: 10px; margin-bottom: 18px; }
-  .tile { flex: 1; background: var(--card); border-radius: 10px; padding: 10px 12px; }
-  .tile b { display: block; font-size: 18px; font-weight: 600; }
+  .tiles { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .tile { flex: 1; min-width: 100px; background: var(--card); border-radius: 10px; padding: 10px 12px; }
+  .tile b { display: block; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .tile span { font-size: 11px; color: var(--ink-2); }
+  .week { font-size: 12px; color: var(--ink-2); margin: 0 0 16px; }
+  .provenance { font-size: 11px; color: var(--ink-3); margin-top: 14px; line-height: 1.55; }
   .chart { margin-bottom: 16px; }
   .chart h2 { font-size: 12px; font-weight: 600; margin: 0 0 6px; color: var(--ink-2); }
   .chart h2 i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
@@ -51,11 +53,13 @@
 </head>
 <body>
   <h1>Usage trends</h1>
-  <p class="sub">Last 30 days on this Mac · estimates ±3× (see METHODOLOGY) · stored locally, never uploaded</p>
+  <p class="sub">Last 30 days</p>
   <div class="tiles" id="tiles"></div>
+  <p class="week" id="week"></p>
   <div id="charts"></div>
   <div class="apps" id="apps"></div>
   <details><summary>Data table</summary><div id="table"></div></details>
+  <p class="provenance" id="provenance"></p>
   <div id="tip"></div>
 
 <script>
@@ -75,19 +79,28 @@ async function load() {
         wh: busy * (2 + Math.random() * 28), privacyEvents: Math.random() < 0.3 ? Math.ceil(Math.random() * 2) : 0,
         apps: { claude: { requests: 9, wh: 9 }, Claude: { requests: 5, wh: 2 } } });
     }
-    data = { days, today: { date: new Date().toDateString(), requests: 14, wh: 11.2, privacyEvents: 1, apps: { claude: { requests: 10, wh: 9.4 }, 'Claude Helper': { requests: 4, wh: 1.8 } } } };
+    data = { days, today: { date: new Date().toDateString(), requests: 14, wh: 11.2, waterMl: 34, privacyEvents: 1, usd: 0.6, apps: { claude: { requests: 10, wh: 9.4 }, 'Claude Helper': { requests: 4, wh: 1.8 } } },
+      week: { wh: 61, waterMl: 178, gco2: 19, usd: 3.1, equivalents: '6 phone charges' }, factorsVersion: '2026-07' };
   }
 
   const all = [...data.days, data.today].slice(-30);
   const last7 = all.slice(-7);
   const sum = (arr, k) => arr.reduce((s, d) => s + (d[k] || 0), 0);
+  const week = data.week || { wh: sum(last7, 'wh'), waterMl: sum(last7, 'waterMl'), gco2: sum(last7, 'gco2'), usd: sum(last7, 'usd') };
 
   document.getElementById('tiles').innerHTML = [
-    ['Today', fmt(data.today.wh) + ' Wh'],
-    ['7-day energy', fmt(sum(last7, 'wh')) + ' Wh'],
+    ['today', fmt(data.today.wh) + ' Wh'],
+    ['7-day energy', fmt(week.wh) + ' Wh'],
+    ['7-day water', fmt(week.waterMl, 0) + ' mL'],
     ['7-day requests', fmt(sum(last7, 'requests'), 0)],
-    ['7-day privacy', fmt(sum(last7, 'privacyEvents'), 0)],
+    ['7-day privacy events', fmt(sum(last7, 'privacyEvents'), 0)],
+    // Spend appears only when something was actually measured.
+    ...(week.usd > 0 ? [['7-day spend, measured', '$' + week.usd.toFixed(2)]] : []),
   ].map(([l, v]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
+
+  document.getElementById('week').textContent =
+    `7 days: ${fmt(week.wh)} Wh · ${fmt(week.waterMl, 0)} mL water · ${fmt(week.gco2)} g CO₂e` +
+    (week.equivalents ? ` ≈ ${week.equivalents}` : '');
 
   const tip = document.getElementById('tip');
   const charts = [
@@ -130,14 +143,21 @@ async function load() {
   const top = Object.entries(appTotals).sort((a, b) => b[1].wh - a[1].wh).slice(0, 4);
   if (top.length) {
     document.getElementById('apps').innerHTML =
-      'By app: ' + top.map(([n, a]) => `<b>${n}</b> ${fmt(a.wh)} Wh · ${a.requests} req`).join(' &nbsp;·&nbsp; ');
+      'By app, 30 days: ' + top.map(([n, a]) => `<b>${n}</b> ${fmt(a.wh)} Wh · ${a.requests} req`).join(' &nbsp;·&nbsp; ');
   }
 
+  const anySpend = all.some((d) => (d.usd || 0) > 0);
   document.getElementById('table').innerHTML =
-    '<table><tr><th>Date</th><th>Requests</th><th>Wh</th><th>Privacy</th></tr>' +
+    `<table><tr><th>Date</th><th>Requests</th><th>Tokens in</th><th>Tokens out</th><th>Wh</th><th>mL</th><th>g CO₂e</th><th>Privacy</th>${anySpend ? '<th>$ measured</th>' : ''}</tr>` +
     all.slice().reverse().map((d) =>
-      `<tr><td>${short(d.date)}</td><td>${d.requests || 0}</td><td>${fmt(d.wh || 0)}</td><td>${d.privacyEvents || 0}</td></tr>`
+      `<tr><td>${short(d.date)}</td><td>${d.requests || 0}</td><td>${Math.round(d.tokensIn || 0).toLocaleString()}</td><td>${Math.round(d.tokensOut || 0).toLocaleString()}</td><td>${fmt(d.wh || 0)}</td><td>${fmt(d.waterMl || 0, 0)}</td><td>${fmt(d.gco2 || 0)}</td><td>${d.privacyEvents || 0}</td>${anySpend ? `<td>${(d.usd || 0) > 0 ? '$' + d.usd.toFixed(2) : '–'}</td>` : ''}</tr>`
     ).join('') + '</table>';
+
+  // Where each number comes from, stated plainly.
+  document.getElementById('provenance').textContent =
+    'Claude Code is measured: exact token counts from its own session records, priced at API list rates. ' +
+    'Other traffic is estimated from network bytes; those estimates are reliable to within about a factor of three (METHODOLOGY.md). ' +
+    `Water and carbon are derived from energy using cited factors${data.factorsVersion ? ` (v${data.factorsVersion})` : ''}.`;
 }
 load();
 </script>

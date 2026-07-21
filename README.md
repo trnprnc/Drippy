@@ -1,13 +1,13 @@
 # Drippy: the transparency layer
 
-A small droplet that sits above your desktop and meters what your AI usage
+A small pill that lives in your menu bar and meters what your AI usage
 really costs: energy, water, carbon, money and privacy. Pro-transparent-AI,
 not anti-AI. Always present, never in the way: the window is click-through
-except over the droplet itself, and Drippy only ever takes up space for a
+except over the pill itself, and Drippy only ever takes up space for a
 critical privacy warning.
 
-New here? Drippy gives a four-card tour on first launch (replay it any time
-from the 💧 menu). The full manual is [USER-GUIDE.md](USER-GUIDE.md).
+New here? Drippy gives a four-card tour on first launch. The full manual is
+[USER-GUIDE.md](USER-GUIDE.md).
 
 ## Install (macOS, Apple Silicon)
 
@@ -15,34 +15,31 @@ from the 💧 menu). The full manual is [USER-GUIDE.md](USER-GUIDE.md).
 2. First launch: this build isn't notarised yet, so macOS will refuse it once.
    Open **System Settings → Privacy & Security**, scroll down, click
    **Open Anyway**. (Technical users: `xattr -d com.apple.quarantine /Applications/Drippy.app`.)
-3. Drippy appears bottom-right and in the menu bar as 💧. It starts at login
-   from now on. Drag the blob wherever you like; it remembers.
+3. Drippy appears as a small dark pill in your menu bar. It starts at login
+   from now on. Drag the pill along the bar; it remembers where.
 4. *Optional but recommended:* to be warned **while you type** sensitive data
    into Claude, grant Accessibility when the welcome window offers it
    (System Settings → Privacy & Security → Accessibility → enable Drippy, and
    allow the "control System Events" prompt). Without it the clipboard guard
    still works.
 
-Requirements: Apple Silicon Mac, macOS 13+. Everything runs locally, with no
-account and no cloud. See [PRIVACY.md](PRIVACY.md).
+Requirements: Apple Silicon Mac, macOS 13+. See [PRIVACY.md](PRIVACY.md).
 
-## How to read the droplet
+## How to read the pill
 
 | Signal | Meaning |
 |---|---|
-| Still droplet | quiet; no AI activity on this Mac |
-| Breathing glow (cyan) | AI energy flowing on this machine, yours *or* a background agent's (a Claude Code session, for example) |
-| Violet droplet | caution-level sensitive content (phone number, date of birth) in your clipboard or composer |
-| Full size + wide eyes + "!" | critical: a secret detected *before it leaves your machine*: API keys and tokens (Anthropic, OpenAI, GitHub, AWS, Stripe, Slack, Google, JWTs), private key files, database connection strings, .env-style secrets, cards and bank details, government IDs. **Hover Drippy** for what it found, why it matters, and the remedy; click to acknowledge |
-| Hover | today's numbers: energy, water, carbon, requests, privacy, measured spend, everyday equivalents |
+| Dark pill | quiet; no AI activity right now |
+| Lit teal, shimmer sweeping | AI energy flowing right now, yours *or* a background agent's (a Claude Code session, for example) |
+| Violet pill | caution-level sensitive content (phone number, date of birth) in your clipboard or composer |
+| Swollen below the bar + "!" | critical: a secret detected *before it leaves your machine*: API keys and tokens (Anthropic, OpenAI, GitHub, AWS, Stripe, Slack, Google, JWTs), private key files, database connection strings, .env-style secrets, cards and bank details, government IDs. Hovering shows what it found, why it matters, and the remedy; a click acknowledges |
+| Hover | today's numbers: energy, water, measured spend |
 | Click | 30-day usage trends |
+| Right-click | the rest: trends, what Drippy can see, reset, quit |
 
-The 💧 menu shows live status, today's totals (requests, tokens in/out,
-Wh / water / CO₂e with their uncertainty band), the last privacy event, and,
-because fairness cuts both ways, Drippy's own CPU use. **Usage trends…**
-opens 30-day charts (energy, requests, privacy events, per-app breakdown)
-built from your local history. History never leaves the device, and any
-future community or aggregate view will be strictly opt-in.
+**Usage trends** holds the full picture: 30-day charts (energy, requests,
+privacy events), 7-day totals with everyday equivalents, a per-app breakdown
+and a per-day data table, with each number's provenance stated.
 
 All impact figures are **estimates (±3×)** from a versioned, source-cited
 factor table. Read [METHODOLOGY.md](METHODOLOGY.md) before quoting them.
@@ -106,11 +103,10 @@ privacy and footprint.
 
 ## Troubleshooting
 
-- **Blob invisible:** it may be behind a fullscreen space edge; the 💧 menu
-  is always there. Reset its position by quitting and deleting
+- **Pill invisible:** reset its position by quitting and deleting
   `~/Library/Application Support/Drippy/position.json`.
-- **Typed-text scan inactive:** the 💧 menu shows "Enable typed-text privacy
-  scan" if the Accessibility grant is missing. Drippy re-checks every 20s
+- **Typed-text scan inactive:** the right-click menu shows "Enable typed-text
+  privacy scan" if the Accessibility grant is missing. Drippy re-checks every 20s
   after you grant it; no restart needed.
 - **"Electron failed to install correctly" (dev only):** extract the cached
   zip manually: `ditto -x -k ~/Library/Caches/electron/*/electron-v*-darwin-arm64.zip node_modules/electron/dist/`

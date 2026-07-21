@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld('drippy', {
   click: () => ipcRenderer.send('drippy:click'),
   hover: (over) => ipcRenderer.send('drippy:hover', { over }),
   hit: (over) => ipcRenderer.send('drippy:hit', { over }),
+  menu: () => ipcRenderer.send('drippy:menu'),
 });

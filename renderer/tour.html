@@ -32,12 +32,29 @@
     border-left: none;
     border-bottom-right-radius: 3px;
   }
+  /* Pill form: the card hangs below Drippy, tail pointing up at him. */
+  #card.below { margin: 16px 8px 8px; transform-origin: var(--tail-x, 50%) 0%; }
+  #card.below::after {
+    bottom: auto;
+    top: -8px;
+    border: inherit;
+    border-bottom: none;
+    border-right: none;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 3px;
+  }
   @keyframes popIn {
     0% { opacity: 0; transform: scale(.72) translateY(7px); }
     65% { transform: scale(1.035) translateY(-1px); }
     100% { opacity: 1; transform: scale(1) translateY(0); }
   }
   #card.pop { animation: popIn .34s cubic-bezier(.3, 1.3, .6, 1); }
+  @keyframes popInBelow {
+    0% { opacity: 0; transform: scale(.72) translateY(-7px); }
+    65% { transform: scale(1.035) translateY(1px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  #card.below.pop { animation: popInBelow .34s cubic-bezier(.3, 1.3, .6, 1); }
   #head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
   #head .mini {
     width: 15px; height: 14px; flex: none;
@@ -74,7 +91,10 @@
   </div>
 <script>
   const card = document.getElementById('card');
-  window.drippyTour.onTail(({ tailX }) => card.style.setProperty('--tail-x', tailX + 'px'));
+  window.drippyTour.onTail(({ tailX, below }) => {
+    card.style.setProperty('--tail-x', tailX + 'px');
+    card.classList.toggle('below', !!below);
+  });
   window.drippyTour.onData((d) => {
     document.getElementById('text').textContent = d.text;
     document.getElementById('dots').innerHTML =

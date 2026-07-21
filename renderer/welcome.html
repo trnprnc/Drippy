@@ -44,19 +44,20 @@
     <div class="blob"></div>
     <div>
       <h1>Drippy</h1>
-      <p class="tag">The transparency layer for your AI use. A small capsule tucked into the corner, never in the way: clicks pass straight through everything except him.</p>
+      <p class="tag">The transparency layer for your AI use. A small pill in the menu bar, never in the way: clicks pass straight through everything except him.</p>
     </div>
   </div>
 
-  <h2>How to read the capsule</h2>
+  <h2>How to read the pill</h2>
   <table>
-    <tr><td>Tucked tab</td><td>quiet. No AI running on this Mac</td></tr>
+    <tr><td>Dark pill</td><td>quiet; no AI activity right now</td></tr>
     <tr><td>Cyan glow</td><td>AI energy flowing right now, yours or a background agent's; both are metered</td></tr>
     <tr><td class="violet">Violet</td><td>caution: something mildly sensitive (a phone number, a date of birth) is in your clipboard or composer</td></tr>
     <tr><td class="violet">Swells + "!"</td><td>critical: a secret (an API key, card number, password) is about to leave this Mac. The only time Drippy takes up space uninvited. Hover for what he found and the one-click remedy; click to acknowledge</td></tr>
-    <tr><td>Hover</td><td>the capsule opens into a bar with today's numbers: energy, water and measured spend (the 💧 menu has the full breakdown and equivalents)</td></tr>
+    <tr><td>Hover</td><td>the pill opens with today's numbers: energy, water and measured spend</td></tr>
     <tr><td>Click</td><td>your 30-day trends</td></tr>
-    <tr><td>Notice cards</td><td>occasional cards above him when the meters show something worth knowing. Each says why it fired and its button does the thing; they all collect in 💧 → Notices</td></tr>
+    <tr><td>Right-click</td><td>trends, this sheet, reset and quit</td></tr>
+    <tr><td>Notice cards</td><td>occasional cards below him when the meters show something worth knowing. Each says why it fired and its button does the thing</td></tr>
   </table>
 
   <h2>What Drippy can see, and what it can't</h2>
@@ -64,7 +65,6 @@
     <li>It watches <b>traffic patterns</b> to Anthropic (timing and volume). It does not decrypt or read your conversations.</li>
     <li>It knows <b>that</b> you're typing (system idle timer), never <b>what</b> you type, except the optional privacy scan below, which checks text on-device and instantly discards it. Only the category ("email address") is kept.</li>
     <li>While you're using Claude, it checks your <b>clipboard</b> for secrets (an API key, a password, a .env line) so it can warn you before you paste one in, even if you copied it from a browser. Checked on-device, content discarded, only the category kept. It stops when you're not using Claude.</li>
-    <li>Everything stays on this Mac. Drippy has no account, no cloud, no analytics, and its only network activity is looking up Anthropic's addresses.</li>
   </ul>
 
   <h2>One optional permission</h2>
@@ -73,7 +73,7 @@
 
   <div class="foot">
     Impact figures are estimates (±3×) from a versioned, source-cited factor table. See METHODOLOGY.md.
-    Factors <span id="fv"></span> · Find Drippy in the menu bar: 💧
+    Factors <span id="fv"></span>
   </div>
   <script>document.getElementById('fv').textContent = window.drippyInfo.factorsVersion;</script>
 </body>

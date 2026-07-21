@@ -1,10 +1,17 @@
 const dock = document.getElementById('dock');
 const capsule = document.getElementById('capsule');
 
+// Main passes the menu bar height (?mbh=25); the pill pads itself down so
+// it sits vertically centred in the strip.
+{
+  const mbh = Number(new URLSearchParams(location.search).get('mbh')) || 24;
+  document.body.style.setProperty('--mb-pad', `${Math.max(1, Math.round((mbh - 22) / 2))}px`);
+}
+
 // No-op bridge when opened in a plain browser (design preview / dev).
 if (!window.drippy) {
   window.drippy = {
-    onUpdate: () => {}, dragStart: () => {}, dragEnd: () => {}, click: () => {}, hover: () => {}, hit: () => {},
+    onUpdate: () => {}, dragStart: () => {}, dragEnd: () => {}, click: () => {}, hover: () => {}, hit: () => {}, menu: () => {},
   };
 }
 
@@ -62,6 +69,11 @@ document.addEventListener('mousemove', (e) => {
 });
 document.addEventListener('mouseout', (e) => {
   if (!e.relatedTarget && !dragging) setOver(false);
+});
+// Right-click on the pill: the doorway to everything else.
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (overDrippy) window.drippy.menu();
 });
 
 // ---------------------------------------------------------------------------

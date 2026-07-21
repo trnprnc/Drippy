@@ -40,6 +40,15 @@
     border-right: none;
     border-bottom-left-radius: 3px;
   }
+  /* Pill form: the card hangs below Drippy, tail pointing up at him. */
+  #card.tail-up::after {
+    top: -8px;
+    margin-top: 0;
+    left: var(--tail-x, 50%);
+    border-bottom: none;
+    border-right: none;
+    border-top-left-radius: 3px;
+  }
   @keyframes popIn {
     0% { opacity: 0; transform: scale(.78); }
     65% { transform: scale(1.03); }
@@ -48,6 +57,7 @@
   #card.pop { animation: popIn .3s cubic-bezier(.3, 1.3, .6, 1); }
   #card.tail-right { transform-origin: 100% 50%; }
   #card.tail-left { transform-origin: 0% 50%; }
+  #card.tail-up { transform-origin: var(--tail-x, 50%) 0%; }
   #title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 7px; }
   /* Drippy's droplet, tinted to the moment: red critical, violet caution, teal stats. */
   #title i {
@@ -91,9 +101,12 @@
 
   const $ = (id) => document.getElementById(id);
 
-  window.drippyBubble.onTail(({ side }) => {
-    $('card').classList.toggle('tail-right', side === 'right');
-    $('card').classList.toggle('tail-left', side === 'left');
+  window.drippyBubble.onTail(({ side, tailX }) => {
+    const card = $('card');
+    card.classList.toggle('tail-right', side === 'right');
+    card.classList.toggle('tail-left', side === 'left');
+    card.classList.toggle('tail-up', side === 'up');
+    if (tailX != null) card.style.setProperty('--tail-x', tailX + 'px');
   });
 
   // Blob tints: gradients matching Drippy's own skin under each mood.

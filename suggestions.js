@@ -29,7 +29,7 @@ const CATALOGUE = [
   // USAGE — what the meters actually show
   {
     id: 'batch-small', family: 'usage', cooldown: 8 * H,
-    text: 'Ten tiny questions cost more than one good one. Batching the small stuff into a single ask would shrink this.',
+    text: 'Ten small requests cost more than one combined one. Batching them into a single ask would shrink this.',
     why: (s) => `${s.daily.requests} requests today, mostly short answers`,
     action: COPY('Copy batch template', 'Several small questions at once; answer each briefly:\n1. \n2. \n3. '),
     when: (s) => s.daily.requests >= 10 && s.avgOutTokens > 0 && s.avgOutTokens < 150,
@@ -50,7 +50,7 @@ const CATALOGUE = [
   },
   {
     id: 'heavy-day', family: 'usage', cooldown: 20 * H,
-    text: 'Heavy AI day. Fine if it earned its keep; the trends window has the tally.',
+    text: 'A heavier AI day than most; the trends window has the tally.',
     why: (s) => `roughly ${Math.round(s.daily.wh)} Wh so far today`,
     action: { label: 'Open usage trends', kind: 'open-trends' },
     when: (s) => s.daily.wh > 40,
@@ -66,25 +66,17 @@ const CATALOGUE = [
   // ONBOARDING — Drippy explains himself, in flow, once each
   {
     id: 'hover-hint', family: 'onboarding', once: true,
-    text: 'That violet flash was me catching something. Hover me during one to see what and why.',
+    text: 'That violet flash was me catching something. Hovering during one shows what I found and why.',
     why: () => 'your first privacy warning just cleared',
     when: (s, ev) => ev?.type === 'warning-cleared',
   },
   {
     id: 'trends-hint', family: 'onboarding', once: true,
-    text: "Three days of history now. 'Usage trends' in my menu shows where the AI time goes.",
+    text: 'Three days of history now; a click on me opens usage trends, where the AI time goes.',
     why: () => 'three days of history collected',
     action: { label: 'Open usage trends', kind: 'open-trends' },
     when: (s) => s.daysOfHistory >= 3,
   },
-  {
-    id: 'feed-hint', family: 'onboarding', once: true,
-    text: "Everything I notice lands in 'Notices' in my menu, so nothing is lost if you are heads-down.",
-    why: () => 'a few notices in',
-    action: { label: 'Open the feed', kind: 'open-feed' },
-    when: (s) => s.totalShown >= 3,
-  },
-
   // GUARD-ADJACENT — habits that stop the next leak
   {
     id: 'placeholder-habit', family: 'guard', cooldown: 7 * 24 * H,
@@ -95,7 +87,7 @@ const CATALOGUE = [
   },
   {
     id: 'rotate-check', family: 'guard', cooldown: 20 * H,
-    text: 'About yesterday’s key: if it might have been sent anywhere, rotate it. Two minutes now.',
+    text: 'About yesterday’s key: if it might have been sent anywhere, rotating it closes the risk.',
     why: () => "yesterday's critical warning",
     when: (s) => s.hoursSinceCritical > 12 && s.hoursSinceCritical < 36,
   },
