@@ -50,8 +50,8 @@ While you are using Claude, Drippy checks your clipboard and (optionally) your t
 
 Warnings are tiered so he never cries wolf:
 
-- **Critical** (full size, badge, wide eyes): credentials, API keys, payment details, government IDs. These are exploitable and hard to revoke.
-- **Caution** (a violet droplet): a phone number or date of birth.
+- **Critical** (swollen, badge): credentials, API keys, payment details, government IDs, and identifiable personal data about other people: a patient's details, information about children, a list of personal records. The first group is exploitable and hard to revoke; the second is other people's data, entered before they had any say.
+- **Caution** (a violet pill): a phone number, a date of birth, or HR details about a named person.
 - **Noted only** (no warning): your own email address. It appears in your trends but Drippy will not interrupt you for it.
 
 Click the pill during a warning to acknowledge and dismiss it.
@@ -71,9 +71,9 @@ Notices never steal focus and fade on their own; the quiet × dismisses one.
 
 Right-click the pill for the rest: the live status line, what is being watched, Usage trends, What Drippy can see, Reset day and Quit.
 
-## One optional permission
+## The permission that completes the guard
 
-To warn you about sensitive content *as you type it* into Claude, Drippy needs macOS Accessibility access (System Settings → Privacy & Security → Accessibility). This is optional: without it the clipboard guard and everything else still work. Drippy never stores what he reads there; text is checked on-device and discarded.
+Catching sensitive data at the point of entry, as it is typed and before it is sent, needs macOS Accessibility access (System Settings → Privacy & Security → Accessibility). Without it Drippy sees only what is pasted, not what is typed. Managed fleets can pre-approve the permission through MDM so every device is covered from enrolment. Drippy never stores what he reads there; text is checked on-device and discarded.
 
 If the permission is missing, the right-click menu shows a shortcut to grant it.
 

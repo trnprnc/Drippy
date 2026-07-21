@@ -108,6 +108,21 @@ become a mark against a person. The employee sees their own incidents in
 full. Aggregate views add the training signal on top: categories by
 tool, trend over time, share remedied and how fast.
 
+**Third-party personal data is a first-class incident category.** A
+patient's details, a class of children's grades, a colleague's
+appraisal: identifiable personal data about people other than the user,
+detected at the point of entry, before Send. Detection stays on-device
+and rule-based (role words, record structure and identifiers must
+co-occur; a capitalised name alone never fires; no AI, no content
+stored), with categories such as third-party-health, childrens-data,
+bulk-personal-records and hr-record. Catching typed entry requires the
+Accessibility grant today, so managed fleets pre-approve it via MDM
+configuration (PPPC) at enrolment, onboarding presents it as the step
+that completes the guard, and the L2 browser-extension and app adapters
+are the structural successors that remove the dependency. However it is
+achieved, entry-point coverage is a commercial requirement, not an
+optional extra.
+
 ## The upload ledger (self-transparency)
 
 A local, append-only ledger records every sync: timestamp, record counts
@@ -190,6 +205,14 @@ that view layer, so raw tables are never queryable by dashboards.
    UTC offset; batches carry the envelope above. The device starts
    capturing the richer shapes immediately, ahead of Phase 1, so history
    accrues at commercial grade from today.
+6. **Third-party personal data breaches are in scope** (same day): a
+   doctor typing patient information, a teacher pasting children's
+   grades, a manager drafting appraisals from personal data. Caught at
+   the point of entry, before Send; entry-point coverage (Accessibility,
+   MDM-pre-approved for fleets, or an equivalent mechanism) is required,
+   not optional. First rule-based detectors shipped the same day:
+   third-party-health, childrens-data, bulk-personal-records at tier 1;
+   hr-record at tier 2.
 
 ## Still open
 

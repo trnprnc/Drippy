@@ -44,20 +44,25 @@ So Drippy grades what it finds:
 
 - **Tier 1, critical (full alarm + badge):** credentials and secrets (API
   keys, tokens, private keys, database URLs, passwords), payment details
-  (cards, bank), and government IDs (SSN, National Insurance). These can cause
-  real or irreversible harm: account takeover, fraud, permanent identity
-  theft. De-identification in a training pipeline does not neutralise a live
-  secret. Drippy goes violet, eyes wide, with a red notification badge.
-- **Tier 2, caution (a quiet squint):** phone numbers and dates of birth.
-  Privacy-sensitive but low harm on their own. Drippy gives a gentle squint,
-  no badge.
+  (cards, bank), government IDs (SSN, National Insurance), and identifiable
+  personal data about other people: health details about a person,
+  information about children, and lists of personal records. The first
+  group can cause real or irreversible harm to you; the second is a
+  data-protection breach against people who never chose to share.
+  De-identification in a training pipeline does not neutralise either.
+- **Tier 2, caution (violet, no badge):** phone numbers, dates of birth,
+  and HR details about a named person. Privacy-sensitive but
+  low-to-moderate harm on their own.
 - **Tier 3, low (noted, no warning):** your own email address. You already
   gave Claude your email to use it, so a single one is not a meaningful new
   exposure. Drippy counts it for your trends but does not interrupt you.
 
-(A future tier will catch *bulk* or *third-party* PII, e.g. a pasted list of
-customer records, which is a genuine data-protection risk that a single
-personal detail is not.)
+Third-party detection is anchored rule-matching: a role word or record
+structure (patient, class list, appraisal, a name-and-grade line) must
+co-occur with an identifier (a name, date of birth, NHS number, contact
+details). A capitalised name alone never fires. Catching typed entry
+before Send requires the Accessibility grant; managed fleets pre-approve
+it through MDM configuration at enrolment.
 
 ## What Drippy stores on disk
 

@@ -52,8 +52,8 @@
   <table>
     <tr><td>Dark pill</td><td>quiet; no AI activity right now</td></tr>
     <tr><td>Cyan glow</td><td>AI energy flowing right now, yours or a background agent's; both are metered</td></tr>
-    <tr><td class="violet">Violet</td><td>caution: something mildly sensitive (a phone number, a date of birth) is in your clipboard or composer</td></tr>
-    <tr><td class="violet">Swells + "!"</td><td>critical: a secret (an API key, card number, password) is about to leave this Mac. The only time Drippy takes up space uninvited. Hover for what he found and the one-click remedy; click to acknowledge</td></tr>
+    <tr><td class="violet">Violet</td><td>caution: something mildly sensitive (a phone number, a date of birth, HR details about a named person) is in your clipboard or composer</td></tr>
+    <tr><td class="violet">Swells + "!"</td><td>critical: a secret (an API key, card number, password) or identifiable personal data about other people (a patient's details, children's records) is about to leave this Mac. The only time Drippy takes up space uninvited. Hover for what he found and the one-click remedy; click to acknowledge</td></tr>
     <tr><td>Hover</td><td>the pill opens with today's numbers: energy, water and measured spend</td></tr>
     <tr><td>Click</td><td>your 30-day trends</td></tr>
     <tr><td>Right-click</td><td>trends, this sheet, reset and quit</td></tr>
@@ -67,8 +67,8 @@
     <li>While you're using Claude, it checks your <b>clipboard</b> for secrets (an API key, a password, a .env line) so it can warn you before you paste one in, even if you copied it from a browser. Checked on-device, content discarded, only the category kept. It stops when you're not using Claude.</li>
   </ul>
 
-  <h2>One optional permission</h2>
-  <p style="font-size:13px;margin:0">To warn you <em>while you type</em> sensitive data into Claude, Drippy needs macOS Accessibility access. Without it, the clipboard guard still works.</p>
+  <h2>The permission that completes the guard</h2>
+  <p style="font-size:13px;margin:0">Catching sensitive data <em>as you type it</em>, before it is sent, needs macOS Accessibility access. Without it Drippy sees only what you copy, not what you type.</p>
   <button class="btn" onclick="window.drippyInfo.openAccessibility()">Open Accessibility settings…</button>
 
   <div class="foot">

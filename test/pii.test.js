@@ -26,6 +26,13 @@ const cases = [
   ['reach me at jack@example.co.uk please', ['email']],
   ['call 07911 123 456 tomorrow', ['phone']],
   ['dob 14/03/1998 for the form', ['dob']],
+  // third-party personal data: caught before Send
+  ['Patient: Sarah Connor, DOB 14/03/1985, diagnosed with type 2 diabetes, prescribed metformin', ['third-party-health', 'dob']],
+  ['referral for NHS number 943 476 5919', ['third-party-health']],
+  ['Year 7 class list. Emma Wilson: A*, Jacob Miles: B', ['childrens-data']],
+  ['Emma Wilson: A*, Jacob Miles: B, Priya Patel: 68%', ['childrens-data']],
+  ["Draft Mark Reed's appraisal from these notes, absence record attached", ['hr-record']],
+  ['John Smith john.smith@acme.com\nJane Doe jane.doe@acme.com\nRob Brown rob.brown@acme.com', ['bulk-personal-records', 'email']],
 
   // --- must NOT detect (false-positive traps) ---------------------------
   ['just a normal sentence about drippy the blob', []],
@@ -38,6 +45,11 @@ const cases = [
   ['version 12-34-56 of the sorting library', []], // digits without "sort code"
   ['use process.env.API_KEY instead', []],
   ['npm install @anthropic-ai/sdk', []],
+  ['how would a patient with early diabetes symptoms usually be treated', []], // no identifiable person
+  ['Jane Austen wrote about mental health in her novels', []], // clinical word + name, no identifier
+  ['draft a generic performance review template for engineers', []], // HR context, nobody named
+  ['meet John Smith and Jane Doe at the product launch', []], // names without identifiers
+  ['the pupils enjoyed the trip to York Museum', []], // school context, no records
 ];
 
 let fails = 0;

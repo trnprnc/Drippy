@@ -17,11 +17,11 @@ New here? Drippy gives a four-card tour on first launch. The full manual is
    **Open Anyway**. (Technical users: `xattr -d com.apple.quarantine /Applications/Drippy.app`.)
 3. Drippy appears as a small dark pill in your menu bar. It starts at login
    from now on. Drag the pill along the bar; it remembers where.
-4. *Optional but recommended:* to be warned **while you type** sensitive data
-   into Claude, grant Accessibility when the welcome window offers it
+4. To catch sensitive data **as you type it**, before it is sent (not just
+   when you paste), grant Accessibility when the welcome window offers it
    (System Settings → Privacy & Security → Accessibility → enable Drippy, and
-   allow the "control System Events" prompt). Without it the clipboard guard
-   still works.
+   allow the "control System Events" prompt). Without it only the clipboard
+   guard runs.
 
 Requirements: Apple Silicon Mac, macOS 13+. See [PRIVACY.md](PRIVACY.md).
 
@@ -32,7 +32,7 @@ Requirements: Apple Silicon Mac, macOS 13+. See [PRIVACY.md](PRIVACY.md).
 | Dark pill | quiet; no AI activity right now |
 | Lit teal, shimmer sweeping | AI energy flowing right now, yours *or* a background agent's (a Claude Code session, for example) |
 | Violet pill | caution-level sensitive content (phone number, date of birth) in your clipboard or composer |
-| Swollen below the bar + "!" | critical: a secret detected *before it leaves your machine*: API keys and tokens (Anthropic, OpenAI, GitHub, AWS, Stripe, Slack, Google, JWTs), private key files, database connection strings, .env-style secrets, cards and bank details, government IDs. Hovering shows what it found, why it matters, and the remedy; a click acknowledges |
+| Swollen below the bar + "!" | critical: a secret detected *before it leaves your machine*: API keys and tokens (Anthropic, OpenAI, GitHub, AWS, Stripe, Slack, Google, JWTs), private key files, database connection strings, .env-style secrets, cards and bank details, government IDs, and identifiable personal data about *other people* (a patient's details, children's grades, staff records). Hovering shows what it found, why it matters, and the remedy; a click acknowledges |
 | Hover | today's numbers: energy, water, measured spend |
 | Click | 30-day usage trends |
 | Right-click | the rest: trends, what Drippy can see, reset, quit |
