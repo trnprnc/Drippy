@@ -17,7 +17,8 @@ npx electron-packager . Drippy \
   --app-version="$VERSION" \
   --out=dist --overwrite \
   --ignore="design_handoff_drippy" --ignore="^/dist" --ignore="^/build" \
-  --ignore="^/site" --ignore="^/promo" --ignore="^/test" >/dev/null
+  --ignore="^/site" --ignore="^/promo" --ignore="^/test" \
+  --ignore="^/server" --ignore="\.env" >/dev/null
 
 APP="dist/Drippy-darwin-arm64/Drippy.app"
 # packager's --icon flag is unreliable; place the icns directly

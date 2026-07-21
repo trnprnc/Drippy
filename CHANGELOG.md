@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.0 (2026-07-21) — menu-bar pill and cloud sync
 
 - **Drippy is now the menu-bar pill, full stop.** A small dark pill living
   in the menu bar strip, the Mac cousin of the iPhone island widget. A teal

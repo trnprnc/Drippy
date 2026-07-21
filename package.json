@@ -1,7 +1,7 @@
 {
   "name": "drippy",
   "productName": "Drippy",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "The transparency layer for your AI use: a small always-present droplet that meters energy, water, carbon, spend and privacy.",
   "main": "main.js",
   "author": "Jack Warrillow",
