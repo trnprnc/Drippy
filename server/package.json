@@ -12,5 +12,8 @@
   },
   "dependencies": {
     "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.10"
   }
 }
