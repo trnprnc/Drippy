@@ -49,4 +49,6 @@ module.exports = {
     for (const [key, r] of events) if (key.startsWith(deviceId)) counts[r.kind] += 1;
     return counts;
   },
+
+  async close() {},
 };

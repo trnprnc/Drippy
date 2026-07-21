@@ -1,0 +1,28 @@
+# Drippy ingest on Fly.io. London region for the UK/EU data-residency
+# commitment; always-on so device sync works whenever a device wakes.
+# This file plus the Dockerfile ARE the deployment — redeployable from git.
+app = "drippy-ingest"
+primary_region = "lhr"
+
+[build]
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # Always-on: do not stop or scale to zero. Keeps latency flat and leaves
+  # room for the scheduled work on the roadmap (retention sweeps,
+  # aggregation) to run in the same service.
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/v1/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

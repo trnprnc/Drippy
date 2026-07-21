@@ -89,4 +89,8 @@ module.exports = {
     for (const row of r2.rows) counts[row.kind] = row.n;
     return counts;
   },
+
+  async close() {
+    await pool.end();
+  },
 };

@@ -27,6 +27,7 @@ let dir = null;
 let historyDir = null;
 let getToday = null;
 let getMeta = null;
+let enrollToken = null;
 let cfg = { enabled: false, endpoint: null, workspaceId: null, deviceId: null, deviceKey: null };
 let cursor = { lastEventTs: '', lastDayDate: '', lastTodayHash: '' };
 let timer = null;
@@ -206,10 +207,10 @@ function ledgerTail(n = 12) {
 // Transport
 // ---------------------------------------------------------------------------
 
-async function postJson(url, body, key) {
+async function postJson(url, body, key, extraHeaders = {}) {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', ...(key ? { authorization: `Bearer ${key}` } : {}) },
+    headers: { 'content-type': 'application/json', ...(key ? { authorization: `Bearer ${key}` } : {}), ...extraHeaders },
     body,
     signal: AbortSignal.timeout(20000),
   });
@@ -305,6 +306,7 @@ function init(opts) {
   historyDir = path.join(dir, 'history');
   getToday = opts.getToday;
   getMeta = opts.getMeta;
+  enrollToken = opts.enrollToken || null;
   cfg = readJson(cfgFile(), cfg);
   cursor = readJson(cursorFile(), cursor);
   if (!cfg.endpoint) cfg.endpoint = opts.defaultEndpoint || null;
@@ -331,7 +333,12 @@ async function setEnabled(enabled) {
   if (!cfg.deviceId) {
     // Personal-workspace enrolment (Phase 1; sign-in method is still an
     // open decision, so enrolment is anonymous-device for now).
-    const out = await postJson(`${cfg.endpoint}/v1/enroll`, JSON.stringify({ workspaceKind: 'personal' }), null);
+    const out = await postJson(
+      `${cfg.endpoint}/v1/enroll`,
+      JSON.stringify({ workspaceKind: 'personal' }),
+      null,
+      enrollToken ? { 'x-enroll-token': enrollToken } : {}
+    );
     cfg.workspaceId = out.workspaceId;
     cfg.deviceId = out.deviceId;
     cfg.deviceKey = out.deviceKey;

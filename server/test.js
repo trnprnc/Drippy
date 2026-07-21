@@ -1,4 +1,9 @@
 // Run: node server/test.js  (uses the memory store; no database needed)
+// Force the memory store even when a .env.local with DATABASE_URL exists,
+// so tests never touch a real database. Set before requiring ingest: the
+// store is chosen at module load, and env.js won't overwrite a key that
+// is already present.
+process.env.DATABASE_URL = '';
 const { server } = require('./ingest');
 
 let fails = 0;

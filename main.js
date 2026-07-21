@@ -1285,8 +1285,12 @@ app.whenReady().then(() => {
       tzOffsetMin: -new Date().getTimezoneOffset(),
       country: app.getLocaleCountryCode() || '',
     }),
-    // Development default only; production endpoints arrive with Phase 2.
+    // Point the dev app at a hosted ingest with DRIPPY_SYNC_ENDPOINT; it
+    // falls back to a local one. Packaged builds ship with no default
+    // endpoint until the consumer sign-in is decided.
     defaultEndpoint: app.isPackaged ? null : process.env.DRIPPY_SYNC_ENDPOINT || 'http://127.0.0.1:8787',
+    // Sent on enrolment only, when the hosted ingest gates it (ENROLL_TOKEN).
+    enrollToken: process.env.DRIPPY_ENROLL_TOKEN || null,
   });
   createWindow();
   monitor.start();

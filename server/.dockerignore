@@ -1,0 +1,6 @@
+# Never bake secrets or local cruft into the image.
+.env.local
+node_modules
+fly.toml
+DEPLOY.md
+.dockerignore

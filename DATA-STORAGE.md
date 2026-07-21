@@ -185,11 +185,15 @@ that view layer, so raw tables are never queryable by dashboards.
    intent-then-outcome ledger lines); ingest service (server/ingest.js
    with a memory store for development and store-pg.js + schema.sql for
    Neon); personal-workspace opt-in and the "What has been shared" view
-   in the welcome sheet. Before production traffic: provision the Neon
-   project (UK/EU) and apply schema.sql, put the ingest behind TLS on a
-   real host, and replace open personal enrolment with the chosen
-   sign-in. The Postgres store is written but has only run against the
-   memory twin so far.
+   in the welcome sheet. Verified against real Neon (1,000 events, 9
+   rollups, idempotent). Deployment is codified for Fly.io, London
+   (server/Dockerfile, fly.toml, DEPLOY.md), so the ingest runs off-device
+   and sync no longer depends on any one Mac being awake; the public
+   endpoint is hardened with graceful shutdown and an optional
+   ENROLL_TOKEN gate (device sends it via DRIPPY_ENROLL_TOKEN). Before
+   paying customers: rotate the Neon credential, deploy behind Fly's TLS,
+   replace the open enrolment stand-in with real auth, and turn on Neon
+   PITR plus a log drain.
 2. **Phase 2:** org dashboard MVP (aggregates, coverage, factors
    versioning, configurable k) and MDM enrolment flow.
 3. **Phase 3:** reconcile with provider Admin/Usage APIs (fidelity L3) so

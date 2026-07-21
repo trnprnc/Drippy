@@ -150,6 +150,13 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && req.url === '/v1/enroll') {
+      // Public endpoint: when an ENROLL_TOKEN is configured (recommended in
+      // production), enrolment requires it, so the internet can't spam new
+      // workspaces and device keys. Batch uploads are always device-key
+      // authenticated regardless.
+      if (process.env.ENROLL_TOKEN && req.headers['x-enroll-token'] !== process.env.ENROLL_TOKEN) {
+        return send(res, 403, { error: 'enrolment requires a valid token' });
+      }
       const body = JSON.parse((await readBody(req)) || '{}');
       if (body.workspaceKind !== 'personal') {
         return send(res, 400, { error: 'only personal workspaces enrol here for now' });
@@ -211,6 +218,21 @@ if (require.main === module) {
   store.ready().then(() => {
     server.listen(PORT, () => console.log(`[ingest] listening on :${PORT} (${store.name})`));
   });
+  // Fly (and most platforms) send SIGTERM/SIGINT on every deploy and
+  // restart. Stop accepting, let in-flight batches finish, close the pool,
+  // then exit — so a redeploy never drops a device's upload mid-write.
+  const shutdown = (sig) => {
+    console.log(`[ingest] ${sig} — draining`);
+    server.close(async () => {
+      try {
+        await store.close();
+      } catch {}
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 10000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 module.exports = { server, store, sanitizeRollup, sanitizeEvent };

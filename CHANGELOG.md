@@ -40,6 +40,11 @@
   service (server/) runs on a memory store for development and Neon
   Postgres for production; records are rebuilt through whitelists at the
   door, so no field that could hold content survives on either side.
+- **Ingest hosting, codified for Fly.io (London).** server/Dockerfile,
+  fly.toml and DEPLOY.md deploy the service off-device so sync survives a
+  Mac restart. The public endpoint is hardened: graceful shutdown drains
+  in-flight batches on redeploy, and an optional ENROLL_TOKEN gates
+  enrolment against abuse (the device sends it via DRIPPY_ENROLL_TOKEN).
 
 ## 2.0.0 (2026-07-20) — the transparency layer
 
