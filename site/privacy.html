@@ -20,14 +20,16 @@
 
   <div class="prose">
     <h1>Privacy design</h1>
-    <p>Drippy exists to make AI's hidden impacts visible. A tool like that only works if you can trust it more than the things it watches. This page describes exactly what Drippy can see, what it cannot, and why, and how those promises are enforced structurally in the code, not just by policy.</p>
+    <p>Drippy exists to make AI's hidden impacts visible. A tool like that works only if you can trust it more than the things it watches. This page describes what Drippy sees, what he keeps, and how those promises are enforced structurally in the code, not just by policy.</p>
 
-    <h2>The three rules</h2>
+    <h2>The two rules</h2>
     <ol>
-      <li><b>Everything stays on your Mac.</b> Drippy has no account, no cloud, no telemetry and no analytics. Its only network activity is DNS lookups of <code>claude.ai</code> / <code>api.anthropic.com</code> (to learn which addresses to watch). It never transmits anything, anywhere.</li>
-      <li><b>Verdicts, not content.</b> Wherever Drippy touches text (clipboard, composer), the text is scanned in memory and discarded in the same function call. Only a category verdict survives, such as "API key" or "email address", never the value. There is no code path that stores, logs or transmits scanned content.</li>
+      <li><b>Verdicts, not content.</b> Wherever Drippy touches text (clipboard, composer), the text is scanned in memory and discarded in the same function call. Only a category verdict survives, such as "API key" or "email address". There is no code path that stores, logs or transmits the value itself.</li>
       <li><b>Metadata before content.</b> Drippy prefers the least-invasive signal that can do the job, and each deeper level is separately opt-in.</li>
     </ol>
+
+    <h2>Your history, and where it goes</h2>
+    <p>Your usage history lives on your Mac and powers the trends you see. Sync is a separate choice: turn it on, and your history (the same measures and verdicts, never any content) syncs to your own workspace, so it survives a restart and several Macs merge into one picture. Every batch that leaves your device is listed in the app under "What has been shared", so you can always see exactly what left and when.</p>
     <p><b>Why the clipboard is watched during a session, not just when Claude is frontmost:</b> in real work you copy a secret somewhere else (a browser, a <code>.env</code> file, a password manager) and then paste it into Claude. To warn you before that, Drippy checks the clipboard throughout an active Claude session, including a few minutes after you tab away to grab something. It never scans your clipboard when you have not been using Claude.</p>
 
     <h2>What each sensor sees</h2>
@@ -44,15 +46,15 @@
     <h2>How loudly Drippy warns</h2>
     <p>Not everything sensitive is equally risky, and crying wolf over harmless things trains you to ignore the warnings that matter. So Drippy grades what he finds:</p>
     <ul>
-      <li><b>Tier 1, critical (full alarm and badge):</b> credentials and secrets, payment details, government IDs. These can cause real or irreversible harm, and de-identification in a training pipeline does not neutralise a live secret.</li>
-      <li><b>Tier 2, caution (a quiet squint):</b> phone numbers and dates of birth. Privacy-sensitive but low harm on their own.</li>
+      <li><b>Tier 1, critical (full alarm and badge):</b> credentials and secrets, payment details, government IDs, and identifiable personal data about other people (a patient's details, children's records, a list of personal records). These can cause real or irreversible harm, and de-identification in a training pipeline does not neutralise a live secret.</li>
+      <li><b>Tier 2, caution (violet, no badge):</b> phone numbers, dates of birth, and a named person's HR details. Privacy-sensitive but low harm on their own.</li>
       <li><b>Tier 3, low (noted, no warning):</b> your own email address. You already gave Claude your email to use it; Drippy counts it for your trends but does not interrupt.</li>
     </ul>
 
     <h2>What Drippy stores on disk</h2>
     <ul>
-      <li><code>~/Library/Application Support/Drippy/</code>: the blob's position and today's counters.</li>
-      <li><code>~/Library/Application Support/Drippy/history/</code>: your local usage history (daily rollups and per-event records: timestamps, app names, token and energy estimates, privacy categories). Powers the Usage trends window. It never leaves the device; any future community or aggregate sharing will be strictly opt-in and documented here first.</li>
+      <li><code>~/Library/Application Support/Drippy/</code>: the pill's position and today's counters.</li>
+      <li><code>~/Library/Application Support/Drippy/history/</code>: your usage history (daily rollups and per-event records: timestamps, app names, token and energy drivers, privacy categories). Powers the Usage trends window, and syncs to your workspace only if you turn sync on.</li>
       <li><code>~/Library/Logs/Drippy.log</code>: operational log with state changes, app names and privacy event categories. Never content.</li>
     </ul>
     <p>Delete any of these at any time; Drippy recreates them empty.</p>
@@ -65,7 +67,7 @@
   </div>
 
   <footer>
-    <span>Drippy 2.0.0 test build</span>
+    <span>Drippy 2.1.1 test build</span>
     <span class="spacer"></span>
     <a href="/">Home</a>
     <a href="/guide">User guide</a>

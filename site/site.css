@@ -1,4 +1,4 @@
-/* Drippy launch site — same skin as the creature. UK English, no em dashes. */
+/* Drippy launch site — same skin as the character. UK English, no em dashes. */
 
 :root {
   color-scheme: light dark;
@@ -48,13 +48,12 @@ nav .dl {
 }
 nav .dl:hover { background: oklch(0.66 0.11 205 / .26); }
 
-/* --- The blob (from the app's own CSS) --- */
+/* --- The character (a softly pointed, eyeless droplet) --- */
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @keyframes morphB {
   0% { border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%; }
   100% { border-radius: 53% 47% 45% 55% / 47% 55% 45% 53%; }
 }
-@keyframes blinkK { 0%, 91%, 100% { transform: scaleY(1); } 94% { transform: scaleY(.12); } 97% { transform: scaleY(1); } }
 @keyframes glowPulse {
   0%, 100% {
     box-shadow:
@@ -78,7 +77,7 @@ nav .dl:hover { background: oklch(0.66 0.11 205 / .26); }
   position: relative;
   width: 68px;
   height: 63px;
-  border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%;
+  border-radius: 52% 48% 50% 50% / 60% 60% 42% 42%;
   background: linear-gradient(165deg, oklch(0.85 0.09 195), oklch(0.66 0.11 210));
   box-shadow:
     0 12px 24px rgba(0, 0, 0, .35),
@@ -86,49 +85,25 @@ nav .dl:hover { background: oklch(0.66 0.11 205 / .26); }
     inset 0 4px 7px rgba(255, 255, 255, .45);
   animation: morphB 7s ease-in-out infinite alternate;
 }
-.blob .eyes {
-  position: absolute;
-  left: 0; right: 0; top: 20px;
-  display: flex; justify-content: center; gap: 11px;
-}
-.blob .eye {
-  width: 7px; height: 12px; border-radius: 3.5px;
-  background: #0b2530;
-  animation: blinkK 6s ease-in-out infinite;
-}
 .bobber { animation: bob 5s ease-in-out infinite; display: inline-block; }
 .blob.glowing { animation: morphB 4s ease-in-out infinite alternate, glowPulse 2.2s ease-in-out infinite; }
 .blob.small { width: 40px; height: 37px; }
-.blob.small .eyes { top: 11px; gap: 6.5px; }
-.blob.small .eye { width: 4.5px; height: 7.5px; border-radius: 2.25px; }
 .blob.violet { background: linear-gradient(165deg, oklch(0.8 0.08 300), oklch(0.62 0.1 310)); }
-.blob.dim { filter: brightness(.88) saturate(.85); }
-/* The 2.0 resting form: a softly pointed droplet, no eyes. */
 .blob.dropletform { border-radius: 52% 48% 50% 50% / 60% 60% 42% 42%; }
 .blob.small.dropletform { width: 26px; height: 25px; }
-
-/* --- Hover-card mock (replaces the old shape showcase) --- */
-.quirk.statcard { text-align: left; }
-.mockcard {
-  background: var(--bg);
-  border: 1px solid oklch(0.66 0.11 205 / .45);
-  border-radius: 12px;
-  padding: 13px 15px;
-  font-size: 13.5px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
+/* The one time he swells up: a warning badge. */
+.badge-demo::after {
+  content: "!";
+  position: absolute;
+  top: -4px; right: -6px;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: oklch(0.7 0.19 25);
+  color: #fff;
+  font: 700 10.5px/15px -apple-system, system-ui, sans-serif;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
 }
-.mocktitle { font-weight: 700; display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
-.mocktitle i {
-  width: 13px; height: 12px; border-radius: 47% 53% 55% 45% / 55% 49% 51% 45%;
-  background: linear-gradient(165deg, oklch(0.85 0.09 195), oklch(0.66 0.11 210));
-}
-.mockrow { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
-.mockrow .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; transform: translateY(1px); }
-.mockrow b { width: 72px; flex: none; font-size: 12.5px; }
-.mockrow span:last-child { color: var(--ink-2); font-size: 12.5px; }
-.mockfoot { margin-top: 9px; font-size: 11.5px; color: var(--ink-3); }
-.mockprose { margin: 2px 0 0; font-size: 13px; color: var(--ink-2); }
-.mockprose b { color: var(--ink); }
 
 /* --- Hero --- */
 header.hero { text-align: center; padding: 44px 0 26px; }
@@ -167,73 +142,6 @@ section .lead { color: var(--ink-2); margin: 0 0 22px; max-width: 640px; }
 .state .holder { height: 52px; display: flex; align-items: center; justify-content: center; }
 .state b { display: block; font-size: 13.5px; margin-top: 8px; }
 .state span { font-size: 12.5px; color: var(--ink-2); line-height: 1.45; display: block; margin-top: 2px; }
-.ringed { position: relative; }
-.ringed::before {
-  content: "";
-  position: absolute;
-  inset: -9px;
-  border-radius: 50%;
-  background: conic-gradient(from -90deg,
-    var(--green) 0deg 64deg, transparent 64deg 106deg,
-    transparent 106deg 118deg,
-    var(--amber) 118deg 190deg, transparent 190deg 224deg,
-    transparent 224deg 236deg,
-    var(--violet) 236deg 274deg, transparent 274deg 342deg,
-    transparent 342deg 360deg);
-  -webkit-mask: radial-gradient(closest-side, transparent 82%, #000 84%);
-  mask: radial-gradient(closest-side, transparent 82%, #000 84%);
-}
-.badge-demo { position: relative; }
-.badge-demo::after {
-  content: "!";
-  position: absolute;
-  top: -4px; right: -6px;
-  width: 15px; height: 15px;
-  border-radius: 50%;
-  background: oklch(0.7 0.19 25);
-  color: #fff;
-  font: 700 10.5px/15px -apple-system, system-ui, sans-serif;
-  text-align: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
-}
-
-/* --- Shapes (the quirks) --- */
-.quirks { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-.quirk { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px 18px 16px; text-align: center; }
-.quirk svg { width: 190px; height: 130px; }
-.quirk p { font-size: 14.5px; color: var(--ink-2); margin: 8px 0 0; }
-.quirk .rig, .quirk .spokes, .quirk .lensEyes, .quirk .beye, .quirk .leye, .quirk .glint, .quirk .spark {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-@keyframes wheelSpin { to { transform: rotate(360deg); } }
-@keyframes rideBob { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-2.5px) rotate(-1.4deg); } }
-@keyframes streakDash { 0% { opacity: 0; transform: translateX(5px); } 30% { opacity: .55; } 100% { opacity: 0; transform: translateX(-10px); } }
-@keyframes eyeBlinkSvg { 0%, 86%, 100% { transform: scaleY(1); } 91% { transform: scaleY(.15); } 96% { transform: scaleY(1); } }
-@keyframes lensSweep { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
-@keyframes eyeDart { 0%, 22%, 100% { transform: translateX(0); } 34%, 52% { transform: translateX(2.5px); } 66%, 84% { transform: translateX(-2px); } }
-@keyframes glintSweep {
-  0% { transform: rotate(24deg) translateX(-36px); opacity: 0; }
-  8% { opacity: .9; }
-  40% { transform: rotate(24deg) translateX(36px); opacity: 0; }
-  100% { transform: rotate(24deg) translateX(36px); opacity: 0; }
-}
-.quirk .rig.bike { animation: rideBob 1.5s ease-in-out infinite; }
-.quirk .spokes { animation: wheelSpin .85s linear infinite; }
-.quirk .streaks path { opacity: 0; animation: streakDash 1s ease-out infinite; }
-.quirk .streaks path:nth-child(2) { animation-delay: .25s; }
-.quirk .streaks path:nth-child(3) { animation-delay: .55s; }
-.quirk .beye { animation: eyeBlinkSvg 3.2s ease-in-out infinite; }
-.quirk .rig.glass { animation: lensSweep 2.8s ease-in-out infinite; }
-.quirk .lensEyes { animation: eyeDart 3.4s ease-in-out infinite; }
-.quirk .leye { animation: eyeBlinkSvg 2.9s ease-in-out infinite .6s; }
-.quirk .glint { animation: glintSweep 3.2s ease-in-out infinite .4s; }
-.quirk .spark { animation: sparkle 3.2s ease-in-out infinite 1.1s; }
-@keyframes sparkle {
-  0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); }
-  12% { opacity: .95; transform: scale(1) rotate(18deg); }
-  26% { opacity: 0; transform: scale(.5) rotate(38deg); }
-}
 
 /* --- Steps --- */
 ol.steps { padding-left: 0; counter-reset: step; list-style: none; max-width: 640px; }
@@ -275,9 +183,8 @@ code {
 .prose table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
 .prose th, .prose td { text-align: left; padding: 7px 12px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .prose th { color: var(--ink); font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
-.prose td:first-child { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.prose td:first-child { color: var(--ink); font-weight: 600; }
 .prose td { color: var(--ink-2); }
-.prose td:first-child { white-space: normal; }
 .prose a { color: var(--ink); }
 
 /* --- Footer --- */

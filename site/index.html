@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Drippy, the transparency layer for your AI use</title>
-<meta name="description" content="A small always-present droplet for your Mac that meters what your AI use really costs: energy, water, carbon, spend and privacy. Everything stays on your machine.">
+<meta name="description" content="Drippy is a small companion for your Mac's menu bar who meters what your AI use really costs: energy, water, carbon, spend and privacy, and tells only you.">
 <link rel="stylesheet" href="site.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%A7%3C/text%3E%3C/svg%3E">
 </head>
@@ -22,107 +22,76 @@
   <header class="hero">
     <span class="bobber"><span class="blob dropletform glowing"></span></span>
     <h1>Meet Drippy</h1>
-    <p class="tag">The transparency layer for your AI use. A small droplet that meters what AI really costs you: the energy it burns, the water behind it, the carbon, the money, and the secrets it nearly swallows.</p>
+    <p class="tag">A small companion who lives in your menu bar and keeps an eye on what your AI use really costs: the energy it burns, the water behind it, the carbon, the money, and the secrets that nearly slip out. He does the counting, so you can just glance and know.</p>
     <div class="cta">
       <a class="btn-primary" href="/Drippy-mac-arm64.zip" download>Download for Mac</a>
-      <p class="cta-note">Test build 2.0.0 · macOS 13+, Apple silicon · 91 MB · everything stays on your Mac<br>
-      Not yet notarised: see the <a href="#install">three install steps</a> below.</p>
+      <p class="cta-note">Test build 2.1.1 · macOS 13+, Apple silicon · 91 MB<br>
+      A quick <a href="#install">three-step install</a> the first time.</p>
     </div>
   </header>
 
   <section>
-    <h2>Four measures, watched honestly</h2>
-    <p class="lead">Drippy is pro-transparent-AI, not anti-AI. He never reads your conversations and never phones home; he watches patterns, on-device, and tells only you.</p>
+    <h2>What Drippy watches</h2>
+    <p class="lead">He works from patterns alone, on your machine, and speaks only to you. Four measures, kept honestly.</p>
     <div class="cards">
       <div class="card">
         <h3><span class="pill" style="background:var(--amber)"></span>AI usage</h3>
-        <p>Who is using AI on this Mac right now, you or a background agent, and how much. Claude Code usage is exact, read from its own local logs.</p>
+        <p>Who is using AI right now, you or a background agent, and how much. Claude Code is exact, down to the token.</p>
       </div>
       <div class="card">
         <h3><span class="pill" style="background:var(--green)"></span>Environment</h3>
-        <p>Energy, water and carbon per day, honest about uncertainty (±3× where estimated), every factor cited and versioned.</p>
+        <p>The energy, water and carbon behind your day, every figure cited and honest about its uncertainty.</p>
       </div>
       <div class="card">
         <h3><span class="pill" style="background:var(--teal)"></span>Spend</h3>
-        <p>Your measured usage priced at Anthropic's current API list rates, cache-aware. Estimates are never priced; no false precision.</p>
+        <p>Your measured usage priced at Anthropic's current API rates: the number your subscription tucks away.</p>
       </div>
       <div class="card">
         <h3><span class="pill" style="background:var(--violet)"></span>Privacy</h3>
-        <p>An API key on your clipboard, a card number in your composer: Drippy turns violet before it leaves your Mac, and tells you what to do about it.</p>
+        <p>An API key on your clipboard, a patient's details in your composer: Drippy flushes violet and catches it before it goes.</p>
       </div>
     </div>
   </section>
 
   <section>
-    <h2>Always present, never in the way</h2>
-    <p class="lead">Drippy is deliberately tiny and genuinely click-through: clicks land on whatever is beneath him, except on the droplet itself. The whole visual language fits in four states.</p>
+    <h2>He tells you in colour</h2>
+    <p class="lead">Drippy rests in your menu bar until there is something to say. His whole language is colour and size.</p>
     <div class="states">
       <div class="state">
         <div class="holder"><span class="blob small dropletform" style="animation-duration:12s"></span></div>
-        <b>Still droplet</b><span>quiet; no AI running on this Mac</span>
+        <b>At rest</b><span>a calm droplet, keeping watch</span>
       </div>
       <div class="state">
         <div class="holder"><span class="blob small dropletform glowing"></span></div>
-        <b>Glowing</b><span>AI energy flowing, yours or a background agent's</span>
+        <b>Glowing</b><span>AI energy is flowing, yours or an agent's</span>
       </div>
       <div class="state">
         <div class="holder"><span class="blob small dropletform violet"></span></div>
-        <b>Violet</b><span>caution: something mildly sensitive in flight</span>
+        <b>Violet</b><span>something private is in play</span>
       </div>
       <div class="state">
-        <div class="holder"><span class="blob small violet badge-demo"><span class="eyes"><span class="eye"></span><span class="eye"></span></span></span></div>
-        <b>Critical</b><span>a secret nearly left the machine; the one time he swells up</span>
+        <div class="holder"><span class="blob small dropletform violet badge-demo"></span></div>
+        <b>Swells up</b><span>a secret is about to leave; the one time he speaks up</span>
       </div>
       <div class="state">
         <div class="holder"><span class="blob small dropletform" style="animation:none"></span></div>
-        <b>Hover / click</b><span>today's numbers on hover; 30-day trends on click</span>
+        <b>Hover or click</b><span>today's numbers on hover, 30-day trends on a click</span>
       </div>
     </div>
-  </section>
-
-  <section>
-    <h2>Numbers that mean something</h2>
-    <p class="lead">Hover the droplet for today so far, translated into things you can picture.</p>
-    <div class="quirks">
-      <div class="quirk statcard">
-        <div class="mockcard">
-          <div class="mocktitle"><i></i>Today, so far</div>
-          <div class="mockrow"><span class="dot" style="background:var(--green)"></span><b>Energy</b><span>46.2 Wh · 14.8 g CO₂e</span></div>
-          <div class="mockrow"><span class="dot" style="background:#4aa3c0"></span><b>Water</b><span>109 mL</span></div>
-          <div class="mockrow"><span class="dot" style="background:var(--amber)"></span><b>AI usage</b><span>31 requests · ~842,000 tokens</span></div>
-          <div class="mockrow"><span class="dot" style="background:var(--violet)"></span><b>Privacy</b><span>1 warning</span></div>
-          <div class="mockrow"><span class="dot" style="background:#8b95a5"></span><b>Value</b><span>$4.87 at API rates (measured)</span></div>
-          <div class="mockfoot">≈ 3.1 phone charges · 0.4 glasses of water · 0.1 km driven</div>
-        </div>
-        <p><b>The hover card.</b> Every measure Drippy keeps, one hover away, with everyday equivalents underneath so the units mean something.</p>
-      </div>
-      <div class="quirk statcard">
-        <div class="mockcard">
-          <div class="mocktitle"><i></i>Measured, not guessed</div>
-          <p class="mockprose">Claude Code reports its exact token counts, so that part of your day is <b>measured</b>: real tokens priced at Anthropic's current list rates, cache reads and writes included. Network-observed traffic stays an honest estimate with its ±3× band shown. Drippy never blends the two.</p>
-        </div>
-        <p><b>Spend at API rates.</b> What your measured usage would cost if paid per token: the number your subscription hides.</p>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <h2>Notices, grounded in the meters</h2>
-    <p class="lead">When the numbers show something worth knowing, a small card appears above the droplet: a big model doing small jobs, an agent drawing energy solo for half an hour, a novel of context re-sent every turn. Every notice says why it fired ("because: 14 requests today, mostly short answers") and its button does the thing: copies the lighter-usage remedy or opens the right window. No sound, no stolen focus, all reviewable later.</p>
   </section>
 
   <section id="install">
     <h2>Install in three steps</h2>
     <ol class="steps">
       <li><b>Download and unzip</b>, then drag <code>Drippy.app</code> into Applications.</li>
-      <li><b>First launch:</b> this test build is not yet notarised, so macOS will refuse it once. Open <b>System Settings → Privacy &amp; Security</b>, scroll down, and click <b>Open Anyway</b>. (On older macOS: right-click the app, choose Open, then Open again.)</li>
-      <li><b>Say hello.</b> Drippy appears bottom-right and gives you his tour. Drag him wherever you like; wherever you drop him becomes home. He lives in the menu bar as 💧 and starts at login.</li>
+      <li><b>First launch:</b> this test build is fresh from the workshop and not yet notarised, so macOS asks once. Open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. (On older macOS: right-click the app, choose Open, then Open again.)</li>
+      <li><b>Say hello.</b> Drippy slides into your menu bar and gives you a quick tour. He starts with you at login and settles wherever you drag him along the bar.</li>
     </ol>
-    <p class="cta-note">Optional: to be warned while you type sensitive data into Claude, grant Accessibility when the welcome sheet offers it. Everything else works without it.</p>
+    <p class="cta-note">To have him catch sensitive data as you type it into Claude, grant Accessibility when the welcome sheet offers it.</p>
   </section>
 
   <footer>
-    <span>Drippy 2.0.0 test build</span>
+    <span>Drippy 2.1.1 test build</span>
     <span>Estimated figures carry a ±3× band; factors are versioned and cited</span>
     <span class="spacer"></span>
     <a href="/guide">User guide</a>
