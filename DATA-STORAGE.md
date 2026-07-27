@@ -117,13 +117,14 @@ detected at the point of entry, before Send. Detection stays on-device
 and rule-based (role words, record structure and identifiers must
 co-occur; a capitalised name alone never fires; no AI, no content
 stored), with categories such as third-party-health, childrens-data,
-bulk-personal-records and hr-record. Catching typed entry requires the
-Accessibility grant today, so managed fleets pre-approve it via MDM
-configuration (PPPC) at enrolment, onboarding presents it as the step
-that completes the guard, and the L2 browser-extension and app adapters
-are the structural successors that remove the dependency. However it is
-achieved, entry-point coverage is a commercial requirement, not an
-optional extra.
+bulk-personal-records and hr-record. Coverage today is the **paste path
+only**: the typed-entry guard, which read the Claude composer through the
+macOS Accessibility API, was removed in 2.2.0 because it cost every user a
+permission grant and put Drippy inside message text as it was written. The
+L2 browser-extension and app adapters are the structural successors that
+would restore entry-point coverage without that reach. Until one of them
+ships, entry-point coverage is an open gap rather than a delivered
+commercial requirement, and should be described that way to any buyer.
 
 ## The upload ledger (self-transparency)
 

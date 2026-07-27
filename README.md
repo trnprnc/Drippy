@@ -1,115 +1,153 @@
-# Drippy: the transparency layer
+# Drippy
 
-A small pill that lives in your menu bar and meters what your AI usage
-really costs: energy, water, carbon, money and privacy. Pro-transparent-AI,
-not anti-AI. Always present, never in the way: the window is click-through
-except over the pill itself, and Drippy only ever takes up space for a
-critical privacy warning.
+**The transparency layer for your AI use.** A small pill in your Mac's menu bar
+that meters what your AI work actually costs: energy, water, carbon, and the
+API-rate value behind it. Pro-transparent-AI, not anti-AI.
 
-New here? Drippy gives a four-card tour on first launch. The full manual is
-[USER-GUIDE.md](USER-GUIDE.md).
+[**Download for macOS**](https://github.com/trnprnc/Drippy/releases/latest) ·
+[Privacy design](PRIVACY.md) · [Methodology](METHODOLOGY.md) · [User guide](USER-GUIDE.md)
 
-## Install (macOS, Apple Silicon)
+---
 
-1. Download `Drippy-<version>.dmg`, open it, drag **Drippy** to Applications.
-2. First launch: this build isn't notarised yet, so macOS will refuse it once.
-   Open **System Settings → Privacy & Security**, scroll down, click
-   **Open Anyway**. (Technical users: `xattr -d com.apple.quarantine /Applications/Drippy.app`.)
-3. Drippy appears as a small dark pill in your menu bar. It starts at login
-   from now on. Drag the pill along the bar; it remembers where.
+## Why this exists
 
-No permissions to grant: Drippy needs no Accessibility or Automation access.
+Most AI usage figures are guesses. Drippy's are not, for the workload that
+matters most.
 
-Requirements: Apple Silicon Mac, macOS 13+. See [PRIVACY.md](PRIVACY.md).
+Claude Code writes exact provider token counts to its own local session records.
+Drippy reads those numbers (the numbers only, never message content) and prices
+them at Anthropic's published rates. So for Claude Code there is **no estimation
+in the token counts at all**, and the only uncertainty left is the energy factor
+table, which is versioned and cited.
 
-## How to read the pill
+This matters more than it sounds. In real agentic sessions **95 to 97% of tokens
+are cache reads**: the conversation being re-read every turn. Tools that report
+"total tokens" as input plus output silently drop almost all of it. Drippy counts
+every class separately and shows you the split.
+
+**The source is public so you can check all of this yourself.** A tool that asks
+you to trust its numbers should let you audit them.
+
+## Install
+
+Requires an Apple silicon Mac, macOS 13 or later.
+
+1. Download the [latest release](https://github.com/trnprnc/Drippy/releases/latest)
+   and unzip it, then drag **Drippy.app** into Applications.
+2. First launch: this build is signed ad-hoc but not yet notarised, so macOS asks
+   once. Open **System Settings → Privacy & Security**, scroll down and click
+   **Open Anyway**.
+3. Drippy appears as a small dark pill in the menu bar and starts at login. Drag
+   it along the bar; it remembers where.
+
+**Drippy requires no macOS permissions.** No Accessibility, no Automation.
+
+## Reading the pill
 
 | Signal | Meaning |
 |---|---|
-| Dark pill | quiet; no AI activity right now |
-| Lit teal, shimmer sweeping | AI energy flowing right now, yours *or* a background agent's (a Claude Code session, for example) |
-| Violet pill | caution-level sensitive content (phone number, date of birth) on your clipboard |
-| Swollen below the bar + "!" | critical: a secret detected *before it leaves your machine*: API keys and tokens (Anthropic, OpenAI, GitHub, AWS, Stripe, Slack, Google, JWTs), private key files, database connection strings, .env-style secrets, cards and bank details, government IDs, and identifiable personal data about *other people* (a patient's details, children's grades, staff records). Hovering shows what it found, why it matters, and the remedy; a click acknowledges |
-| Hover | today's numbers: energy, water, measured spend |
-| Click | 30-day usage trends |
-| Right-click | the rest: trends, what Drippy can see, reset, quit |
+| Dark pill | Quiet. No AI activity right now. |
+| Lit teal, shimmer sweeping | AI energy flowing, yours or a background agent's. It holds steady through the gaps between an agent's calls, so "no glow" reliably means finished. |
+| Violet | Caution: something mildly sensitive (a phone number, a date of birth) is on your clipboard. |
+| Swollen below the bar, red "!" | Critical: a secret or identifiable personal data about someone else is about to be pasted into Claude. The only time Drippy takes up space uninvited. |
+| Hover | Today so far: energy, water, API-rate value. |
+| Click | Usage trends. |
+| Right-click | Trends, what Drippy can see, reset day, quit. |
 
-**Usage trends** holds the full picture: 30-day charts (energy, requests,
-privacy events), 7-day totals with everyday equivalents, a per-app breakdown
-and a per-day data table, with each number's provenance stated.
+## Usage trends
 
-All impact figures are **estimates (±3×)** from a versioned, source-cited
-factor table. Read [METHODOLOGY.md](METHODOLOGY.md) before quoting them.
+Three ranges (today, this week, all time), each headlined by energy, water and
+API-rate value, and each figure diveable down to its derivation:
 
----
+- **Where it comes from.** A flowing view of the token classes: how crowded a
+  lane is carries its share of the tokens, how fast and bright it runs carries
+  its share of the energy. Volume and cost, side by side.
+- **True value.** Tell Drippy your Claude plan and it expresses measured
+  API-rate value against what that plan costs over the same period. A yardstick,
+  not a bill: a subscription is flat-rate, so the two are different things.
+- **How sure is this.** Measured versus estimated, split explicitly.
+- **The derivation drawer.** Any figure opens the formula, that range's real
+  drivers substituted in, the factor values, their citations, and the
+  uncertainty band.
+
+## How the numbers are made
+
+| Source | Basis | Uncertainty |
+|---|---|---|
+| Claude Code tokens | **Measured.** Exact counts from local session records, per token class. | None in the counts |
+| Spend | **Measured.** Those counts at Anthropic list rates, cache-aware. | None, though list rate ≠ your subscription |
+| Other AI traffic | **Estimated** from network byte volume. | **±3×** |
+| Energy, water, carbon | Derived from tokens via [impact-factors.json](impact-factors.json). | Factor band, stated in-app |
+
+Every factor carries its sources, the figure taken, and what better data we are
+still chasing, in [impact-sources.json](impact-sources.json). Read
+[METHODOLOGY.md](METHODOLOGY.md) before quoting any of it.
+
+## Architecture
+
+A fidelity ladder. Each rung is an adapter emitting the same events, so the
+product degrades gracefully to whatever is available:
+
+- **L0 presence.** Frontmost app plus the system input-idle timer, never
+  keystrokes. [engagement.js](engagement.js)
+- **L1 flow metadata.** Per-process traffic to Anthropic's address block
+  (both IPv4 `160.79.104.0/23` and IPv6; machines flip between them, and an
+  IPv4-only matcher goes silently blind). Bytes only, no decryption.
+  [monitor.js](monitor.js)
+- **L2 on-device content.** The clipboard, scanned in memory by pure rules
+  during an active Claude session. Verdicts leave the function, never text.
+  [pii.js](pii.js), [privacy.js](privacy.js)
+- **L3 exact provider usage.** Claude Code's own session records, read
+  forward and backfilled, deduped by message id. [claude-code.js](claude-code.js)
+
+Impact arithmetic is lookup tables and sums in [impact.js](impact.js). **No AI
+calls at runtime, by principle.**
+
+**Locked decisions:** no TLS interception for consumers, ever. Employee-first
+reporting in any commercial tier. Estimates ship with uncertainty bands and
+improve in the open.
 
 ## Developing
 
 ```sh
 npm install
-npm run start:app   # run from source, detached via LaunchServices. Required
-                    # for Accessibility permission to attribute correctly.
-npm run dist        # build dist/Drippy-<version>.dmg + .zip
-
-# sync ingest (Phase 1, see DATA-STORAGE.md) — optional, off by default:
-cd server && npm run dev   # memory store on :8787; the dev app points at it.
-                           # Toggle sync in the welcome sheet ("What has been
-                           # shared"). Production: DATABASE_URL=<Neon> npm start
+npm run start:app   # run from source, launched via LaunchServices
+npm run dist        # build dist/Drippy-<version>.dmg and .zip
+node test/*.test.js # unit tests: adapter completeness, history, presence, PII, sync
 ```
 
-Logs: `~/Library/Logs/Drippy.log` · State: `~/Library/Application Support/Drippy/`
+Logs: `~/Library/Logs/Drippy.log`
+State and history: `~/Library/Application Support/Drippy/`
 
-### Architecture: a fidelity ladder
+Optional sync ingest (off by default, see [DATA-STORAGE.md](DATA-STORAGE.md)):
 
-Each rung is an adapter emitting the same events; the product degrades
-gracefully to whatever the user has granted:
+```sh
+cd server && npm run dev   # memory store on :8787; the dev app points here
+```
 
-- **L0 presence/engagement**: frontmost app + system input-idle timer (never
-  keystrokes) → [engagement.js](engagement.js)
-- **L1 flow metadata**: per-process traffic to Anthropic's address block
-  (160.79.104.0/23 + v6, both families matter), bytes both directions, no
-  decryption → [monitor.js](monitor.js). Adaptive cadence: hot while you're
-  present (~1s reaction), cold otherwise. Ships later as a push-based
-  `NEFilterDataProvider` system extension with identical events.
-- **L2 content, on-device only**: clipboard + Claude composer scanned
-  in-memory by pure rules ([pii.js](pii.js)), verdicts only →
-  [privacy.js](privacy.js). The clipboard is watched throughout an active
-  Claude session (not just when Claude is frontmost), so a secret copied in a
-  browser or `.env` is caught before you paste it. Next: claude.ai browser
-  extension (exact tokens, pre-send warnings on the web).
-- **L3 provider truth**: Anthropic Admin/Usage APIs (Drippy Commercial).
+## Licence
 
-Impact arithmetic lives in [impact.js](impact.js) over
-[impact-factors.json](impact-factors.json): lookup tables and sums,
-**no AI calls at runtime**, by principle.
+Source-available, **not open source**. Published so you can read and verify what
+Drippy does; publication is not a grant of licence. See [LICENSE](LICENSE). If
+you want to use any of it, please ask.
 
-Locked product decisions: no TLS interception for consumers, ever;
-employee-first reporting in the commercial tier; estimates ship with
-uncertainty bands and improve in the open.
+## Status
 
-### The creature
+Test build. Known limits:
 
-[renderer/](renderer/) is pure CSS per the design handoff in
-[design_handoff_drippy/](design_handoff_drippy/README.md) (direction
-**1e "Blink"**); no image assets. The state machine drives composable signal
-classes (`has-eyes`, `has-gaze`, `has-glow`) plus whole-body modes for
-privacy and footprint.
-
-### Release checklist (not yet done)
-
-- [ ] Apple Developer ID signing + notarisation (removes the Open Anyway step)
-- [ ] Universal binary (Intel + Apple Silicon)
-- [ ] Auto-update feed
-- [ ] Choose a licence (currently UNLICENSED, all rights reserved)
-- [ ] Publish source
+- Apple silicon only, no universal binary yet.
+- Anthropic traffic only. Other providers come later.
+- Not notarised, hence the first-launch step.
+- Figures for network-observed apps are estimates with wide bands.
 
 ## Troubleshooting
 
-- **Pill invisible:** reset its position by quitting and deleting
-  `~/Library/Application Support/Drippy/position.json`.
-- **Typed-text scan inactive:** the right-click menu shows "Enable typed-text
-  privacy scan" if the Accessibility grant is missing. Drippy re-checks every 20s
-  after you grant it; no restart needed.
-- **"Electron failed to install correctly" (dev only):** extract the cached
-  zip manually: `ditto -x -k ~/Library/Caches/electron/*/electron-v*-darwin-arm64.zip node_modules/electron/dist/`
+- **Pill invisible.** Quit, delete
+  `~/Library/Application Support/Drippy/position.json`, reopen.
+- **All-time trends look thin.** History is rebuilt from Claude Code transcripts
+  on first run. If a previous version already recorded usage, the backfill is
+  skipped to avoid double counting.
+- **"Electron failed to install correctly" (dev only).** Extract the cached zip
+  by hand:
+  `ditto -x -k ~/Library/Caches/electron/*/electron-v*-darwin-arm64.zip node_modules/electron/dist/`
   then `printf 'Electron.app/Contents/MacOS/Electron' > node_modules/electron/path.txt`.
