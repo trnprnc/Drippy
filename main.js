@@ -851,6 +851,7 @@ function showWelcome() {
     },
   });
   welcomeWin.loadFile(path.join(__dirname, 'renderer', 'welcome.html'));
+  openLinksExternally(welcomeWin);
   centerOnDrippysDisplay(welcomeWin);
   welcomeWin.on('closed', () => {
     welcomeWin = null;
@@ -990,6 +991,24 @@ function updateBubble() {
 
 let trendsWin = null;
 
+// Citations, source links and anything else pointing off-device open in the
+// user's own browser. Without this an in-app <a> either does nothing or
+// navigates the window away from the app, and either way the evidence behind
+// a number becomes unreachable — which rather defeats the point of citing it.
+function openLinksExternally(winRef) {
+  const { shell } = require('electron');
+  winRef.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  winRef.webContents.on('will-navigate', (e, url) => {
+    if (/^https?:\/\//i.test(url)) {
+      e.preventDefault();
+      shell.openExternal(url);
+    }
+  });
+}
+
 function showTrends() {
   if (trendsWin) {
     trendsWin.focus();
@@ -1006,6 +1025,7 @@ function showTrends() {
     },
   });
   trendsWin.loadFile(path.join(__dirname, 'renderer', 'trends.html'));
+  openLinksExternally(trendsWin);
   centerOnDrippysDisplay(trendsWin);
   trendsWin.on('closed', () => {
     trendsWin = null;
@@ -1247,7 +1267,7 @@ const TOUR_STEPS = [
     state: { mode: 'privacyEvent', privacyLevel: 1 },
   },
   {
-    text: 'Hover opens today’s numbers; a click opens 30-day trends; right-click holds the rest. The welcome sheet next has the full privacy story.',
+    text: 'Hover me for today’s numbers, click me for your usage trends, right-click for everything else. Let’s go and look at your usage now.',
     state: {},
   },
 ];
@@ -1297,7 +1317,12 @@ function startTour() {
     tourWin.setAlwaysOnTop(true, 'floating');
     tourWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     tourWin.loadFile(path.join(__dirname, 'renderer', 'tour.html'));
-    tourWin.webContents.on('did-finish-load', advanceTour);
+    // `once`, emphatically not `on`: this listener exists only to show the
+    // first card after the page is ready. Left as `on`, any subsequent reload
+    // of the tour window advanced a step, so the whole tour played itself in
+    // about twenty seconds and marked itself complete — which is why it looked
+    // as though the tour had never run at all.
+    tourWin.webContents.once('did-finish-load', advanceTour);
   } else {
     advanceTour();
   }
@@ -1323,7 +1348,10 @@ function endTour(finished) {
     fs.writeFileSync(path.join(app.getPath('userData'), 'welcomed'), new Date().toISOString());
   } catch {}
   pushState(); // hand the blob back to reality
-  showWelcome(); // the trust moment: what Drippy can and cannot see
+  // Finish where the value is: the numbers, not the paperwork. Trends runs its
+  // own walkthrough on first open. The welcome sheet is still one right-click
+  // away under "What Drippy can see".
+  if (finished) showTrends();
 }
 
 ipcMain.on('tour:next', () => tourActive && advanceTour());
@@ -1359,8 +1387,8 @@ function loadPrefs() {
   }
 }
 ipcMain.handle('drippy:prefs', () => loadPrefs());
-ipcMain.handle('drippy:set-plan', (_e, plan) => {
-  const prefs = { ...loadPrefs(), plan };
+ipcMain.handle('drippy:set-pref', (_e, key, value) => {
+  const prefs = { ...loadPrefs(), [key]: value };
   try {
     fs.writeFileSync(prefsFile(), JSON.stringify(prefs));
   } catch {}

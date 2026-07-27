@@ -179,6 +179,26 @@
   .dcomp .cap { font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
   .dcomp .stack { height: 26px; background: var(--card); }
   .dcomp .stack > span { box-shadow: inset -2px 0 0 var(--page); }
+  /* First-open walkthrough: a spotlight cut out of a dimming layer, plus a
+     card that follows the thing being pointed at. Shown once, then never
+     again unless asked for from the right-click menu. */
+  #coach { position: fixed; inset: 0; z-index: 40; display: none; }
+  #coach.on { display: block; }
+  #spot { position: absolute; border-radius: 12px; transition: all .34s cubic-bezier(.4,0,.1,1);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.58), 0 0 0 2px var(--c1) inset; pointer-events: none; }
+  #coachcard { position: absolute; width: 292px; background: var(--card); border-radius: 13px;
+    padding: 14px 16px 12px; box-shadow: 0 12px 36px rgba(0,0,0,.35); transition: all .34s cubic-bezier(.4,0,.1,1); }
+  #coachcard h4 { margin: 0 0 5px; font-size: 13.5px; font-weight: 650; }
+  #coachcard p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
+  #coachfoot { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  #coachdots { display: flex; gap: 4px; flex: 1; }
+  #coachdots i { width: 5px; height: 5px; border-radius: 50%; background: var(--line); }
+  #coachdots i.on { background: var(--c1); }
+  #coach button { border: 0; border-radius: 7px; padding: 6px 13px; font: inherit; font-size: 12px;
+    font-weight: 600; cursor: pointer; }
+  #coachskip { background: none; color: var(--ink-3); }
+  #coachskip:hover { color: var(--ink-2); }
+  #coachnext { background: var(--c1); color: #fff; }
   #tip { position: fixed; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font-size: 11px; font-variant-numeric: tabular-nums; box-shadow: var(--shadow); display: none; z-index: 30; white-space: nowrap; }
 </style>
 </head>
@@ -215,6 +235,18 @@
   </div>
   <div class="card"><details><summary>Day by day</summary><div id="table"></div></details></div>
   <p class="footer" id="footer"></p>
+  <div id="coach">
+    <div id="spot"></div>
+    <div id="coachcard">
+      <h4 id="coachtitle"></h4>
+      <p id="coachtext"></p>
+      <div id="coachfoot">
+        <span id="coachdots"></span>
+        <button id="coachskip" onclick="endCoach()">Skip</button>
+        <button id="coachnext" onclick="nextCoach()">Next</button>
+      </div>
+    </div>
+  </div>
   <div id="scrim" onclick="closeDrawer()"></div>
   <aside id="drawer"><div class="dwrap" id="dwrap"></div></aside>
   <div id="tip"></div>
@@ -236,6 +268,10 @@ async function load() {
   SUBS = (data.factors.subscriptions || {}).plans || {};
   buildModelColors();
   wire(); render();
+  // First open only, and only once there is something to point at.
+  if (!prefs.touredTrends && data.days.some((d) => (d.requests || 0) || (d.wh || 0))) {
+    setTimeout(startCoach, 550);
+  }
 }
 
 // ---- plan comparison ------------------------------------------------------
@@ -591,7 +627,7 @@ function factorCard(key, accent) {
   else if (key === 'pricing') { unit = 'Anthropic list price, $/Mtok'; const note = (data.factors.sources || []).find(x => x.id && x.id.includes('pricing'));
     srcs = [{ title: 'Anthropic API list prices', url: 'https://platform.claude.com/docs/en/pricing', year: 2026, figure: note ? note.note.split('.')[0] : 'published per-model rates; cache read 0.1×, write 1.25×' }]; chasing = 'Kept in step with published price changes.'; }
   else { unit = ''; srcs = []; chasing = ''; }
-  const srcHtml = srcs.map(x => `<div style="margin-bottom:7px"><a href="${x.url}" target="_blank" rel="noopener" onclick="event.preventDefault()">${x.title}</a> <span class="fig">(${x.year}) - ${x.figure}</span></div>`).join('');
+  const srcHtml = srcs.map(x => `<div style="margin-bottom:7px"><a href="${x.url}" target="_blank" rel="noopener">${x.title}</a> <span class="fig">(${x.year}) - ${x.figure}</span></div>`).join('');
   return `<details class="factor" style="--accent:${accent}"><summary><span class="fname">${FLABEL[key]||key} <span class="funit">${unit}</span></span><span class="fval">${val}</span></summary><div class="body"><div class="src">${srcHtml}${chasing?`<div class="chasing">Still chasing: ${chasing}</div>`:''}</div></div></details>`;
 }
 function band() { return `<div class="band"><div class="track"><div class="rng" style="left:8%;right:8%"></div><div class="mid" style="left:50%"></div><div class="tick" style="left:8%">÷3</div><div class="tick" style="left:50%">estimate</div><div class="tick" style="left:92%">×3</div></div></div>`; }
@@ -697,6 +733,66 @@ function openDrawer(topic, dayRec) {
   $('drawer').classList.add('on'); $('scrim').classList.add('on');
 }
 function closeDrawer() { $('drawer').classList.remove('on'); $('scrim').classList.remove('on'); }
+
+// ---------------------------------------------------------------------------
+// First-open walkthrough. The dashboard is dense on purpose, so the first time
+// you open it something should show you the way round: what the three headline
+// figures are, how to change the range, and — the part nobody would guess —
+// that every single number opens its own derivation.
+// ---------------------------------------------------------------------------
+const COACH = [
+  { sel: '.pillars', title: 'Your three headline numbers',
+    text: 'The energy behind your AI work, the water that goes with it, and what the same usage would cost at Anthropic list prices.' },
+  { sel: '#seg', title: 'Today, this week, all time',
+    text: 'Start with today, then widen out. All time reaches back through your whole Claude Code history, not just since Drippy was installed.' },
+  { sel: '.pillar.spend .how', title: 'Every number shows its working',
+    text: 'This is the part worth knowing. Open any figure and you get the formula, your own numbers substituted into it, the factors used, and links to the research behind them.' },
+  { sel: '#compTokens', title: 'Where it actually goes',
+    text: 'Almost everything the AI reads each turn is your conversation again, served from cache. Crowded lanes carry the tokens; fast bright ones carry the energy.' },
+  { sel: '.pillar.spend', title: 'Set your plan',
+    text: 'Tell Drippy which Claude plan you are on and it will show this value against what the plan actually costs you over the same period.' },
+];
+let coachStep = -1;
+
+function startCoach() {
+  coachStep = -1;
+  $('coach').classList.add('on');
+  nextCoach();
+}
+function nextCoach() {
+  coachStep += 1;
+  if (coachStep >= COACH.length) return endCoach();
+  const s = COACH[coachStep];
+  const el = document.querySelector(s.sel);
+  if (!el) return nextCoach(); // range with no data may not render every panel
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  setTimeout(() => {
+    const r = el.getBoundingClientRect();
+    const pad = 8;
+    const spot = $('spot');
+    spot.style.left = `${r.left - pad}px`;
+    spot.style.top = `${r.top - pad}px`;
+    spot.style.width = `${r.width + pad * 2}px`;
+    spot.style.height = `${r.height + pad * 2}px`;
+
+    $('coachtitle').textContent = s.title;
+    $('coachtext').textContent = s.text;
+    $('coachdots').innerHTML = COACH.map((_, i) => `<i class="${i === coachStep ? 'on' : ''}"></i>`).join('');
+    $('coachnext').textContent = coachStep === COACH.length - 1 ? 'Done' : 'Next';
+
+    // Sit under the highlight where there is room, otherwise above it.
+    const card = $('coachcard');
+    const below = r.bottom + 14;
+    const fits = below + card.offsetHeight < innerHeight - 10;
+    card.style.top = `${fits ? below : Math.max(10, r.top - card.offsetHeight - 14)}px`;
+    card.style.left = `${Math.max(12, Math.min(r.left, innerWidth - card.offsetWidth - 12))}px`;
+  }, 240);
+}
+function endCoach() {
+  $('coach').classList.remove('on');
+  coachStep = -1;
+  if (window.drippyTrends && window.drippyTrends.setPref) window.drippyTrends.setPref('touredTrends', true);
+}
 
 // ---- design-preview fallback (plain browser): shaped exactly like the IPC payload ----
 function sample() {
