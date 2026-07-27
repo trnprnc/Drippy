@@ -1,0 +1,34 @@
+Copyright (c) 2026 TRNSPNC Ltd. All rights reserved.
+
+SOURCE-AVAILABLE, NOT OPEN SOURCE
+---------------------------------
+
+This source code is published so that anyone can read it and verify what
+Drippy actually does — what it measures, what it touches, and what leaves
+your machine. A tool that asks you to trust its numbers should let you
+check them.
+
+Publication does not grant a licence. You may:
+
+  - read, study and audit this source code
+  - run the published builds for your own use
+  - quote short excerpts when discussing or reporting on the project
+
+You may not, without prior written permission from TRNSPNC Ltd:
+
+  - copy, modify or redistribute this source code
+  - use it, in whole or in part, in another product or service
+  - offer it, or a derivative of it, as a hosted or commercial service
+
+The impact factor tables (impact-factors.json, impact-sources.json) and the
+methodology documents are published for scrutiny and citation. If you cite
+them, cite the version.
+
+A formal open-source licence may be applied to some or all of this project
+in future. Until then, if you want to use any of it, please ask:
+https://github.com/trnprnc/Drippy
+
+NO WARRANTY: this software is provided "as is", without warranty of any
+kind, express or implied. The environmental figures it reports are
+estimates derived from published factors and carry a stated uncertainty
+band; they are not a certified measurement and must not be presented as one.
