@@ -40,23 +40,11 @@ function appendSuggestion(sg) {
   append(monthFile(sg.ts), { t: 'sug', ...sg });
 }
 
+// The most recent n days, oldest first. Sorted defensively: callers slice the
+// tail to mean "latest", so a file written out of order must not silently
+// produce a wrong range.
 function readDays(n = 30) {
-  if (!dir) return [];
-  try {
-    const lines = fs.readFileSync(path.join(dir, 'days.jsonl'), 'utf8').trim().split('\n');
-    return lines
-      .slice(-n)
-      .map((l) => {
-        try {
-          return JSON.parse(l);
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
-  } catch {
-    return [];
-  }
+  return readAllDays().slice(-n);
 }
 
 function finalizeDay(record) {
@@ -82,7 +70,8 @@ function readAllDays() {
           return null;
         }
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort(byChrono);
   } catch {
     return [];
   }
@@ -101,6 +90,13 @@ function addInto(target, add) {
   return target;
 }
 
+// Dates are stored as toDateString() ("Fri Jul 17 2026"), which does NOT sort
+// chronologically as a string — comparing text orders them by weekday name.
+// Always compare parsed dates.
+function byChrono(a, b) {
+  return new Date(a.date) - new Date(b.date);
+}
+
 // Upsert a day record, merging additively when the day already exists. Rewrites
 // days.jsonl in date order. Cheap: the file is one short line per day.
 function upsertDay(record) {
@@ -108,7 +104,7 @@ function upsertDay(record) {
   const byDate = new Map(readAllDays().map((d) => [d.date, d]));
   const existing = byDate.get(record.date);
   byDate.set(record.date, existing ? addInto(existing, record) : record);
-  const out = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  const out = [...byDate.values()].sort(byChrono);
   try {
     fs.writeFileSync(path.join(dir, 'days.jsonl'), out.map((d) => JSON.stringify(d)).join('\n') + '\n');
   } catch {}
