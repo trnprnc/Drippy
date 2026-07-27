@@ -113,7 +113,6 @@ const daily = {
   bytesEstOut: 0,
 };
 let lastPrivacy = null; // { source, categories, at }
-let axPermissionNeeded = false;
 
 // Requests are split by attribution: foreground (started while the user was
 // engaged with a Claude surface — "yours") vs background (agents, other
@@ -665,7 +664,7 @@ engagement.on('state', ({ present, typing, app: appName }) => {
   console.log(`[drippy] engagement — present:${present} typing:${typing}${present ? ` (${appName})` : ''}`);
   monitor.setHot(present); // react in ~1s while you're actually there
   if (typingStarted) monitor.poke(); // a send is probably imminent
-  privacy.setContext({ present, typing });
+  privacy.setContext({ present });
   pushState();
 });
 
@@ -706,16 +705,6 @@ privacy.on('detected', ({ source, concerns }) => {
     `[drippy] ${level === 1 ? 'WARNING' : 'heads-up'} — ${warned.map((c) => `${c.label} [tier ${c.tier}]`).join(', ')} (${source})`
   );
   privacyEvent(level);
-});
-privacy.on('ax-permission-needed', () => {
-  axPermissionNeeded = true;
-  console.log(
-    '[drippy] typed-text privacy scan needs permissions: System Settings → Privacy & Security → Accessibility (and Automation) → allow Drippy/Electron'
-  );
-});
-privacy.on('ax-ready', () => {
-  axPermissionNeeded = false;
-  console.log('[drippy] typed-text privacy scan active');
 });
 
 // ---------------------------------------------------------------------------
@@ -812,17 +801,6 @@ function showContextMenu() {
   Menu.buildFromTemplate([
     { label: `Drippy v${app.getVersion()}: ${stateLabel()}`, enabled: false },
     { label: watchLabel, enabled: false },
-    ...(axPermissionNeeded
-      ? [
-          {
-            label: 'Enable typed-text privacy scan (grant Accessibility)…',
-            click: () =>
-              require('electron').shell.openExternal(
-                'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'
-              ),
-          },
-        ]
-      : []),
     { type: 'separator' },
     { label: 'Usage trends', click: showTrends },
     { label: 'What Drippy can see', click: showWelcome },
@@ -912,12 +890,9 @@ function bubblePayload() {
       kind: 'warning',
       title: `Drippy spotted: ${top.label}${concerns.length > 1 ? ` +${concerns.length - 1} more` : ''}`,
       tier: top.tier,
-      detail:
-        lastPrivacy.source === 'clipboard'
-          ? 'On your clipboard, ready to paste into Claude.'
-          : 'In your Claude composer. It has not been sent yet.',
+      detail: 'On your clipboard, ready to paste into Claude.',
       recommendation: impactRecommend(top.id),
-      action: lastPrivacy.source === 'clipboard' ? 'Clear clipboard' : null,
+      action: 'Clear clipboard',
     };
   }
   const eq = impact.equivalents(daily);
@@ -1372,19 +1347,6 @@ ipcMain.handle('sync:set', async (_e, enabled) => {
 });
 
 ipcMain.handle('drippy:factors-version', () => impact.version);
-
-ipcMain.on('drippy:open-accessibility', async () => {
-  console.log('[drippy] opening Accessibility settings');
-  const { shell } = require('electron');
-  try {
-    await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility');
-  } catch (err) {
-    // Deep link schemes shift between macOS releases; the app itself is
-    // the stable fallback.
-    console.log(`[drippy] settings deep link failed (${err.message || err}); opening System Settings`);
-    shell.openPath('/System/Applications/System Settings.app');
-  }
-});
 
 ipcMain.on('drippy:drag-start', startDrag);
 ipcMain.on('drippy:drag-end', endDrag);

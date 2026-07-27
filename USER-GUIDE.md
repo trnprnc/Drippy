@@ -27,7 +27,7 @@ Drippy is deliberately small and deliberately quiet. The window is click-through
 | --- | --- |
 | A dark pill | Quiet; no AI activity right now. |
 | Lit teal, a shimmer sweeping through | AI energy is flowing right now, from your request or a background agent. Both are metered. |
-| Violet pill | Caution: something mildly sensitive (a phone number, a date of birth) is in your clipboard or composer. |
+| Violet pill | Caution: something mildly sensitive (a phone number, a date of birth) is on your clipboard. |
 | Swollen, hanging below the bar, red "!" badge | Critical: a secret (an API key, card number, password) is about to leave your Mac. This is the only state in which Drippy takes up space uninvited. |
 
 Drag the pill along the menu bar; where you drop him becomes home.
@@ -71,11 +71,9 @@ Notices never steal focus and fade on their own; the quiet × dismisses one.
 
 Right-click the pill for the rest: the live status line, what is being watched, Usage trends, What Drippy can see, Reset day and Quit.
 
-## The permission that completes the guard
+## Permissions
 
-Catching sensitive data at the point of entry, as it is typed and before it is sent, needs macOS Accessibility access (System Settings → Privacy & Security → Accessibility). Without it Drippy sees only what is pasted, not what is typed. Managed fleets can pre-approve the permission through MDM so every device is covered from enrolment. Drippy never stores what he reads there; text is checked on-device and discarded.
-
-If the permission is missing, the right-click menu shows a shortcut to grant it.
+None. Drippy needs no Accessibility or Automation access — every signal it uses is one macOS already exposes.
 
 ## What Drippy can see, and what he cannot
 

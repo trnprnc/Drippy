@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased — impact first
+
+- **Complete usage history.** The Claude Code adapter was forward-only, so
+  history was only ever as complete as Drippy's uptime. It now keeps a read
+  cursor per transcript and backfills the full history on first run, deduped
+  and bucketed to the day each message actually happened.
+- **Steady presence.** The glow no longer flickers off between an agentic
+  task's API calls; it holds until things have genuinely been quiet, then
+  settles once and — if you are not watching Claude — tells you.
+- **Usage trends rebuilt as a transparency dashboard.** Three pillars
+  (energy, water, API-rate value) across today / this week / all time, a
+  daily chart where any day opens its own breakdown, composition panels
+  showing where the tokens and the energy go, a measured-vs-estimated split,
+  and a derivation drawer on every figure: the formula, that range's real
+  drivers, the factor values, their citations, and the uncertainty band.
+- **Removed the typed-text privacy guard.** Reading the focused Claude
+  composer through macOS Accessibility was the most invasive thing Drippy
+  did, it cost every user a permission grant, and it put Drippy inside your
+  messages as you wrote them. Drippy is the transparency layer for AI impact
+  first, so that reach is no longer justified. **Drippy now requires no macOS
+  permissions at all.** The clipboard guard is unchanged and still covers the
+  paste path that carries almost every real secret.
+- **Electron 31 → 43.** Apple revoked the notarization for Electron 31.7.7,
+  so macOS refused to launch it ("contains malware"). Any build on the old
+  runtime is affected, so this upgrade is required, not optional.
+
 ## 2.1.1 (2026-07-21) — read Claude's composer
 
 - **The type-as-you-go privacy scan now actually works against Claude.**
