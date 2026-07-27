@@ -35,7 +35,7 @@
       <tr><th>What you see</th><th>What it means</th></tr>
       <tr><td>A dark pill</td><td>At rest, keeping watch.</td></tr>
       <tr><td>Lit teal, a shimmer sweeping through</td><td>AI energy is flowing right now, from your request or a background agent. Both are metered.</td></tr>
-      <tr><td>Violet</td><td>Caution: something mildly sensitive (a phone number, a date of birth, a named person's HR details) is in your clipboard or composer.</td></tr>
+      <tr><td>Violet</td><td>Caution: something mildly sensitive (a phone number, a date of birth, a named person's HR details) is on your clipboard.</td></tr>
       <tr><td>Swollen, hanging below the bar, red "!" badge</td><td>Critical: a secret, or identifiable personal data about someone else, is about to be sent. This is the one time Drippy takes up space uninvited. Hover for what he found and the one-click remedy; click to acknowledge.</td></tr>
     </table>
     <p>Drag the pill along the bar; wherever you drop him becomes home.</p>
@@ -47,7 +47,7 @@
     <p>Click the pill (or right-click → Usage trends) for your last 30 days: energy, requests and privacy events per day, 7-day totals with everyday equivalents, a breakdown by app, and a full data table. Each figure states where it came from. Claude Code usage is exact, read from its own local session records (token counts only). Network-observed usage is estimated from traffic volume, reliable to within about a factor of three. Spend is priced only from the exact counts, at Anthropic's current list rates with cache reads and writes counted correctly.</p>
 
     <h2>Privacy warnings</h2>
-    <p>While you are using Claude, Drippy checks your clipboard and, with Accessibility granted, your typing, for sensitive content before it is sent. Detection happens on-device and the content is discarded in the same moment; only the category ("Anthropic API key", "phone number") is kept. Warnings are graded so the loud ones stay meaningful:</p>
+    <p>While you are using Claude, Drippy checks your clipboard for sensitive content before it is pasted. Detection happens on-device and the content is discarded in the same moment; only the category ("Anthropic API key", "phone number") is kept. Warnings are graded so the loud ones stay meaningful:</p>
     <ul>
       <li><b>Critical</b> (swollen, badge): credentials and secrets, payment details, government IDs, and identifiable personal data about other people (a patient's details, children's records, a list of personal records).</li>
       <li><b>Caution</b> (violet): a phone number, a date of birth, or a named person's HR details.</li>
@@ -55,8 +55,8 @@
     </ul>
     <p>Click the pill during a warning to acknowledge it.</p>
 
-    <h2>The permission that completes the guard</h2>
-    <p>To catch sensitive data <em>as you type it</em> into Claude, before it is sent, Drippy uses macOS Accessibility access (System Settings → Privacy &amp; Security → Accessibility). Grant it when the welcome sheet offers it, and the guard covers typing as well as pasting. Text is checked on-device and discarded; only the category is kept.</p>
+    <h2>Permissions</h2>
+    <p>None. Drippy needs no Accessibility or Automation access: every signal he uses is one macOS already exposes.</p>
 
     <h2>Notices</h2>
     <p>When the meters show something worth knowing, Drippy raises a small card below the pill: a big model doing small jobs, an agent drawing energy solo for half an hour, a novel of context re-sent every turn. Each says why it fired ("because: 14 requests today, mostly short answers") and its button does the thing, such as copying a lighter-usage template. Notices fade on their own, and the quiet × dismisses one.</p>
@@ -91,7 +91,7 @@
   </div>
 
   <footer>
-    <span>Drippy 2.1.1 test build</span>
+    <span>Drippy 2.2.0 test build</span>
     <span class="spacer"></span>
     <a href="/">Home</a>
     <a href="/privacy">Privacy design</a>

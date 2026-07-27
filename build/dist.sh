@@ -23,6 +23,14 @@ npx electron-packager . Drippy \
 APP="dist/Drippy-darwin-arm64/Drippy.app"
 # packager's --icon flag is unreliable; place the icns directly
 cp build/icon.icns "$APP/Contents/Resources/electron.icns"
+
+# Drop Chromium's non-English locale packs (~47MB uncompressed, ~12MB zipped).
+# Drippy's own UI is English only, so these only ever supplied Chromium's
+# built-in strings, which fall back to English. Keeps the download under
+# Vercel's 100MB static-upload ceiling.
+FW_RES="$APP/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources"
+find "$FW_RES" -maxdepth 1 -name '*.lproj' ! -name 'en.lproj' ! -name 'en_GB.lproj' -exec rm -rf {} + 2>/dev/null || true
+
 touch "$APP"
 
 ditto -c -k --keepParent "$APP" "dist/Drippy-$VERSION-mac-arm64.zip"

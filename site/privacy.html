@@ -24,7 +24,7 @@
 
     <h2>The two rules</h2>
     <ol>
-      <li><b>Verdicts, not content.</b> Wherever Drippy touches text (clipboard, composer), the text is scanned in memory and discarded in the same function call. Only a category verdict survives, such as "API key" or "email address". There is no code path that stores, logs or transmits the value itself.</li>
+      <li><b>Verdicts, not content.</b> Wherever Drippy touches text (the clipboard, during an active Claude session), the text is scanned in memory and discarded in the same function call. Only a category verdict survives, such as "API key" or "email address". There is no code path that stores, logs or transmits the value itself.</li>
       <li><b>Metadata before content.</b> Drippy prefers the least-invasive signal that can do the job, and each deeper level is separately opt-in.</li>
     </ol>
 
@@ -38,7 +38,6 @@
       <tr><td>Network monitor</td><td>which processes have connections to Anthropic's address block; byte counts and timing. Encrypted payloads are never decrypted, so Drippy could not read your conversations if it wanted to</td><td>request start/end, app name, byte totals</td><td>none</td></tr>
       <tr><td>Engagement</td><td>frontmost app name and seconds since last keyboard or mouse input (a system-wide timer; individual keystrokes are invisible to Drippy)</td><td>"present" / "typing" booleans</td><td>none</td></tr>
       <tr><td>Clipboard guard</td><td>clipboard text, rescanned when it changes, throughout an active Claude session. Scanning stops once you have not used Claude for a few minutes</td><td>concern category verdicts only</td><td>none</td></tr>
-      <tr><td>Typed-text guard (optional)</td><td>the focused Claude composer's text via macOS Accessibility, only while you are typing in Claude</td><td>concern category verdicts only</td><td>Accessibility, granted by you</td></tr>
       <tr><td>Claude Code usage</td><td>the usage numbers and model id from Claude Code's own local session transcripts. The message text in those files is never read</td><td>exact token counts and model</td><td>none</td></tr>
     </table>
     <p><b>Explicitly ruled out, permanently:</b> TLS interception and root certificates. Drippy will never decrypt your traffic, for any feature.</p>
@@ -67,7 +66,7 @@
   </div>
 
   <footer>
-    <span>Drippy 2.1.1 test build</span>
+    <span>Drippy 2.2.0 test build</span>
     <span class="spacer"></span>
     <a href="/">Home</a>
     <a href="/guide">User guide</a>

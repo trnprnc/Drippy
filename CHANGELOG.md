@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — impact first
+## 2.2.0 (2026-07-27) — impact first
 
 - **Complete usage history.** The Claude Code adapter was forward-only, so
   history was only ever as complete as Drippy's uptime. It now keeps a read
