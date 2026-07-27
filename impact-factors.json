@@ -12,6 +12,7 @@
     { "id": "water-onsite-2026", "note": "Onsite cooling water use effectiveness ~1.1 L/kWh (Google best-in-class fleet; hyperscaler-disclosed range ~0.2-1.8; liquid cooling cuts onsite use 70-90%). This alone gives ~0.26-0.32 mL for a short query (Gemini/ChatGPT scope-1 figures)." },
     { "id": "water-offsite-2026", "note": "Offsite water to GENERATE the electricity, which is comparable to or larger than onsite cooling. US thermoelectric consumptive average ~1.25 L/kWh (EIA); we use consumptive (evaporated) not withdrawal, the honest metric. Grid-mix and region dependent; LBNL cites up to 7.6 L/kWh for dirtier grids. Including offsite raises per-query water 5-20x over onsite alone." },
     { "id": "api-pricing-2026", "note": "Anthropic published API list prices, checked 2026-07-20 (platform.claude.com/docs/en/pricing): Fable 5 $10/$50 per Mtok in/out; Opus 4.6-4.8 $5/$25; Sonnet 4.6/5 $3/$15 (Sonnet 5 intro $2/$10 until 2026-08-31, sticker used here); Haiku 4.5 $1/$5. Cache reads bill at 0.1x input, 5-minute cache writes at 1.25x input. Spend is computed ONLY from exact Claude Code token counts and shown as 'API-rate value': what the usage would cost at list rates, which is not necessarily what the user pays (subscriptions differ)." },
+    { "id": "subscription-pricing-2026", "note": "Anthropic consumer/team subscription list prices, checked 2026-07-27 (claude.com/pricing): Pro $20/mo ($17 billed annually); Max 5x $100/mo; Max 20x $200/mo; Team standard seat $25/mo ($20 annual); Team premium seat $125/mo ($100 annual); Free $0. Used ONLY to express measured API-rate value against what a plan costs over the same period. It is a yardstick, not a bill: subscriptions are flat-rate, so the two are different things and Drippy never implies the user is owed or owes money. Break-even points widely reported at ~$3.33/day (Max 5x) and ~$6.67/day (Max 20x)." },
     { "id": "equivalents-2026", "note": "Rough everyday equivalents to make the numbers legible, deliberately conservative: smartphone full charge ~15 Wh (roughly 12-19 Wh across 2024-2026 flagship battery capacities incl. charger loss); drinking glass 250 mL; average new petrol car ~120 gCO2e/km (EEA 2024-2026 fleet averages ~107-120 g/km WLTP; rounded)." }
   ],
   "assumptions": {
@@ -49,5 +50,19 @@
     "phoneChargeWh": 15,
     "glassMl": 250,
     "carGCo2PerKm": 120
+  },
+  "subscriptions": {
+    "checked": "2026-07-27",
+    "source": "subscription-pricing-2026",
+    "plans": {
+      "unset": { "label": "Not set", "usdPerMonth": null },
+      "api": { "label": "No subscription (API pay-as-you-go)", "usdPerMonth": 0 },
+      "free": { "label": "Free", "usdPerMonth": 0 },
+      "pro": { "label": "Pro", "usdPerMonth": 20 },
+      "max5": { "label": "Max 5×", "usdPerMonth": 100 },
+      "max20": { "label": "Max 20×", "usdPerMonth": 200 },
+      "team": { "label": "Team seat", "usdPerMonth": 25 },
+      "teamPremium": { "label": "Team premium seat", "usdPerMonth": 125 }
+    }
   }
 }

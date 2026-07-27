@@ -54,13 +54,29 @@
   .pillar .v { font-size: 27px; font-weight: 660; letter-spacing: -.02em; margin: 6px 0 1px; }
   .pillar .v small { font-size: 15px; font-weight: 600; color: var(--ink-2); margin-left: 2px; }
   .pillar .s { font-size: 11.5px; color: var(--ink-3); }
+  .pillar .s .setplan { cursor: pointer; }
+  .pillar .s .setplan:hover { color: var(--ink-2); }
+  /* plan picker inside the value drawer */
+  .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .plans button { border: 1px solid var(--line); background: var(--card); color: var(--ink-2); cursor: pointer;
+    border-radius: 9px; padding: 9px 10px; font: inherit; font-size: 12px; text-align: left; transition: border-color .12s; }
+  .plans button:hover { border-color: var(--accent); color: var(--ink); }
+  .plans button.on { border-color: var(--accent); color: var(--ink); box-shadow: inset 0 0 0 1px var(--accent); }
+  .plans button b { display: block; font-weight: 600; }
+  .plans button span { color: var(--ink-3); font-size: 11px; }
   .spark { display: flex; align-items: flex-end; gap: 1.5px; height: 26px; margin: 10px 0 8px; }
   .spark i { flex: 1; background: var(--edge); opacity: .55; border-radius: 2px 2px 0 0; min-height: 1px; }
   .how { font-size: 11px; color: var(--ink-2); background: none; border: 0; padding: 0; cursor: pointer;
     display: inline-flex; align-items: center; gap: 4px; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--line); }
   .how:hover { color: var(--ink); }
-  .equiv { font-size: 12.5px; color: var(--ink-2); margin: 14px 2px 22px; }
+  .equiv { font-size: 12.5px; color: var(--ink-2); margin: 14px 2px 14px; }
   .equiv b { font-weight: 600; color: var(--ink); }
+  /* One computed sentence naming the most notable true thing about this range:
+     narrative first, detail below — states the fact, never a verdict. */
+  .insight { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 22px;
+    font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+  .insight::before { content: ""; flex: none; width: 3px; align-self: stretch; border-radius: 2px; background: var(--accent, var(--c1)); }
+  .insight b { color: var(--ink); font-weight: 650; }
   .card { background: var(--card); border-radius: 15px; padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 16px; }
   .card .h2row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 3px; }
   .card .h2row h2 { margin: 0; font-size: 13px; font-weight: 650; }
@@ -68,8 +84,13 @@
   .metric { display: flex; gap: 16px; margin: 12px 0 10px; font-size: 12.5px; }
   .metric button { border: 0; background: none; cursor: pointer; color: var(--ink-3); font: inherit; padding: 0 0 4px; border-bottom: 2px solid transparent; }
   .metric button.on { color: var(--ink); border-bottom-color: var(--m); font-weight: 600; }
-  .plot { position: relative; height: 108px; display: flex; align-items: flex-end; gap: 2px; border-bottom: 1px solid var(--line); }
-  .bar { flex: 1 0 3px; max-width: 22px; border-radius: 4px 4px 0 0; min-height: 0; background: var(--m); transition: filter .12s; cursor: pointer; }
+  /* Bars share the full width: with only 7 days a fixed max-width left them
+     bunched against the left edge with dead space to the right. */
+  .plot { position: relative; height: 108px; display: flex; align-items: flex-end; justify-content: center; gap: 3px; border-bottom: 1px solid var(--line); }
+  .bar { flex: 1 1 0; max-width: 72px; border-radius: 4px 4px 0 0; min-height: 0; background: var(--m); transition: filter .12s; cursor: pointer;
+    transform-origin: bottom; animation: grow .45s cubic-bezier(.2,.8,.3,1) backwards; }
+  @keyframes grow { from { transform: scaleY(0); } }
+  @media (prefers-reduced-motion: reduce) { .bar { animation: none; } }
   .bar:hover { filter: brightness(1.15) saturate(1.1); }
   .bar.empty { cursor: default; }
   .xlab { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-3); margin-top: 5px; }
@@ -163,6 +184,7 @@
   <p class="span" id="span"></p>
   <div class="pillars" id="pillars"></div>
   <p class="equiv" id="equiv"></p>
+  <p class="insight" id="insight"></p>
   <div class="card">
     <div class="h2row"><h2>Trend</h2><span class="sub" id="trendSub"></span></div>
     <div class="metric" id="metric"></div>
@@ -185,7 +207,7 @@
   <aside id="drawer"><div class="dwrap" id="dwrap"></div></aside>
   <div id="tip"></div>
 <script>
-let data, A, P, E, SRC;
+let data, A, P, E, SRC, SUBS, prefs = {};
 const $ = (id) => document.getElementById(id);
 const nf = (n, d = 1) => n >= 100 ? Math.round(n).toLocaleString() : +(+n).toFixed(d);
 // Auto-scale so real magnitudes read naturally (7.1 kWh, not 7,082 Wh).
@@ -197,8 +219,38 @@ const state = { range: 'week', metric: 'wh' };
 
 async function load() {
   data = window.drippyTrends ? await window.drippyTrends.get() : sample();
+  if (window.drippyTrends && window.drippyTrends.prefs) prefs = (await window.drippyTrends.prefs()) || {};
   A = data.factors.assumptions; P = data.factors.pricing; E = data.factors.equivalents; SRC = (data.sources || {}).factors || {};
+  SUBS = (data.factors.subscriptions || {}).plans || {};
+  buildModelColors();
   wire(); render();
+}
+
+// ---- plan comparison ------------------------------------------------------
+// A subscription is flat-rate, so the only honest comparison is measured
+// API-rate value against what the plan costs over the SAME stretch of calendar
+// time. Never framed as money owed or saved — just the value being relied on.
+const DAYS_PER_MONTH = 30.44;
+function calendarDays() {
+  const arr = rangeDays();
+  if (state.range === 'today') return 1;
+  if (state.range === 'week') return 7;
+  if (!arr.length) return 1;
+  const span = (new Date(arr[arr.length - 1].date) - new Date(arr[0].date)) / 864e5;
+  return Math.max(1, Math.round(span) + 1);
+}
+function planInfo() {
+  const key = prefs.plan;
+  const plan = key && SUBS[key] ? SUBS[key] : null;
+  if (!plan || plan.usdPerMonth == null) return null;
+  const cost = (plan.usdPerMonth / DAYS_PER_MONTH) * calendarDays();
+  return { key, label: plan.label, monthly: plan.usdPerMonth, cost };
+}
+async function setPlan(key) {
+  prefs.plan = key;
+  if (window.drippyTrends && window.drippyTrends.setPlan) await window.drippyTrends.setPlan(key);
+  render();
+  openDrawer('spend');
 }
 
 // ---- impact maths, read straight from the shipped factor table ----
@@ -238,6 +290,18 @@ function wire() {
   $('footer').innerHTML = `Claude Code usage is <b>measured</b> - exact token counts read from its own local session records, priced at Anthropic list rates. Other AI traffic is <b>estimated</b> from network byte volume (±3×). Energy, water and carbon are derived from tokens using cited factors (v${data.factorsVersion}). Nothing here reads the content of any message.`;
 }
 
+// Sub-line under the value figure: the plan comparison once a plan is known,
+// otherwise a plain invitation to set one. Stated as a multiple, never as a
+// verdict — an AI-first team and a cost-conscious one read it differently.
+function valueSub(t) {
+  const p = planInfo();
+  if (!p) return '<span class="setplan" onclick="openDrawer(\'spend\')">at list prices · set your plan →</span>';
+  if (p.monthly === 0) return `at list prices · ${p.label}`;
+  const x = p.cost > 0 ? (t.usd || 0) / p.cost : 0;
+  const mult = x >= 10 ? Math.round(x) : x >= 1 ? x.toFixed(1) : x.toFixed(2);
+  return `<span class="setplan" onclick="openDrawer('spend')">${mult}× the $${p.cost.toFixed(2)} your plan costs over ${calendarDays()} days →</span>`;
+}
+
 const METRICS = { wh: { lab:'Energy', c:'var(--p-energy)', f:(v)=>scaleE(v).join(' ') }, waterMl: { lab:'Water', c:'var(--p-water)', f:(v)=>scaleW(v).join(' ') }, usd: { lab:'Value', c:'var(--p-spend)', f:(v)=>'$'+(+v).toFixed(2) } };
 const dayMetric = (d, k) => k === 'usd' ? (d.usd||0) : (d[k]||0);
 
@@ -256,7 +320,7 @@ function render() {
   $('pillars').innerHTML = [
     ['energy','Energy',`${ev}<small> ${eu}</small>`,scaleC(t.gco2),'wh','energy'],
     ['water','Water',`${wv}<small> ${wu}</small>`,'onsite + offsite','waterMl','water'],
-    ['spend','API-rate value',`$${(t.usd||0).toFixed(2)}`,'at list prices · not your bill','usd','spend'],
+    ['spend','API-rate value',`$${(t.usd||0).toFixed(2)}`,valueSub(t),'usd','spend'],
   ].map(([cls,k,v,s,mk,topic]) => {
     const series = arr.map(d => dayMetric(d, mk)); const mx = Math.max(...series, 1e-9);
     const spark = series.map(x => `<i style="height:${Math.max(2,Math.round((x/mx)*26))}px"></i>`).join('');
@@ -264,7 +328,44 @@ function render() {
   }).join('');
   $('equiv').innerHTML = equivalents(t) ? `≈ ${equivalents(t)}` : '';
 
+  renderInsight(t, arr);
   renderTrend(arr); renderComposition(t); renderConfidence(t, measPct); renderTable(arr);
+}
+
+// The single most notable true thing about this range, in plain words. Ranked
+// by what the user could actually act on, and deliberately never a judgement:
+// the same number is a good day for one person and a bad one for another.
+function renderInsight(t, arr) {
+  const el = $('insight');
+  const tok = t.tok.in + t.tok.cw + t.tok.cr + t.tok.out;
+  if (!tok) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+
+  const models = Object.entries(t.byModelTok).map(([m, tk]) => [m, whOf(m, tk)]).sort((a, b) => b[1] - a[1]);
+  const topShare = models.length ? models[0][1] / models.reduce((s, x) => s + x[1], 0) : 0;
+  const crShare = t.tok.cr / tok;
+  const cacheWh = (t.tok.cr / 1000) * A.whPer1kOutputTokens * A.cacheReadEnergyRatio;
+  const cacheEnergyShare = t.measuredWh > 0 ? cacheWh / t.measuredWh : 0;
+  const busiest = arr.slice().sort((a, b) => (b.wh || 0) - (a.wh || 0))[0];
+
+  let html, accent;
+  if (models.length > 1 && topShare >= 0.6) {
+    accent = colorFor(models[0][0]);
+    html = `<b>${pretty(models[0][0])}</b> carried <b>${Math.round(topShare * 100)}%</b> of the energy here. Heavier models cost more energy per token, so which model does the routine work is the biggest single lever on these numbers.`;
+  } else if (crShare >= 0.85) {
+    accent = 'var(--c3)';
+    html = `<b>${Math.round(crShare * 100)}%</b> of your tokens were cache reads — the conversation being re-read each turn. They are cheap per token, but at this volume they still account for roughly <b>${Math.round(cacheEnergyShare * 100)}%</b> of the energy.`;
+  } else if (busiest && arr.length > 1) {
+    accent = 'var(--p-energy)';
+    html = `Your heaviest day was <b>${short(busiest.date)}</b> at <b>${scaleE(busiest.wh || 0).join(' ')}</b>, about <b>${((busiest.wh || 0) / (t.wh / arr.length)).toFixed(1)}×</b> the average day in this range.`;
+  } else {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.setProperty('--accent', accent);
+  // Wrapped in one span: the flex container must have exactly two children
+  // (the accent rule and the sentence), or every <b> becomes its own flex item.
+  el.innerHTML = `<span>${html}</span>`;
 }
 
 function renderTrend(arr) {
@@ -276,7 +377,8 @@ function renderTrend(arr) {
   const plot = $('plot'); plot.style.setProperty('--m', m.c);
   plot.innerHTML = arr.map((d,i) => {
     const busy = (d.requests||0) > 0 || (d.wh||0) > 0;
-    return `<div class="bar${busy?'':' empty'}" data-i="${i}" style="height:${vals[i]>0?Math.max(3,Math.round(vals[i]/mx*100)):0}px"></div>`;
+    const delay = Math.min(i * 14, 320); // brief left-to-right stagger, capped
+    return `<div class="bar${busy?'':' empty'}" data-i="${i}" style="height:${vals[i]>0?Math.max(3,Math.round(vals[i]/mx*100)):0}px;animation-delay:${delay}ms"></div>`;
   }).join('');
   $('xlab').innerHTML = arr.length ? `<span>${short(arr[0].date)}</span><span>${arr.length>1?'today':''}</span>` : '';
   const tip = $('tip');
@@ -293,6 +395,20 @@ function renderTrend(arr) {
 const TOK = [ ['in','Fresh input','var(--c1)'], ['cw','Cache write','var(--c2)'], ['cr','Cache read','var(--c3)'], ['out','Output','var(--c4)'] ];
 const MODEL_C = ['var(--c1)','var(--c2)','var(--c3)','var(--c4)'];
 const pretty = (m) => m.replace(/^claude-/, '').replace(/-\d.*$/, '').replace(/^\w/, c => c.toUpperCase());
+
+// A model keeps its colour everywhere, in every range. Assigning by position
+// in a sorted list would repaint the survivors whenever the range changed
+// (Opus green one week, amber the next), which reads as a different thing.
+// So the map is built once, over every model in the whole history, in a
+// stable alphabetical order.
+let MODEL_COLOR = {};
+function buildModelColors() {
+  const names = new Set();
+  for (const d of data.days) for (const m of Object.keys(d.models || {})) if (m !== 'estimated') names.add(m);
+  MODEL_COLOR = {};
+  [...names].sort().forEach((m, i) => { MODEL_COLOR[m] = MODEL_C[i % MODEL_C.length]; });
+}
+const colorFor = (m) => MODEL_COLOR[m] || MODEL_C[0];
 function stackBar(items, total) {
   const seg = items.filter(x => x.v>0).map(x => { const pct = (x.v/total)*100;
     return `<span style="flex:${x.v};background:${x.c}" data-k="${x.k}">${pct>9?`<b>${Math.round(pct)}%</b>`:''}</span>`; }).join('');
@@ -305,7 +421,7 @@ function renderComposition(t) {
   $('compTokens').innerHTML = `<div class="cap"><span>Where the tokens go</span><span>${fmtTok(tokTotal)} tokens processed</span></div>` + (tokTotal > 0 ? stackBar(items, tokTotal) : '<div class="conf">No measured tokens in this range yet.</div>');
   $('compTokens').querySelectorAll('[data-k]').forEach(el => el.onclick = () => openDrawer('tokens'));
 
-  const modelWh = Object.entries(t.byModelTok).map(([m, tk], i) => ({ k:m, lab:pretty(m), c:MODEL_C[i % 4], v:whOf(m, tk), fmt:nf(whOf(m, tk))+' Wh' })).sort((a,b)=>b.v-a.v);
+  const modelWh = Object.entries(t.byModelTok).map(([m, tk]) => ({ k:m, lab:pretty(m), c:colorFor(m), v:whOf(m, tk), fmt:scaleE(whOf(m, tk)).join(' ') })).sort((a,b)=>b.v-a.v);
   const mTotal = modelWh.reduce((s,x)=>s+x.v,0);
   $('compModels').innerHTML = `<div class="cap"><span>Energy by model</span><span>tier-weighted</span></div>` + (mTotal > 0 ? stackBar(modelWh, mTotal) : '');
   $('compModels').querySelectorAll('[data-k]').forEach(el => el.onclick = () => openDrawer('models'));
@@ -354,12 +470,30 @@ const TOPICS = {
     work:[ ['Energy','from the Energy panel',`${nf(t.wh)} Wh`], ['× onsite cooling',`× ${A.waterOnsiteMlPerWh} mL/Wh`,`${nf(t.wh*A.waterOnsiteMlPerWh,0)} mL`], ['× offsite generation',`× ${A.waterOffsiteMlPerWh} mL/Wh`,`${nf(t.wh*A.waterOffsiteMlPerWh,0)} mL`], ['Total (consumptive)','',`${nf(t.waterMl,0)} mL`,true] ],
     factors:['waterOnsiteMlPerWh','waterOffsiteMlPerWh'],
     certainty:'Inherits the energy band, plus region-dependent water intensity. We use <b>consumptive</b> (evaporated) water, the honest metric, not withdrawal.' }),
-  spend: (t) => ({ accent:'var(--p-spend)', eyebrow:'API-rate value', title:`$${(t.usd||0).toFixed(2)}`,
-    plain:'What these exact tokens would cost at Anthropic’s published list prices. This is a yardstick, not your bill — on a subscription you pay a flat fee regardless. Computed only from measured Claude Code tokens.',
+  spend: (t) => {
+    const p = planInfo();
+    const days = calendarDays();
+    const picker = `<div class="dsec"><div class="lbl">Your plan</div><div class="plans">${
+      Object.entries(SUBS).filter(([k]) => k !== 'unset').map(([k, v]) =>
+        `<button class="${prefs.plan===k?'on':''}" onclick="setPlan('${k}')"><b>${v.label}</b><span>${v.usdPerMonth ? '$'+v.usdPerMonth+'/month' : v.usdPerMonth===0 ? 'no monthly fee' : ''}</span></button>`
+      ).join('')}</div></div>`;
+    let compare = [];
+    if (p && p.monthly > 0) {
+      const x = p.cost > 0 ? (t.usd || 0) / p.cost : 0;
+      compare = [
+        ['Value used', 'measured, at list prices', `$${(t.usd||0).toFixed(2)}`],
+        [`${p.label} over ${days} day${days===1?'':'s'}`, `$${p.monthly}/month pro-rated`, `$${p.cost.toFixed(2)}`],
+        ['Ratio', 'value ÷ plan cost', `${x >= 10 ? Math.round(x) : x.toFixed(1)}×`, true],
+      ];
+    }
+    return { accent:'var(--p-spend)', eyebrow:'API-rate value', title:`$${(t.usd||0).toFixed(2)}`,
+    plain:'What these exact tokens would cost at Anthropic’s published list prices. This is a yardstick, not your bill — on a subscription you pay a flat fee no matter how much you use, so the two are different things. Computed only from measured Claude Code tokens.',
+    extra: picker + (compare.length ? `<div class="dsec"><div class="lbl">Against what you pay</div><div class="work">${compare.map(r=>`<div class="r${r[3]?' tot':''}"><span class="lab">${r[0]} ${r[1]?`<span class="mut">${r[1]}</span>`:''}</span><span class="val">${r[2]}</span></div>`).join('')}</div><p class="bandnote" style="margin-top:8px">A ratio above 1× means the flat fee is carrying more list-price value than it costs; below 1× means the opposite. Neither is good or bad — it depends entirely on what you are using AI for.</p></div>` : ''),
     formula:`<span class="t">$</span> = Σ ( in·rate + cacheWrite·rate·<b>${P.cacheWriteInputMultiplier}</b> + cacheRead·rate·<b>${P.cacheReadInputMultiplier}</b> + out·rate ) per model`,
     work: sumUsd(t.byModelTok).map(([m,r,u]) => [m, `$${r.in}/$${r.out} per Mtok`, `$${u.toFixed(2)}`]).concat([['Total','at list rates',`$${(t.usd||0).toFixed(2)}`,true]]),
     factors:['pricing'],
-    certainty:'This one is <b>exact</b>, not estimated: real token counts × published prices. The only caveat is list-rate ≠ your subscription.' }),
+    certainty:'This one is <b>exact</b>, not estimated: real token counts × published prices. The only caveat is list-rate ≠ your subscription.' };
+  },
   tokens: (t) => { const tot = t.tok.in+t.tok.cw+t.tok.cr+t.tok.out || 1, crp = Math.round(t.tok.cr/tot*100);
     return { accent:'var(--c3)', eyebrow:'Composition', title:`${crp}% cache reads`,
     plain:'Every turn, the AI re-reads your entire conversation. Almost all of it comes straight back from fast memory — a cache — instead of being worked out from scratch, which costs a small fraction as much. That is why cache reads tower over everything in the token count while barely moving the energy or the value.',
@@ -385,7 +519,7 @@ const TOPICS = {
       ['Requests', String(t.requests||0), 'var(--c1)'],
     ].map(([k,v,c]) => `<div class="dstat" style="--edge:${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
     const tokItems = TOK.map(([k,lab,c]) => ({ k, lab, c, v: t.tok[k], fmt: fmtTok(t.tok[k]) }));
-    const modelItems = Object.entries(t.byModelTok).map(([m,tk],i) => ({ k:m, lab:pretty(m), c:MODEL_C[i%4], v:whOf(m,tk), fmt:scaleE(whOf(m,tk)).join(' ') })).sort((a,b)=>b.v-a.v);
+    const modelItems = Object.entries(t.byModelTok).map(([m,tk]) => ({ k:m, lab:pretty(m), c:colorFor(m), v:whOf(m,tk), fmt:scaleE(whOf(m,tk)).join(' ') })).sort((a,b)=>b.v-a.v);
     const mTot = modelItems.reduce((s,x)=>s+x.v,0);
     const extra = `<div class="dstats">${stats}</div>`
       + (tot > 0 ? `<div class="dcomp"><div class="cap">Where that day's tokens went</div>${stackBar(tokItems, tot)}</div>` : '')
@@ -415,6 +549,7 @@ function openDrawer(topic, dayRec) {
   const workHtml = c.work ? `<div class="dsec"><div class="lbl">This ${labelForRange(dayRec)}, worked out</div><div class="work">${c.work.map(r => `<div class="r${r[3]?' tot':''}"><span class="lab">${r[0]} ${r[1]?`<span class="mut">${r[1]}</span>`:''}</span><span class="val">${r[2]}</span></div>`).join('')}</div></div>` : '';
   const extraHtml = c.extra || '';
   const bandHtml = (topic === 'spend' || c.noBand) ? '' : `<div class="dsec"><div class="lbl">How sure</div><p class="bandnote">${c.certainty}</p>${topic==='provenance'?'':band()}</div>`;
+  $('dwrap').style.setProperty('--accent', c.accent);
   $('dwrap').innerHTML = `<button class="dclose" onclick="closeDrawer()">×</button><div class="deyebrow" style="color:${c.accent}">${c.eyebrow}</div><h3>${c.title}</h3><p class="dplain">${c.plain}</p>${extraHtml}<div class="dsec"><div class="lbl">How it is computed</div><div class="formula" style="--accent:${c.accent}">${c.formula}</div></div>${workHtml}${factorsHtml}${bandHtml}`;
   $('drawer').classList.add('on'); $('scrim').classList.add('on');
 }
@@ -425,7 +560,8 @@ function sample() {
   const rnd = (a,b) => a + Math.random()*(b-a);
   const factors = { version:'2026.07.5', assumptions:{ whPer1kOutputTokens:1.0, inputTokenEnergyRatio:0.05, cacheReadEnergyRatio:0.005, gridGCo2PerKwh:321, waterOnsiteMlPerWh:1.1, waterOffsiteMlPerWh:1.25, uncertaintyBand:[0.33,3.0], modelTiers:{opus:2.0,sonnet:1.0,fable:1.0,haiku:0.25,default:1.0} },
     pricing:{ usdPerMtok:{ fable:{in:10,out:50}, opus:{in:5,out:25}, sonnet:{in:3,out:15}, haiku:{in:1,out:5}, default:{in:3,out:15} }, cacheReadInputMultiplier:0.1, cacheWriteInputMultiplier:1.25 },
-    equivalents:{ phoneChargeWh:15, glassMl:250, carGCo2PerKm:120 }, sources:[{id:'api-pricing-2026', note:'Anthropic published API list prices, checked 2026-07-20.'}] };
+    equivalents:{ phoneChargeWh:15, glassMl:250, carGCo2PerKm:120 }, sources:[{id:'api-pricing-2026', note:'Anthropic published API list prices, checked 2026-07-20.'}],
+    subscriptions:{ checked:'2026-07-27', plans:{ api:{label:'No subscription (API pay-as-you-go)',usdPerMonth:0}, free:{label:'Free',usdPerMonth:0}, pro:{label:'Pro',usdPerMonth:20}, max5:{label:'Max 5×',usdPerMonth:100}, max20:{label:'Max 20×',usdPerMonth:200}, team:{label:'Team seat',usdPerMonth:25}, teamPremium:{label:'Team premium seat',usdPerMonth:125} } } };
   const Ax = factors.assumptions, Px = factors.pricing;
   const wh = (m,tk) => (((tk.in+tk.cw)/1000)*Ax.whPer1kOutputTokens*Ax.inputTokenEnergyRatio + (tk.cr/1000)*Ax.whPer1kOutputTokens*Ax.cacheReadEnergyRatio + (tk.out/1000)*Ax.whPer1kOutputTokens) * (m.includes('opus')?2:1);
   const usd = (m,tk) => { const r = m.includes('opus')?Px.usdPerMtok.opus:Px.usdPerMtok.fable; return (tk.in*r.in+tk.cw*r.in*1.25+tk.cr*r.in*0.1+tk.out*r.out)/1e6; };

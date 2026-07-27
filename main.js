@@ -1348,6 +1348,25 @@ ipcMain.handle('sync:set', async (_e, enabled) => {
 
 ipcMain.handle('drippy:factors-version', () => impact.version);
 
+// Small persisted preferences (currently just which Claude plan you are on,
+// used to express measured API-rate value against what that plan costs).
+const prefsFile = () => path.join(app.getPath('userData'), 'prefs.json');
+function loadPrefs() {
+  try {
+    return JSON.parse(fs.readFileSync(prefsFile(), 'utf8'));
+  } catch {
+    return {};
+  }
+}
+ipcMain.handle('drippy:prefs', () => loadPrefs());
+ipcMain.handle('drippy:set-plan', (_e, plan) => {
+  const prefs = { ...loadPrefs(), plan };
+  try {
+    fs.writeFileSync(prefsFile(), JSON.stringify(prefs));
+  } catch {}
+  return prefs;
+});
+
 ipcMain.on('drippy:drag-start', startDrag);
 ipcMain.on('drippy:drag-end', endDrag);
 ipcMain.on('drippy:click', () => {
