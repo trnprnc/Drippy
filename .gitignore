@@ -16,3 +16,6 @@ build/icon-1024.png
 # secrets (Neon connection string etc.)
 .env.local
 server/.env.local
+
+# Claude Code local permission grants (machine-specific)
+.claude/settings.local.json

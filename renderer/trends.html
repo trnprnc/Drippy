@@ -6,158 +6,447 @@
 <style>
   :root {
     color-scheme: light dark;
-    /* validated per-mode chart colors (dataviz six checks, both surfaces) */
-    --c-activity: light-dark(#099b8f, #01ac9f);
-    --c-energy: light-dark(#a87f09, #b88a01);
-    --c-privacy: light-dark(#8a5fc9, #a278e4);
-    --ink: light-dark(#1a1a1a, #e8e8e8);
-    --ink-2: light-dark(rgba(0,0,0,.55), rgba(255,255,255,.55));
-    --ink-3: light-dark(rgba(0,0,0,.38), rgba(255,255,255,.38));
-    --grid: light-dark(rgba(0,0,0,.08), rgba(255,255,255,.1));
+    --page: light-dark(#f5f4f0, #16191f);
     --card: light-dark(#ffffff, #1d222b);
+    --card-2: light-dark(#faf9f6, #232a34);
+    --ink: light-dark(#17181a, #f0f1f3);
+    --ink-2: light-dark(rgba(0,0,0,.62), rgba(255,255,255,.64));
+    --ink-3: light-dark(rgba(0,0,0,.42), rgba(255,255,255,.44));
+    --line: light-dark(rgba(0,0,0,.09), rgba(255,255,255,.11));
+    --seg: light-dark(#eceae4, #262c36);
+    --seg-on: light-dark(#ffffff, #38424f);
+    /* pillar accents (app-validated) */
+    --p-energy: light-dark(#a87f09, #d9a520);
+    --p-water: light-dark(#099b8f, #16c0b2);
+    --p-spend: light-dark(#8a5fc9, #a684e6);
+    /* categorical — token classes & models (validated on Drippy surfaces) */
+    --c1: light-dark(#2a78d6, #3987e5);
+    --c2: light-dark(#1baf7a, #199e70);
+    --c3: light-dark(#eda100, #c98500);
+    --c4: light-dark(#008300, #22a022);
+    --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.06);
   }
+  * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 24px 28px 20px;
-    font: 13px/1.5 -apple-system, system-ui, sans-serif;
-    color: var(--ink);
-    background: light-dark(#f5f4f0, #16191f);
-    user-select: none;
+    margin: 0; padding: 26px 30px 60px; max-width: 900px;
+    font: 13.5px/1.55 -apple-system, system-ui, "Segoe UI", sans-serif;
+    color: var(--ink); background: var(--page); user-select: none; -webkit-font-smoothing: antialiased;
   }
-  h1 { font-size: 17px; margin: 0; }
-  .sub { color: var(--ink-3); font-size: 12px; margin: 2px 0 16px; }
-  .tiles { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-  .tile { flex: 1; min-width: 100px; background: var(--card); border-radius: 10px; padding: 10px 12px; }
-  .tile b { display: block; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .tile span { font-size: 11px; color: var(--ink-2); }
-  .week { font-size: 12px; color: var(--ink-2); margin: 0 0 16px; }
-  .provenance { font-size: 11px; color: var(--ink-3); margin-top: 14px; line-height: 1.55; }
-  .chart { margin-bottom: 16px; }
-  .chart h2 { font-size: 12px; font-weight: 600; margin: 0 0 6px; color: var(--ink-2); }
-  .chart h2 i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
-  .plot { position: relative; height: 64px; border-bottom: 1px solid var(--grid); display: flex; align-items: flex-end; gap: 2px; }
-  .bar { flex: 1; max-width: 14px; border-radius: 4px 4px 0 0; min-height: 0; position: relative; }
-  .bar:hover { filter: brightness(1.18); }
-  .xlab { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-3); margin-top: 3px; }
-  .peak { position: absolute; font-size: 10px; color: var(--ink-2); transform: translate(-50%, -14px); white-space: nowrap; }
-  #tip { position: fixed; pointer-events: none; background: var(--card); color: var(--ink);
-         border: 1px solid var(--grid); border-radius: 6px; padding: 4px 8px; font-size: 11px;
-         box-shadow: 0 4px 12px rgba(0,0,0,.25); display: none; z-index: 9; }
-  details { margin-top: 6px; }
-  summary { font-size: 11px; color: var(--ink-3); cursor: pointer; }
-  table { border-collapse: collapse; width: 100%; margin-top: 6px; font-size: 11px; }
-  th, td { text-align: right; padding: 2px 8px; color: var(--ink-2); }
+  .head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+  h1 { font-size: 19px; margin: 0; letter-spacing: -.01em; font-weight: 650; }
+  .head .spacer { flex: 1; }
+  .prov-pill { font-size: 11.5px; color: var(--ink-2); background: var(--card); border: 1px solid var(--line);
+    border-radius: 20px; padding: 5px 11px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+  .prov-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c2); }
+  .seg { display: inline-flex; background: var(--seg); border-radius: 10px; padding: 3px; gap: 2px; }
+  .seg button { border: 0; background: transparent; color: var(--ink-2); cursor: pointer;
+    font: 12.5px/1 inherit; font-weight: 600; padding: 7px 13px; border-radius: 7px; transition: background .15s; }
+  .seg button.on { background: var(--seg-on); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.14); }
+  .span { color: var(--ink-3); font-size: 11.5px; margin: 12px 2px 16px; }
+  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .pillar { background: var(--card); border-radius: 15px; padding: 15px 16px 13px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .pillar::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--edge); }
+  .pillar.energy { --edge: var(--p-energy); }
+  .pillar.water { --edge: var(--p-water); }
+  .pillar.spend { --edge: var(--p-spend); }
+  .pillar .k { font-size: 11.5px; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+  .pillar .k .sw { width: 8px; height: 8px; border-radius: 3px; background: var(--edge); }
+  .pillar .v { font-size: 27px; font-weight: 660; letter-spacing: -.02em; margin: 6px 0 1px; }
+  .pillar .v small { font-size: 15px; font-weight: 600; color: var(--ink-2); margin-left: 2px; }
+  .pillar .s { font-size: 11.5px; color: var(--ink-3); }
+  .spark { display: flex; align-items: flex-end; gap: 1.5px; height: 26px; margin: 10px 0 8px; }
+  .spark i { flex: 1; background: var(--edge); opacity: .55; border-radius: 2px 2px 0 0; min-height: 1px; }
+  .how { font-size: 11px; color: var(--ink-2); background: none; border: 0; padding: 0; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--line); }
+  .how:hover { color: var(--ink); }
+  .equiv { font-size: 12.5px; color: var(--ink-2); margin: 14px 2px 22px; }
+  .equiv b { font-weight: 600; color: var(--ink); }
+  .card { background: var(--card); border-radius: 15px; padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .card .h2row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 3px; }
+  .card .h2row h2 { margin: 0; font-size: 13px; font-weight: 650; }
+  .card .sub { font-size: 11.5px; color: var(--ink-3); }
+  .metric { display: flex; gap: 16px; margin: 12px 0 10px; font-size: 12.5px; }
+  .metric button { border: 0; background: none; cursor: pointer; color: var(--ink-3); font: inherit; padding: 0 0 4px; border-bottom: 2px solid transparent; }
+  .metric button.on { color: var(--ink); border-bottom-color: var(--m); font-weight: 600; }
+  .plot { position: relative; height: 108px; display: flex; align-items: flex-end; gap: 2px; border-bottom: 1px solid var(--line); }
+  .bar { flex: 1 0 3px; max-width: 22px; border-radius: 4px 4px 0 0; min-height: 0; background: var(--m); transition: filter .12s; cursor: pointer; }
+  .bar:hover { filter: brightness(1.15) saturate(1.1); }
+  .bar.empty { cursor: default; }
+  .xlab { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-3); margin-top: 5px; }
+  .comp + .comp { margin-top: 18px; }
+  .comp .cap { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-2); margin-bottom: 6px; }
+  .stack { display: flex; height: 30px; border-radius: 7px; overflow: hidden; background: var(--card-2); }
+  .stack > span { position: relative; cursor: pointer; box-shadow: inset -2px 0 0 var(--card); transition: filter .12s; }
+  .stack > span:last-child { box-shadow: none; }
+  .stack > span:hover { filter: brightness(1.08); }
+  .stack > span b { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); color: #fff; font-size: 10.5px; font-weight: 600; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 11.5px; }
+  .legend .it { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); cursor: pointer; }
+  .legend .it:hover { color: var(--ink); }
+  .legend .it .d { width: 9px; height: 9px; border-radius: 3px; }
+  .legend .it b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .legend .it .pct { color: var(--ink-3); }
+  .split { display: flex; height: 10px; border-radius: 6px; overflow: hidden; margin: 4px 0 10px; }
+  .split .meas { background: var(--c2); }
+  .split .est { background: light-dark(#cfcabd, #3a4450); }
+  .conf { font-size: 11.5px; color: var(--ink-2); }
+  .conf a { color: var(--ink); cursor: pointer; text-decoration: underline; }
+  details { margin-top: 4px; }
+  summary { font-size: 11.5px; color: var(--ink-3); cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 11px; }
+  th, td { text-align: right; padding: 4px 8px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
   th:first-child, td:first-child { text-align: left; }
-  .apps { font-size: 12px; color: var(--ink-2); margin-top: 4px; }
-  .apps b { color: var(--ink); font-weight: 600; }
+  tr + tr td { border-top: 1px solid var(--line); }
+  .footer { font-size: 11px; color: var(--ink-3); line-height: 1.6; margin-top: 8px; }
+  .footer b { color: var(--ink-2); font-weight: 600; }
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.34); opacity: 0; pointer-events: none; transition: opacity .22s; backdrop-filter: blur(1.5px); z-index: 20; }
+  #scrim.on { opacity: 1; pointer-events: auto; }
+  #drawer { position: fixed; top: 0; right: 0; height: 100%; width: 460px; max-width: 94vw; z-index: 21; background: var(--page); box-shadow: -12px 0 40px rgba(0,0,0,.28); transform: translateX(102%); transition: transform .28s cubic-bezier(.4,0,.1,1); overflow-y: auto; }
+  #drawer.on { transform: none; }
+  .dwrap { padding: 22px 24px 40px; position: relative; }
+  .dclose { position: absolute; top: 14px; right: 16px; border: 0; background: var(--card); color: var(--ink-2); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 16px; box-shadow: var(--shadow); }
+  .deyebrow { font-size: 11px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+  #drawer h3 { font-size: 18px; margin: 6px 0 8px; letter-spacing: -.01em; }
+  .dplain { font-size: 13px; color: var(--ink-2); margin: 0 0 18px; }
+  .dsec { margin-bottom: 18px; }
+  .dsec .lbl { font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .formula { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font: 12.5px/1.7 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink); overflow-x: auto; }
+  .formula .t { color: var(--accent); font-weight: 600; }
+  .work { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 4px 0; }
+  .work .r { display: flex; justify-content: space-between; gap: 12px; padding: 7px 14px; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .work .r + .r { border-top: 1px solid var(--line); }
+  .work .r .lab { color: var(--ink-2); }
+  .work .r .val { color: var(--ink); font-weight: 600; }
+  .work .r.tot .lab, .work .r.tot .val { font-weight: 700; }
+  .work .r .mut { color: var(--ink-3); font-weight: 400; }
+  .factor { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; overflow: hidden; background: var(--card); }
+  .factor > summary { list-style: none; padding: 11px 14px; cursor: pointer; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+  .factor > summary::-webkit-details-marker { display: none; }
+  .factor .fname { color: var(--ink); }
+  .factor .fval { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .factor .funit { color: var(--ink-3); font-size: 11px; font-weight: 400; }
+  .factor .body { padding: 0 14px 12px; font-size: 12px; color: var(--ink-2); }
+  .factor .src a { color: var(--accent); text-decoration: none; }
+  .factor .src a:hover { text-decoration: underline; }
+  .factor .fig { color: var(--ink-3); font-size: 11px; }
+  .factor .chasing { font-size: 11px; color: var(--ink-3); font-style: italic; margin-top: 8px; }
+  .band { margin: 4px 0 10px; }
+  .band .track { position: relative; height: 34px; }
+  .band .rng { position: absolute; top: 8px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, transparent, var(--accent) 20% 80%, transparent); opacity: .28; }
+  .band .mid { position: absolute; top: 3px; width: 2px; height: 22px; background: var(--accent); border-radius: 2px; }
+  .band .tick { position: absolute; top: 24px; font-size: 10px; color: var(--ink-3); transform: translateX(-50%); }
+  .bandnote { font-size: 11.5px; color: var(--ink-2); }
+  /* day drawer: the four figures at a glance, then its composition */
+  .dstats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+  .dstat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; border-left: 3px solid var(--edge); }
+  .dstat .k { font-size: 10.5px; color: var(--ink-3); font-weight: 600; }
+  .dstat .v { font-size: 17px; font-weight: 650; letter-spacing: -.01em; margin-top: 1px; }
+  .dstat .v small { font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
+  .dcomp { margin-bottom: 18px; }
+  .dcomp .cap { font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .dcomp .stack { height: 26px; background: var(--card); }
+  .dcomp .stack > span { box-shadow: inset -2px 0 0 var(--page); }
+  #tip { position: fixed; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font-size: 11px; font-variant-numeric: tabular-nums; box-shadow: var(--shadow); display: none; z-index: 30; white-space: nowrap; }
 </style>
 </head>
 <body>
-  <h1>Usage trends</h1>
-  <p class="sub">Last 30 days</p>
-  <div class="tiles" id="tiles"></div>
-  <p class="week" id="week"></p>
-  <div id="charts"></div>
-  <div class="apps" id="apps"></div>
-  <details><summary>Data table</summary><div id="table"></div></details>
-  <p class="provenance" id="provenance"></p>
+  <div class="head">
+    <h1>Usage trends</h1>
+    <div class="spacer"></div>
+    <div class="seg" id="seg">
+      <button data-r="today">Today</button>
+      <button data-r="week" class="on">This week</button>
+      <button data-r="all">All time</button>
+    </div>
+  </div>
+  <div class="prov-pill" id="provPill" onclick="openDrawer('provenance')"><span class="dot"></span><span id="provText"></span></div>
+  <p class="span" id="span"></p>
+  <div class="pillars" id="pillars"></div>
+  <p class="equiv" id="equiv"></p>
+  <div class="card">
+    <div class="h2row"><h2>Trend</h2><span class="sub" id="trendSub"></span></div>
+    <div class="metric" id="metric"></div>
+    <div class="plot" id="plot"></div>
+    <div class="xlab" id="xlab"></div>
+  </div>
+  <div class="card">
+    <div class="h2row"><h2>Where it comes from</h2><span class="sub">tap any part to see what it means</span></div>
+    <div class="comp" id="compTokens"></div>
+    <div class="comp" id="compModels"></div>
+  </div>
+  <div class="card">
+    <div class="h2row"><h2>How sure is this?</h2><span class="sub">measured vs estimated</span></div>
+    <div class="split" id="split"></div>
+    <div class="conf" id="conf"></div>
+  </div>
+  <div class="card"><details><summary>Day by day</summary><div id="table"></div></details></div>
+  <p class="footer" id="footer"></p>
+  <div id="scrim" onclick="closeDrawer()"></div>
+  <aside id="drawer"><div class="dwrap" id="dwrap"></div></aside>
   <div id="tip"></div>
-
 <script>
-const fmt = (n, d = 1) => n >= 100 ? Math.round(n).toLocaleString() : +n.toFixed(d);
+let data, A, P, E, SRC;
+const $ = (id) => document.getElementById(id);
+const nf = (n, d = 1) => n >= 100 ? Math.round(n).toLocaleString() : +(+n).toFixed(d);
+// Auto-scale so real magnitudes read naturally (7.1 kWh, not 7,082 Wh).
+const scaleE = (wh) => wh >= 1000 ? [nf(wh / 1000), 'kWh'] : [nf(wh), 'Wh'];
+const scaleW = (ml) => ml >= 1000 ? [nf(ml / 1000), 'L'] : [nf(ml, 0), 'mL'];
+const scaleC = (g) => g >= 1000 ? `${nf(g / 1000, 2)} kg CO₂e` : `${nf(g)} g CO₂e`;
+const short = (ds) => { const x = new Date(ds); return `${x.getDate()} ${x.toLocaleString([], { month: 'short' })}`; };
+const state = { range: 'week', metric: 'wh' };
 
 async function load() {
-  let data;
-  if (window.drippyTrends) {
-    data = await window.drippyTrends.get();
-  } else {
-    // design-preview fallback: plausible sample data
-    const days = [];
-    for (let i = 29; i >= 1; i--) {
-      const d = new Date(Date.now() - i * 864e5);
-      const busy = d.getDay() % 6 !== 0 ? 1 : 0.25;
-      days.push({ date: d.toDateString(), requests: Math.round(busy * (8 + Math.random() * 30)),
-        wh: busy * (2 + Math.random() * 28), privacyEvents: Math.random() < 0.3 ? Math.ceil(Math.random() * 2) : 0,
-        apps: { claude: { requests: 9, wh: 9 }, Claude: { requests: 5, wh: 2 } } });
+  data = window.drippyTrends ? await window.drippyTrends.get() : sample();
+  A = data.factors.assumptions; P = data.factors.pricing; E = data.factors.equivalents; SRC = (data.sources || {}).factors || {};
+  wire(); render();
+}
+
+// ---- impact maths, read straight from the shipped factor table ----
+const tierOf = (m) => { const t = (m || '').toLowerCase(); for (const k of Object.keys(A.modelTiers)) if (k !== 'default' && t.includes(k)) return A.modelTiers[k]; return A.modelTiers.default; };
+const priceOf = (m) => { const t = (m || '').toLowerCase(); for (const k of Object.keys(P.usdPerMtok)) if (k !== 'default' && t.includes(k)) return P.usdPerMtok[k]; return P.usdPerMtok.default; };
+const whParts = (m, tk) => ({ out: (tk.out/1000)*A.whPer1kOutputTokens*tierOf(m), fresh: ((tk.in+tk.cw)/1000)*A.whPer1kOutputTokens*A.inputTokenEnergyRatio*tierOf(m), cache: (tk.cr/1000)*A.whPer1kOutputTokens*A.cacheReadEnergyRatio*tierOf(m) });
+const whOf = (m, tk) => { const p = whParts(m, tk); return p.out + p.fresh + p.cache; };
+const usdOf = (m, tk) => { const r = priceOf(m); return (tk.in*r.in + tk.cw*r.in*P.cacheWriteInputMultiplier + tk.cr*r.in*P.cacheReadInputMultiplier + tk.out*r.out) / 1e6; };
+
+const rangeDays = () => state.range === 'today' ? data.days.slice(-1) : state.range === 'week' ? data.days.slice(-7) : data.days;
+
+// aggregate a set of day records into the numbers every panel needs
+function totals(arr) {
+  const t = { wh:0, waterMl:0, gco2:0, usd:0, requests:0, estWh:0, tok:{in:0,cw:0,cr:0,out:0}, byModelTok:{} };
+  for (const d of arr) {
+    t.wh += d.wh||0; t.waterMl += d.waterMl||0; t.gco2 += d.gco2||0; t.usd += d.usd||0; t.requests += d.requests||0;
+    for (const [m, mm] of Object.entries(d.models || {})) {
+      if (m === 'estimated') { t.estWh += mm.wh || 0; continue; }
+      const b = t.byModelTok[m] = t.byModelTok[m] || { in:0, cw:0, cr:0, out:0 };
+      for (const k of ['in','cw','cr','out']) { b[k] += mm[k]||0; t.tok[k] += mm[k]||0; }
     }
-    data = { days, today: { date: new Date().toDateString(), requests: 14, wh: 11.2, waterMl: 34, privacyEvents: 1, usd: 0.6, apps: { claude: { requests: 10, wh: 9.4 }, 'Claude Helper': { requests: 4, wh: 1.8 } } },
-      week: { wh: 61, waterMl: 178, gco2: 19, usd: 3.1, equivalents: '6 phone charges' }, factorsVersion: '2026-07' };
   }
+  t.measuredWh = Object.entries(t.byModelTok).reduce((s, [m, tk]) => s + whOf(m, tk), 0);
+  return t;
+}
+function equivalents(t) {
+  const parts = [];
+  const ph = t.wh/E.phoneChargeWh; if (ph>=0.1) parts.push(`<b>${nf(ph)}</b> phone charge${ph>=1.95?'s':''}`);
+  const gl = t.waterMl/E.glassMl; if (gl>=0.1) parts.push(`<b>${nf(gl)}</b> glass${gl>=1.95?'es':''} of water`);
+  const km = t.gco2/E.carGCo2PerKm; if (km>=0.05) parts.push(`<b>${nf(km,2)}</b> km in a petrol car`);
+  return parts.join(' &nbsp;·&nbsp; ');
+}
 
-  const all = [...data.days, data.today].slice(-30);
-  const last7 = all.slice(-7);
-  const sum = (arr, k) => arr.reduce((s, d) => s + (d[k] || 0), 0);
-  const week = data.week || { wh: sum(last7, 'wh'), waterMl: sum(last7, 'waterMl'), gco2: sum(last7, 'gco2'), usd: sum(last7, 'usd') };
+function wire() {
+  $('seg').addEventListener('click', e => { const r = e.target.dataset.r; if (r) { state.range = r; render(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+  $('footer').innerHTML = `Claude Code usage is <b>measured</b> - exact token counts read from its own local session records, priced at Anthropic list rates. Other AI traffic is <b>estimated</b> from network byte volume (±3×). Energy, water and carbon are derived from tokens using cited factors (v${data.factorsVersion}). Nothing here reads the content of any message.`;
+}
 
-  document.getElementById('tiles').innerHTML = [
-    ['today', fmt(data.today.wh) + ' Wh'],
-    ['7-day energy', fmt(week.wh) + ' Wh'],
-    ['7-day water', fmt(week.waterMl, 0) + ' mL'],
-    ['7-day requests', fmt(sum(last7, 'requests'), 0)],
-    ['7-day privacy events', fmt(sum(last7, 'privacyEvents'), 0)],
-    // Spend appears only when something was actually measured.
-    ...(week.usd > 0 ? [['7-day spend, measured', '$' + week.usd.toFixed(2)]] : []),
-  ].map(([l, v]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
+const METRICS = { wh: { lab:'Energy', c:'var(--p-energy)', f:(v)=>scaleE(v).join(' ') }, waterMl: { lab:'Water', c:'var(--p-water)', f:(v)=>scaleW(v).join(' ') }, usd: { lab:'Value', c:'var(--p-spend)', f:(v)=>'$'+(+v).toFixed(2) } };
+const dayMetric = (d, k) => k === 'usd' ? (d.usd||0) : (d[k]||0);
 
-  document.getElementById('week').textContent =
-    `7 days: ${fmt(week.wh)} Wh · ${fmt(week.waterMl, 0)} mL water · ${fmt(week.gco2)} g CO₂e` +
-    (week.equivalents ? ` ≈ ${week.equivalents}` : '');
+function render() {
+  const arr = rangeDays(), t = totals(arr);
+  document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.r === state.range));
+  const active = arr.filter(d => (d.requests||0) || (d.wh||0));
+  $('span').textContent = state.range === 'today' ? 'Today, since you started work'
+    : state.range === 'week' ? `Last 7 days${arr.length ? ` · ${short(arr[0].date)}-${short(arr.at(-1).date)}` : ''}`
+    : `${active.length} active day${active.length===1?'':'s'}${arr.length ? ` · since ${short(arr[0].date)}` : ''}`;
 
-  const tip = document.getElementById('tip');
-  const charts = [
-    { key: 'wh', title: 'Energy (Wh / day)', color: 'var(--c-energy)', unit: ' Wh' },
-    { key: 'requests', title: 'AI requests / day', color: 'var(--c-activity)', unit: '' },
-    { key: 'privacyEvents', title: 'Privacy events / day', color: 'var(--c-privacy)', unit: '' },
-  ];
-  document.getElementById('charts').innerHTML = charts.map((c, ci) => {
-    const max = Math.max(...all.map((d) => d[c.key] || 0), 1e-9);
-    const bars = all.map((d, i) => {
-      const v = d[c.key] || 0;
-      const h = Math.round((v / max) * 56);
-      return `<div class="bar" data-c="${ci}" data-i="${i}" style="height:${v > 0 ? Math.max(h, 3) : 0}px;background:${c.color}"></div>`;
-    }).join('');
-    return `<div class="chart"><h2><i style="background:${c.color}"></i>${c.title}</h2>
-      <div class="plot" data-max="${max}">${bars}</div>
-      <div class="xlab"><span>${short(all[0].date)}</span><span>today</span></div></div>`;
+  const measPct = t.wh > 0 ? Math.round((t.measuredWh/t.wh)*100) : 100;
+  $('provText').innerHTML = `${measPct}% measured exactly · the rest estimated`;
+
+  const [ev, eu] = scaleE(t.wh), [wv, wu] = scaleW(t.waterMl);
+  $('pillars').innerHTML = [
+    ['energy','Energy',`${ev}<small> ${eu}</small>`,scaleC(t.gco2),'wh','energy'],
+    ['water','Water',`${wv}<small> ${wu}</small>`,'onsite + offsite','waterMl','water'],
+    ['spend','API-rate value',`$${(t.usd||0).toFixed(2)}`,'at list prices · not your bill','usd','spend'],
+  ].map(([cls,k,v,s,mk,topic]) => {
+    const series = arr.map(d => dayMetric(d, mk)); const mx = Math.max(...series, 1e-9);
+    const spark = series.map(x => `<i style="height:${Math.max(2,Math.round((x/mx)*26))}px"></i>`).join('');
+    return `<div class="pillar ${cls}"><div class="k"><span class="sw"></span>${k}</div><div class="v">${v}</div><div class="s">${s}</div><div class="spark">${spark}</div><button class="how" onclick="openDrawer('${topic}')">how is this worked out?</button></div>`;
   }).join('');
+  $('equiv').innerHTML = equivalents(t) ? `≈ ${equivalents(t)}` : '';
 
-  function short(ds) { const d = new Date(ds); return `${d.getDate()} ${d.toLocaleString([], { month: 'short' })}`; }
+  renderTrend(arr); renderComposition(t); renderConfidence(t, measPct); renderTable(arr);
+}
 
-  document.querySelectorAll('.bar').forEach((b) => {
-    b.addEventListener('mousemove', (e) => {
-      const c = charts[+b.dataset.c], d = all[+b.dataset.i];
-      tip.textContent = `${short(d.date)}: ${fmt(d[c.key] || 0)}${c.unit}`;
-      tip.style.display = 'block';
-      tip.style.left = Math.min(e.clientX + 10, innerWidth - 130) + 'px';
-      tip.style.top = e.clientY - 28 + 'px';
-    });
-    b.addEventListener('mouseleave', () => (tip.style.display = 'none'));
+function renderTrend(arr) {
+  const m = METRICS[state.metric];
+  $('trendSub').textContent = state.range === 'today' ? 'today only' : 'per day · click a day to open it';
+  $('metric').innerHTML = Object.entries(METRICS).map(([k,mm]) => `<button data-m="${k}" class="${k===state.metric?'on':''}" style="--m:${mm.c}">${mm.lab}</button>`).join('');
+  $('metric').querySelectorAll('button').forEach(b => b.onclick = () => { state.metric = b.dataset.m; render(); });
+  const vals = arr.map(d => dayMetric(d, state.metric)); const mx = Math.max(...vals, 1e-9);
+  const plot = $('plot'); plot.style.setProperty('--m', m.c);
+  plot.innerHTML = arr.map((d,i) => {
+    const busy = (d.requests||0) > 0 || (d.wh||0) > 0;
+    return `<div class="bar${busy?'':' empty'}" data-i="${i}" style="height:${vals[i]>0?Math.max(3,Math.round(vals[i]/mx*100)):0}px"></div>`;
+  }).join('');
+  $('xlab').innerHTML = arr.length ? `<span>${short(arr[0].date)}</span><span>${arr.length>1?'today':''}</span>` : '';
+  const tip = $('tip');
+  plot.querySelectorAll('.bar').forEach(b => {
+    const d = arr[+b.dataset.i];
+    const busy = (d.requests||0) > 0 || (d.wh||0) > 0;
+    b.onmousemove = (e) => { tip.textContent = `${short(d.date)}: ${m.f(dayMetric(d, state.metric))}${busy ? ' · click to open' : ''}`;
+      tip.style.display='block'; tip.style.left=Math.min(e.clientX+12,innerWidth-150)+'px'; tip.style.top=(e.clientY-34)+'px'; };
+    b.onmouseleave = () => tip.style.display='none';
+    if (busy) b.onclick = () => { tip.style.display='none'; openDrawer('day', d); };
   });
+}
 
-  // top apps over the shown period
-  const appTotals = {};
-  for (const d of all) for (const [name, a] of Object.entries(d.apps || {})) {
-    appTotals[name] = appTotals[name] || { requests: 0, wh: 0 };
-    appTotals[name].requests += a.requests || 0;
-    appTotals[name].wh += a.wh || 0;
-  }
-  const top = Object.entries(appTotals).sort((a, b) => b[1].wh - a[1].wh).slice(0, 4);
-  if (top.length) {
-    document.getElementById('apps').innerHTML =
-      'By app, 30 days: ' + top.map(([n, a]) => `<b>${n}</b> ${fmt(a.wh)} Wh · ${a.requests} req`).join(' &nbsp;·&nbsp; ');
-  }
+const TOK = [ ['in','Fresh input','var(--c1)'], ['cw','Cache write','var(--c2)'], ['cr','Cache read','var(--c3)'], ['out','Output','var(--c4)'] ];
+const MODEL_C = ['var(--c1)','var(--c2)','var(--c3)','var(--c4)'];
+const pretty = (m) => m.replace(/^claude-/, '').replace(/-\d.*$/, '').replace(/^\w/, c => c.toUpperCase());
+function stackBar(items, total) {
+  const seg = items.filter(x => x.v>0).map(x => { const pct = (x.v/total)*100;
+    return `<span style="flex:${x.v};background:${x.c}" data-k="${x.k}">${pct>9?`<b>${Math.round(pct)}%</b>`:''}</span>`; }).join('');
+  const leg = items.map(x => `<span class="it" data-k="${x.k}"><span class="d" style="background:${x.c}"></span>${x.lab}&nbsp;<b>${x.fmt}</b> <span class="pct">${total>0?Math.round((x.v/total)*100):0}%</span></span>`).join('');
+  return `<div class="stack">${seg}</div><div class="legend">${leg}</div>`;
+}
+function renderComposition(t) {
+  const tokTotal = t.tok.in + t.tok.cw + t.tok.cr + t.tok.out;
+  const items = TOK.map(([k,lab,c]) => ({ k, lab, c, v: t.tok[k], fmt: fmtTok(t.tok[k]) }));
+  $('compTokens').innerHTML = `<div class="cap"><span>Where the tokens go</span><span>${fmtTok(tokTotal)} tokens processed</span></div>` + (tokTotal > 0 ? stackBar(items, tokTotal) : '<div class="conf">No measured tokens in this range yet.</div>');
+  $('compTokens').querySelectorAll('[data-k]').forEach(el => el.onclick = () => openDrawer('tokens'));
 
-  const anySpend = all.some((d) => (d.usd || 0) > 0);
-  document.getElementById('table').innerHTML =
-    `<table><tr><th>Date</th><th>Requests</th><th>Tokens in</th><th>Tokens out</th><th>Wh</th><th>mL</th><th>g CO₂e</th><th>Privacy</th>${anySpend ? '<th>$ measured</th>' : ''}</tr>` +
-    all.slice().reverse().map((d) =>
-      `<tr><td>${short(d.date)}</td><td>${d.requests || 0}</td><td>${Math.round(d.tokensIn || 0).toLocaleString()}</td><td>${Math.round(d.tokensOut || 0).toLocaleString()}</td><td>${fmt(d.wh || 0)}</td><td>${fmt(d.waterMl || 0, 0)}</td><td>${fmt(d.gco2 || 0)}</td><td>${d.privacyEvents || 0}</td>${anySpend ? `<td>${(d.usd || 0) > 0 ? '$' + d.usd.toFixed(2) : '–'}</td>` : ''}</tr>`
-    ).join('') + '</table>';
+  const modelWh = Object.entries(t.byModelTok).map(([m, tk], i) => ({ k:m, lab:pretty(m), c:MODEL_C[i % 4], v:whOf(m, tk), fmt:nf(whOf(m, tk))+' Wh' })).sort((a,b)=>b.v-a.v);
+  const mTotal = modelWh.reduce((s,x)=>s+x.v,0);
+  $('compModels').innerHTML = `<div class="cap"><span>Energy by model</span><span>tier-weighted</span></div>` + (mTotal > 0 ? stackBar(modelWh, mTotal) : '');
+  $('compModels').querySelectorAll('[data-k]').forEach(el => el.onclick = () => openDrawer('models'));
+}
+function fmtTok(n) { return n >= 1e9 ? (n/1e9).toFixed(2)+'B' : n >= 1e6 ? (n/1e6).toFixed(n>=1e8?0:1)+'M' : n >= 1e3 ? (n/1e3).toFixed(0)+'K' : String(n); }
 
-  // Where each number comes from, stated plainly.
-  document.getElementById('provenance').textContent =
-    'Claude Code is measured: exact token counts from its own session records, priced at API list rates. ' +
-    'Other traffic is estimated from network bytes; those estimates are reliable to within about a factor of three (METHODOLOGY.md). ' +
-    `Water and carbon are derived from energy using cited factors${data.factorsVersion ? ` (v${data.factorsVersion})` : ''}.`;
+function renderConfidence(t, measPct) {
+  $('split').innerHTML = `<span class="meas" style="flex:${Math.max(t.measuredWh,1e-9)}"></span><span class="est" style="flex:${Math.max(t.estWh,1e-9)}"></span>`;
+  $('conf').innerHTML = `<b style="color:var(--c2)">${measPct}%</b> of this energy is from <b>exact</b> Claude Code token counts (no estimation). The remaining ${100-measPct}% is estimated from network byte volume and carries a ±3× band. <a onclick="openDrawer('provenance')">what does that mean?</a>`;
+}
+function renderTable(arr) {
+  $('table').innerHTML = `<table><tr><th>Date</th><th>Energy</th><th>Water</th><th>API-rate value</th><th>Requests</th></tr>` + arr.slice().reverse().map(d => `<tr><td>${short(d.date)}</td><td>${scaleE(d.wh||0).join(' ')}</td><td>${scaleW(d.waterMl||0).join(' ')}</td><td>${(d.usd||0)>0?'$'+d.usd.toFixed(2):'–'}</td><td>${d.requests||0}</td></tr>`).join('') + `</table>`;
+}
+
+// ---- derivation drawer: glance -> PhD ----
+const FLABEL = { whPer1kOutputTokens:'Energy per 1k output tokens', inputTokenEnergyRatio:'Fresh-input energy ratio', cacheReadEnergyRatio:'Cache-read energy ratio', gridGCo2PerKwh:'Grid carbon intensity', waterOnsiteMlPerWh:'Onsite cooling water', waterOffsiteMlPerWh:'Offsite generation water', modelTiers:'Model energy tiers', pricing:'Anthropic list pricing' };
+function factorCard(key, accent) {
+  let val, unit, srcs, chasing;
+  const s = SRC[key];
+  if (key === 'modelTiers') { val = `opus ${A.modelTiers.opus} · sonnet ${A.modelTiers.sonnet} · haiku ${A.modelTiers.haiku}`; }
+  else if (key === 'pricing') { val = 'list rates'; }
+  else { val = A[key]; }
+  if (s) { unit = s.unit; srcs = s.sources || []; chasing = s.chasing; }
+  else if (key === 'pricing') { unit = 'Anthropic list price, $/Mtok'; const note = (data.factors.sources || []).find(x => x.id && x.id.includes('pricing'));
+    srcs = [{ title: 'Anthropic API list prices', url: 'https://platform.claude.com/docs/en/pricing', year: 2026, figure: note ? note.note.split('.')[0] : 'published per-model rates; cache read 0.1×, write 1.25×' }]; chasing = 'Kept in step with published price changes.'; }
+  else { unit = ''; srcs = []; chasing = ''; }
+  const srcHtml = srcs.map(x => `<div style="margin-bottom:7px"><a href="${x.url}" target="_blank" rel="noopener" onclick="event.preventDefault()">${x.title}</a> <span class="fig">(${x.year}) - ${x.figure}</span></div>`).join('');
+  return `<details class="factor" style="--accent:${accent}"><summary><span class="fname">${FLABEL[key]||key} <span class="funit">${unit}</span></span><span class="fval">${val}</span></summary><div class="body"><div class="src">${srcHtml}${chasing?`<div class="chasing">Still chasing: ${chasing}</div>`:''}</div></div></details>`;
+}
+function band() { return `<div class="band"><div class="track"><div class="rng" style="left:8%;right:8%"></div><div class="mid" style="left:50%"></div><div class="tick" style="left:8%">÷3</div><div class="tick" style="left:50%">estimate</div><div class="tick" style="left:92%">×3</div></div></div>`; }
+const labelForRange = (dayRec) => dayRec ? `day (${short(dayRec.date)})` : state.range === 'today' ? 'day' : state.range === 'week' ? 'week' : 'all-time';
+function sumParts(byModelTok) { const p = { out:0, fresh:0, cache:0 }; for (const [m, tk] of Object.entries(byModelTok)) { const q = whParts(m, tk); p.out+=q.out; p.fresh+=q.fresh; p.cache+=q.cache; } return p; }
+function sumUsd(byModelTok) { return Object.entries(byModelTok).map(([m, tk]) => [pretty(m), priceOf(m), usdOf(m, tk)]).sort((a,b)=>b[2]-a[2]); }
+
+const TOPICS = {
+  energy: (t) => { const p = sumParts(t.byModelTok);
+    return { accent:'var(--p-energy)', eyebrow:'Energy', title:`${nf(t.wh)} Wh`,
+      plain:'Electricity used by the computers that answered you — reading what you sent, then writing the reply. Writing costs far more than reading, so each kind of token is counted at its own rate and then scaled by how heavy the model is: fresh reading counts about 5% of a written token, and cached reading about 0.5%.',
+      formula:`<span class="t">Wh</span> = Σ requests ( freshIn·<b>${A.inputTokenEnergyRatio}</b> + cacheRead·<b>${A.cacheReadEnergyRatio}</b> + output·<b>${A.whPer1kOutputTokens}</b> ) · <b>tier</b> · (1 Wh / 1000 tok)`,
+      work:[ ['Output', `${fmtTok(t.tok.out)} × ${A.whPer1kOutputTokens}`, `${nf(p.out)} Wh`], ['Fresh input (incl. cache write)', `${fmtTok(t.tok.in+t.tok.cw)} × ${A.inputTokenEnergyRatio}`, `${nf(p.fresh)} Wh`], ['Cache read', `${fmtTok(t.tok.cr)} × ${A.cacheReadEnergyRatio}`, `${nf(p.cache)} Wh`], ['Measured total (tier-weighted)', '', `${nf(t.measuredWh)} Wh`, true] ],
+      factors:['whPer1kOutputTokens','inputTokenEnergyRatio','cacheReadEnergyRatio','modelTiers'],
+      certainty:'Token counts are <b>exact</b> (read from Claude Code transcripts). Only the energy factors are uncertain - the true figure is very likely within this band:' }; },
+  water: (t) => ({ accent:'var(--p-water)', eyebrow:'Water', title:`${nf(t.waterMl,0)} mL`,
+    plain:'Data centres evaporate water to stay cool, and the power stations feeding them evaporate more to make the electricity. Both are counted here, because the second is as large as the first — figures that count only the cooling report roughly half the real number.',
+    formula:`<span class="t">mL</span> = Wh · ( <b>${A.waterOnsiteMlPerWh}</b> onsite + <b>${A.waterOffsiteMlPerWh}</b> offsite ) mL/Wh`,
+    work:[ ['Energy','from the Energy panel',`${nf(t.wh)} Wh`], ['× onsite cooling',`× ${A.waterOnsiteMlPerWh} mL/Wh`,`${nf(t.wh*A.waterOnsiteMlPerWh,0)} mL`], ['× offsite generation',`× ${A.waterOffsiteMlPerWh} mL/Wh`,`${nf(t.wh*A.waterOffsiteMlPerWh,0)} mL`], ['Total (consumptive)','',`${nf(t.waterMl,0)} mL`,true] ],
+    factors:['waterOnsiteMlPerWh','waterOffsiteMlPerWh'],
+    certainty:'Inherits the energy band, plus region-dependent water intensity. We use <b>consumptive</b> (evaporated) water, the honest metric, not withdrawal.' }),
+  spend: (t) => ({ accent:'var(--p-spend)', eyebrow:'API-rate value', title:`$${(t.usd||0).toFixed(2)}`,
+    plain:'What these exact tokens would cost at Anthropic’s published list prices. This is a yardstick, not your bill — on a subscription you pay a flat fee regardless. Computed only from measured Claude Code tokens.',
+    formula:`<span class="t">$</span> = Σ ( in·rate + cacheWrite·rate·<b>${P.cacheWriteInputMultiplier}</b> + cacheRead·rate·<b>${P.cacheReadInputMultiplier}</b> + out·rate ) per model`,
+    work: sumUsd(t.byModelTok).map(([m,r,u]) => [m, `$${r.in}/$${r.out} per Mtok`, `$${u.toFixed(2)}`]).concat([['Total','at list rates',`$${(t.usd||0).toFixed(2)}`,true]]),
+    factors:['pricing'],
+    certainty:'This one is <b>exact</b>, not estimated: real token counts × published prices. The only caveat is list-rate ≠ your subscription.' }),
+  tokens: (t) => { const tot = t.tok.in+t.tok.cw+t.tok.cr+t.tok.out || 1, crp = Math.round(t.tok.cr/tot*100);
+    return { accent:'var(--c3)', eyebrow:'Composition', title:`${crp}% cache reads`,
+    plain:'Every turn, the AI re-reads your entire conversation. Almost all of it comes straight back from fast memory — a cache — instead of being worked out from scratch, which costs a small fraction as much. That is why cache reads tower over everything in the token count while barely moving the energy or the value.',
+    formula:`each assistant message reports its exact split: <b>fresh input</b>, <b>cache write</b> (${P.cacheWriteInputMultiplier}×), <b>cache read</b> (${P.cacheReadInputMultiplier}×), <b>output</b>`,
+    work: TOK.map(([k,lab]) => [lab, `${Math.round(t.tok[k]/tot*100)}%`, `${fmtTok(t.tok[k])} tok`]),
+    factors:['cacheReadEnergyRatio','pricing'],
+    certainty:'The split is <b>exact</b> - read verbatim from the provider usage object on every message. No estimation at all.' }; },
+  models: (t) => ({ accent:'var(--c1)', eyebrow:'Composition', title:'Energy by model',
+    plain:'Bigger models use more electricity per word. Each one is scaled against a Sonnet-class baseline of 1.0, so an Opus token counts double a Sonnet one and a Haiku token a quarter. Anthropic does not publish model sizes, so these tiers are provisional and headed for directly measured figures.',
+    formula:`<span class="t">tier</span>: opus <b>${A.modelTiers.opus}</b> · sonnet/fable <b>${A.modelTiers.sonnet}</b> · haiku <b>${A.modelTiers.haiku}</b>`,
+    work: Object.entries(t.byModelTok).map(([m,tk]) => [pretty(m), `tier ${tierOf(m)}`, whOf(m,tk)]).sort((a,b)=>b[2]-a[2]).map(([m,r,w]) => [m, r, `${nf(w)} Wh`]),
+    factors:['modelTiers','whPer1kOutputTokens'],
+    certainty:'Tokens per model are exact; the per-model energy <b>tier</b> is the provisional part, being replaced by measured figures from ML.ENERGY.' }),
+  // One day, opened from the trend chart: the same four figures and the same
+  // composition as the range view, scoped to that date.
+  day: (t, d) => {
+    const tot = t.tok.in+t.tok.cw+t.tok.cr+t.tok.out;
+    const [ev,eu] = scaleE(t.wh), [wv,wu] = scaleW(t.waterMl);
+    const stats = [
+      ['Energy', `${ev}<small> ${eu}</small>`, 'var(--p-energy)'],
+      ['Water', `${wv}<small> ${wu}</small>`, 'var(--p-water)'],
+      ['API-rate value', `$${(t.usd||0).toFixed(2)}`, 'var(--p-spend)'],
+      ['Requests', String(t.requests||0), 'var(--c1)'],
+    ].map(([k,v,c]) => `<div class="dstat" style="--edge:${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+    const tokItems = TOK.map(([k,lab,c]) => ({ k, lab, c, v: t.tok[k], fmt: fmtTok(t.tok[k]) }));
+    const modelItems = Object.entries(t.byModelTok).map(([m,tk],i) => ({ k:m, lab:pretty(m), c:MODEL_C[i%4], v:whOf(m,tk), fmt:scaleE(whOf(m,tk)).join(' ') })).sort((a,b)=>b.v-a.v);
+    const mTot = modelItems.reduce((s,x)=>s+x.v,0);
+    const extra = `<div class="dstats">${stats}</div>`
+      + (tot > 0 ? `<div class="dcomp"><div class="cap">Where that day's tokens went</div>${stackBar(tokItems, tot)}</div>` : '')
+      + (mTot > 0 && modelItems.length > 1 ? `<div class="dcomp"><div class="cap">Energy by model</div>${stackBar(modelItems, mTot)}</div>` : '');
+    return { accent:'var(--c1)', eyebrow:'One day', title: new Date(d.date).toLocaleDateString([], { weekday:'long', day:'numeric', month:'long' }),
+      plain: tot > 0
+        ? `${(t.requests||0).toLocaleString()} request${t.requests===1?'':'s'} on this day, processing ${fmtTok(tot)} tokens. Everything below is that day alone, worked out exactly the way the totals above are.`
+        : 'A quiet day — no measured AI requests recorded.',
+      extra,
+      formula:`<span class="t">Same maths, one day</span> — energy from this day's token classes, water and carbon derived from that energy, value at list prices. Open a pillar to see each formula in full.`,
+      work:[ ['Energy','', `${ev} ${eu}`], ['Carbon','from that energy', scaleC(t.gco2)], ['Water','onsite + offsite', `${wv} ${wu}`], ['API-rate value','at list prices', `$${(t.usd||0).toFixed(2)}`, true] ],
+      factors:[],
+      certainty:'Token counts for this day are <b>exact</b>. The energy, water and carbon figures carry the usual factor band:' };
+  },
+  provenance: (t) => ({ accent:'var(--c2)', eyebrow:'Provenance', title:'Measured vs estimated',
+    plain:'Two very different confidences share this dashboard, and Drippy never blurs them.',
+    formula:`<span class="t">Measured</span> - Claude Code writes exact token counts to local session files. Drippy reads only the numbers, never content.<br><br><span class="t">Estimated</span> - other AI traffic is inferred from network byte volume; reliable to about ±3×.`,
+    work:[ ['Measured energy (exact tokens)','',`${nf(t.measuredWh)} Wh`], ['Estimated energy (network bytes)','±3×',`${nf(t.estWh)} Wh`], ['Total','',`${nf(t.wh)} Wh`,true] ],
+    factors:[],
+    certainty:'Spend is shown only where it is measured. Estimated traffic never gets a price - a $ figure here is always real tokens at real list prices.' }),
+};
+// `dayRec` scopes the whole drawer to one day (clicked from the trend chart);
+// without it the drawer describes the selected range.
+function openDrawer(topic, dayRec) {
+  const t = totals(dayRec ? [dayRec] : rangeDays()); const c = TOPICS[topic](t, dayRec);
+  const factorsHtml = (c.factors && c.factors.length) ? `<div class="dsec"><div class="lbl">The factors, and where they come from</div>${c.factors.map(k => factorCard(k, c.accent)).join('')}</div>` : '';
+  const workHtml = c.work ? `<div class="dsec"><div class="lbl">This ${labelForRange(dayRec)}, worked out</div><div class="work">${c.work.map(r => `<div class="r${r[3]?' tot':''}"><span class="lab">${r[0]} ${r[1]?`<span class="mut">${r[1]}</span>`:''}</span><span class="val">${r[2]}</span></div>`).join('')}</div></div>` : '';
+  const extraHtml = c.extra || '';
+  const bandHtml = (topic === 'spend' || c.noBand) ? '' : `<div class="dsec"><div class="lbl">How sure</div><p class="bandnote">${c.certainty}</p>${topic==='provenance'?'':band()}</div>`;
+  $('dwrap').innerHTML = `<button class="dclose" onclick="closeDrawer()">×</button><div class="deyebrow" style="color:${c.accent}">${c.eyebrow}</div><h3>${c.title}</h3><p class="dplain">${c.plain}</p>${extraHtml}<div class="dsec"><div class="lbl">How it is computed</div><div class="formula" style="--accent:${c.accent}">${c.formula}</div></div>${workHtml}${factorsHtml}${bandHtml}`;
+  $('drawer').classList.add('on'); $('scrim').classList.add('on');
+}
+function closeDrawer() { $('drawer').classList.remove('on'); $('scrim').classList.remove('on'); }
+
+// ---- design-preview fallback (plain browser): shaped exactly like the IPC payload ----
+function sample() {
+  const rnd = (a,b) => a + Math.random()*(b-a);
+  const factors = { version:'2026.07.5', assumptions:{ whPer1kOutputTokens:1.0, inputTokenEnergyRatio:0.05, cacheReadEnergyRatio:0.005, gridGCo2PerKwh:321, waterOnsiteMlPerWh:1.1, waterOffsiteMlPerWh:1.25, uncertaintyBand:[0.33,3.0], modelTiers:{opus:2.0,sonnet:1.0,fable:1.0,haiku:0.25,default:1.0} },
+    pricing:{ usdPerMtok:{ fable:{in:10,out:50}, opus:{in:5,out:25}, sonnet:{in:3,out:15}, haiku:{in:1,out:5}, default:{in:3,out:15} }, cacheReadInputMultiplier:0.1, cacheWriteInputMultiplier:1.25 },
+    equivalents:{ phoneChargeWh:15, glassMl:250, carGCo2PerKm:120 }, sources:[{id:'api-pricing-2026', note:'Anthropic published API list prices, checked 2026-07-20.'}] };
+  const Ax = factors.assumptions, Px = factors.pricing;
+  const wh = (m,tk) => (((tk.in+tk.cw)/1000)*Ax.whPer1kOutputTokens*Ax.inputTokenEnergyRatio + (tk.cr/1000)*Ax.whPer1kOutputTokens*Ax.cacheReadEnergyRatio + (tk.out/1000)*Ax.whPer1kOutputTokens) * (m.includes('opus')?2:1);
+  const usd = (m,tk) => { const r = m.includes('opus')?Px.usdPerMtok.opus:Px.usdPerMtok.fable; return (tk.in*r.in+tk.cw*r.in*1.25+tk.cr*r.in*0.1+tk.out*r.out)/1e6; };
+  const days = [];
+  for (let i=34;i>=0;i--){ const d=new Date(Date.now()-i*864e5); const wd=d.getDay(); const busy = (wd===0||wd===6)?(Math.random()<0.5?0:0.3):(Math.random()<0.15?0:rnd(0.5,1));
+    const models={}; if (busy>0){ const n=1+Math.floor(Math.random()*2); for(let k=0;k<n;k++){ const m=k===0?(Math.random()<0.6?'claude-fable-5':'claude-opus-4-8'):['claude-fable-5','claude-opus-4-8','claude-sonnet-5'][Math.floor(Math.random()*3)];
+      const tk={ in:Math.round(busy*rnd(2e3,30e3)), cw:Math.round(busy*rnd(0.6e6,4e6)), cr:Math.round(busy*rnd(18e6,120e6)), out:Math.round(busy*rnd(40e3,260e3)) };
+      const cur=models[m]||{in:0,cw:0,cr:0,out:0,wh:0,requests:0}; cur.in+=tk.in;cur.cw+=tk.cw;cur.cr+=tk.cr;cur.out+=tk.out;cur.wh+=wh(m,tk);cur.requests++; models[m]=cur; } }
+    let W=0,waterMl=0,gco2=0,USD=0,req=0; for(const [m,mm] of Object.entries(models)){ W+=mm.wh; USD+=usd(m,mm); req+=mm.requests; }
+    const estOut = busy>0&&Math.random()<0.6?Math.round(busy*rnd(2e3,20e3)):0; if(estOut){ const ewh=(estOut/1000)*Ax.whPer1kOutputTokens+((estOut*2.5)/1000)*Ax.whPer1kOutputTokens*Ax.inputTokenEnergyRatio*0.2; models.estimated={in:Math.round(estOut*2.5),cw:0,cr:0,out:estOut,wh:ewh,requests:1}; W+=ewh; req++; }
+    waterMl=W*(Ax.waterOnsiteMlPerWh+Ax.waterOffsiteMlPerWh); gco2=(W/1000)*Ax.gridGCo2PerKwh;
+    days.push({ date:d.toDateString(), requests:req, wh:W, waterMl, gco2, usd:USD, models }); }
+  const sources = { factors: {
+    whPer1kOutputTokens:{ unit:'Wh per 1,000 output tokens', chasing:'A directly measured per-token figure for Claude models.', sources:[{title:'Energy use of AI inference (ScienceDirect)',url:'#',year:2026,figure:'frontier median ~0.31 Wh/query'}] },
+    inputTokenEnergyRatio:{ unit:'fraction of an output token energy', chasing:'Prefill energy vs context length.', sources:[{title:'Prefill vs Decode Bottlenecks',url:'#',year:2026,figure:'prefill ≤3.4% of energy'}] },
+    cacheReadEnergyRatio:{ unit:'fraction of an output token energy, per cached token', chasing:'A directly measured KV-cache read energy.', sources:[{title:'Anthropic prompt caching pricing',url:'#',year:2026,figure:'cache read = 0.1× input'},{title:'Prompt Caching in 2026',url:'#',year:2026,figure:'85-95% saving on a hit'}] },
+    modelTiers:{ unit:'multiplier, ~by active parameters', chasing:'Measured per-model energy from ML.ENERGY.', sources:[{title:'TokenPowerBench',url:'#',year:2026,figure:'~20× span by model size'}] },
+    waterOnsiteMlPerWh:{ unit:'mL per Wh - onsite (WUE)', chasing:'Region-level WUE disclosures.', sources:[{title:'AI water usage per query',url:'#',year:2026,figure:'WUE ~1.1 L/kWh'}] },
+    waterOffsiteMlPerWh:{ unit:'mL per Wh - offsite generation', chasing:'US-grid consumptive intensity yearly.', sources:[{title:'EIA electric-sector water',url:'#',year:2026,figure:'~1.25 L/kWh consumptive'}] },
+  } };
+  return { factorsVersion: factors.version, days, factors, sources };
 }
 load();
 </script>

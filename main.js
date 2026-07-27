@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, screen, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -6,6 +6,7 @@ const AnthropicMonitor = require('./monitor');
 const EngagementSensor = require('./engagement');
 const PrivacySensor = require('./privacy');
 const ClaudeCodeMonitor = require('./claude-code');
+const WorkSession = require('./presence');
 const impact = require('./impact');
 const history = require('./history');
 const sync = require('./sync');
@@ -151,6 +152,7 @@ function flushIncident(resolution) {
 
 let userPresent = false; // a Claude surface is frontmost
 let userTyping = false; // and input is happening right now
+let frontApp = ''; // the frontmost app's name while present
 
 function totalInFlight() {
   return inFlightFg + inFlightBg;
@@ -163,7 +165,9 @@ function totalInFlight() {
 //   in which Drippy takes up space uninvited
 function visualFlags() {
   if (privacyLevel > 0) return { glow: false, privacyLevel };
-  return { glow: totalInFlight() > 0 || fgLinger || bgLinger, privacyLevel: 0 };
+  // Steady while a task is working (presence.js holds it across call gaps), not
+  // the raw per-request signal that flickers off between an agent's API calls.
+  return { glow: totalInFlight() > 0 || workSession.isWorking(), privacyLevel: 0 };
 }
 
 function currentMode() {
@@ -205,8 +209,45 @@ function pushState() {
 // Keep the bar's readout current even when only the accumulators move.
 setInterval(sendUpdate, 4000).unref();
 
+// ---------------------------------------------------------------------------
+// Work-session awareness (presence.js). Holds a steady "AI is working" state
+// across the gaps between an agentic task's API calls so the glow stops
+// flickering, and — when a real task settles and you are not the one watching
+// Claude — posts a single neutral notification so you can work on something
+// else and come back only when there is a reason to.
+// ---------------------------------------------------------------------------
+const WORK_SETTLE_MS = 30000; // quiet this long ⇒ the working session has ended
+const NOTIFY_MIN_MS = 20000; // only nudge for a task worth stepping away from
+const NOTIFY_MIN_REQUESTS = 4;
+
+const workSession = new WorkSession({ settleMs: WORK_SETTLE_MS });
+workSession.on('start', pushState); // light the glow the moment work begins
+workSession.on('settled', ({ durationMs, requests }) => {
+  pushState(); // the glow goes out here, and only here
+  const substantial = durationMs >= NOTIFY_MIN_MS || requests >= NOTIFY_MIN_REQUESTS;
+  if (substantial && !watchingClaude()) notifyStopped(durationMs, requests);
+});
+
+// You are "watching Claude" when a Claude surface is frontmost — no point
+// notifying about a task you are sitting in front of.
+function watchingClaude() {
+  return userPresent && /claude/i.test(frontApp);
+}
+
+function notifyStopped(durationMs, requests) {
+  if (!Notification.isSupported()) return;
+  const mins = Math.floor(durationMs / 60000);
+  const secs = Math.round((durationMs % 60000) / 1000);
+  const dur = mins ? `${mins}m ${secs}s` : `${secs}s`;
+  new Notification({
+    title: 'Claude has gone quiet',
+    body: `No activity for a moment, after ${dur} · ${requests} request${requests === 1 ? '' : 's'}.`,
+  }).show();
+}
+
 function requestStarted(fg) {
   const now = Date.now();
+  workSession.activity({ request: true });
   if (fg) {
     sig.fgReqTimes.push(now);
     sig.rapidStreak = now - sig.lastReqStartAt < 25000 ? sig.rapidStreak + 1 : 1;
@@ -471,9 +512,63 @@ monitor.on('request-end', ({ app: appName, pid, bytesIn, bytesOut, durationMs })
   requestEnded(fg);
 });
 
-// Exact accounting for Claude Code, straight from session transcripts.
-const claudeCode = new ClaudeCodeMonitor();
+// Exact accounting for Claude Code, straight from session transcripts. Reads
+// the full history (deduped, per calendar day) so trends are complete no matter
+// how much of the time Drippy was actually running — the cold backfill is
+// skipped only when a prior build already rolled up real usage.
+const claudeCode = new ClaudeCodeMonitor({
+  stateFile: () => path.join(app.getPath('userData'), 'cc-scan.json'),
+  shouldColdBackfill: () => !history.hasMeasuredHistory(),
+});
+
+// Past-day rollups from the backfill/catch-up scan: derive the impact figures
+// here where the factor tables live, then merge into stored history. Today is
+// never in this batch — it stays owned by the live `daily` accumulator below.
+claudeCode.on('history', ({ days }) => {
+  for (const [date, agg] of Object.entries(days)) {
+    let wh = 0,
+      gco2 = 0,
+      waterMl = 0,
+      usd = 0,
+      tokensIn = 0,
+      tokensOut = 0;
+    const models = {};
+    for (const [model, t] of Object.entries(agg.models)) {
+      const est = impact.fromUsage({
+        model,
+        inputTokens: t.in,
+        cacheReadTokens: t.cr,
+        cacheCreationTokens: t.cw,
+        outputTokens: t.out,
+      });
+      wh += est.wh;
+      gco2 += est.gco2;
+      waterMl += est.waterMl;
+      usd += est.usd || 0;
+      tokensIn += est.inputTokens; // total input (fresh + cache), as live days count it
+      tokensOut += t.out;
+      models[model] = { requests: t.requests, in: t.in, cw: t.cw, cr: t.cr, out: t.out, wh: est.wh };
+    }
+    history.upsertDay({
+      date,
+      requests: agg.requests,
+      fgRequests: 0,
+      privacyEvents: 0,
+      wh,
+      gco2,
+      waterMl,
+      usd,
+      tokensIn,
+      tokensOut,
+      apps: { 'Claude Code': { requests: agg.requests, wh, tokensIn, tokensOut } },
+      models,
+      fv: impact.version,
+    });
+  }
+});
+
 claudeCode.on('usage', (u) => {
+  workSession.activity(); // a completed turn keeps the session alive across gaps
   const est = impact.fromUsage(u);
   recordRequest({ app: 'Claude Code', fg: true, ms: 0, est, usage: u });
   sig.ccInputEvents.push({ t: Date.now(), tokens: u.inputTokens + u.cacheReadTokens + u.cacheCreationTokens });
@@ -557,6 +652,7 @@ engagement.on('state', ({ present, typing, app: appName }) => {
   const wasPresent = userPresent;
   userPresent = present;
   userTyping = typing;
+  frontApp = appName || '';
   if (present && !wasPresent) {
     const now = Date.now();
     sig.presentSince = now;
@@ -824,21 +920,23 @@ function bubblePayload() {
       action: lastPrivacy.source === 'clipboard' ? 'Clear clipboard' : null,
     };
   }
-  const tokens = Math.round(daily.tokensIn + daily.tokensOut);
   const eq = impact.equivalents(daily);
+  // The three headline pillars first — energy, water, spend for today — then the
+  // quieter context. Privacy only shows when something actually happened; its
+  // usual state is nothing, and a "0 warnings" line just draws the eye to it.
   return {
     kind: 'stats',
     title: 'Today, so far',
     rows: [
       { color: ROW_COLORS.env, label: 'Energy', value: `${daily.wh.toFixed(1)} Wh · ${daily.gco2.toFixed(1)} g CO₂e` },
       { color: ROW_COLORS.water, label: 'Water', value: `${daily.waterMl.toFixed(0)} mL` },
-      { color: ROW_COLORS.usage, label: 'AI usage', value: `${daily.requests} request${daily.requests === 1 ? '' : 's'} · ~${tokens.toLocaleString()} tokens` },
-      { color: ROW_COLORS.privacy, label: 'Privacy', value: `${daily.privacyEvents} warning${daily.privacyEvents === 1 ? '' : 's'}` },
-      ...(daily.usd > 0
-        ? [{ color: ROW_COLORS.value, label: 'Value', value: `$${daily.usd.toFixed(2)} at API rates (measured)` }]
+      { color: ROW_COLORS.value, label: 'Spend', value: `$${daily.usd.toFixed(2)}` },
+      { color: ROW_COLORS.usage, label: 'AI usage', value: `${daily.requests} request${daily.requests === 1 ? '' : 's'}` },
+      ...(daily.privacyEvents
+        ? [{ color: ROW_COLORS.privacy, label: 'Privacy', value: `${daily.privacyEvents} warning${daily.privacyEvents === 1 ? '' : 's'}` }]
         : []),
     ],
-    footer: `${eq ? `≈ ${eq} · ` : ''}estimates ±3×`,
+    footer: `${eq ? `≈ ${eq} · ` : ''}spend measured at API rates`,
   };
 }
 
@@ -950,20 +1048,48 @@ function maybeStartTour() {
 // ---------------------------------------------------------------------------
 
 ipcMain.handle('drippy:history', () => {
-  const days = history.readDays(60);
+  // Full history — the completeness backfill means days.jsonl now covers every
+  // day of use, so "all time" is real. Today rides on the end, live.
   const today = { date: currentDay, ...daily };
-  // 7-day totals and their everyday equivalents, computed here where the
-  // factors live, so the trends page states them rather than deriving them.
-  const week = [...days, today].slice(-7).reduce(
-    (a, d) => ({
-      wh: a.wh + (d.wh || 0),
-      waterMl: a.waterMl + (d.waterMl || 0),
-      gco2: a.gco2 + (d.gco2 || 0),
-      usd: a.usd + (d.usd || 0),
-    }),
-    { wh: 0, waterMl: 0, gco2: 0, usd: 0 }
-  );
-  return { days, today, week: { ...week, equivalents: impact.equivalents(week) }, factorsVersion: impact.version };
+  const days = [...history.readAllDays(), today]; // oldest → newest, incl. today
+
+  // Totals + everyday equivalents for a set of days, computed here where the
+  // factor tables live so the page states the numbers rather than deriving them.
+  const summary = (arr) => {
+    const t = arr.reduce(
+      (a, d) => ({
+        wh: a.wh + (d.wh || 0),
+        waterMl: a.waterMl + (d.waterMl || 0),
+        gco2: a.gco2 + (d.gco2 || 0),
+        usd: a.usd + (d.usd || 0),
+        requests: a.requests + (d.requests || 0),
+      }),
+      { wh: 0, waterMl: 0, gco2: 0, usd: 0, requests: 0 }
+    );
+    const active = arr.filter((d) => (d.requests || 0) > 0 || (d.wh || 0) > 0);
+    return {
+      ...t,
+      activeDays: active.length,
+      from: arr.length ? arr[0].date : null,
+      to: arr.length ? arr[arr.length - 1].date : null,
+      equivalents: impact.equivalents(t),
+    };
+  };
+
+  // Three drill-down levels: today (since you started) → this week → all time.
+  // The factor table and its evidence ride along so the page can show, for any
+  // figure, exactly how it was worked out and cite the sources (PhD-depth dive).
+  return {
+    factorsVersion: impact.version,
+    days,
+    ranges: {
+      today: summary([today]),
+      week: summary(days.slice(-7)),
+      all: summary(days),
+    },
+    factors: require('./impact-factors.json'),
+    sources: require('./impact-sources.json'),
+  };
 });
 
 ipcMain.on('drippy:hover', (_e, { over }) => {

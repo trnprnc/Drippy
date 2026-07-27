@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "site",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "site", "-l", "3200"],
+      "port": 3200
+    },
+    {
+      "name": "ingest-api",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "DB=memory node server/ingest.js"],
+      "port": 8787
+    }
+  ]
+}
