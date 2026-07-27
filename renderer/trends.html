@@ -94,6 +94,18 @@
   .bar:hover { filter: brightness(1.15) saturate(1.1); }
   .bar.empty { cursor: default; }
   .xlab { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-3); margin-top: 5px; }
+  /* The token flow: a living picture of the one fact that explains everything
+     else. Band width = share of tokens; speed and brightness = share of the
+     energy. So the wide dull current (cache reads) and the thin bright stream
+     (output) show, at a glance, why volume and cost are not the same thing. */
+  .flowwrap { position: relative; border-radius: 10px; overflow: hidden; background: var(--card-2); }
+  #flow { display: block; width: 100%; height: 168px; }
+  .flowcap { position: relative; display: block; margin-top: 7px; font-size: 10.5px; color: var(--ink-3); }
+  /* Sat on a chip rather than bare text: the busiest lane is a thicket of
+     streaks and unbacked labels were unreadable over it. */
+  .flowlab { position: absolute; left: 10px; font-size: 11px; font-weight: 600; pointer-events: none;
+    white-space: nowrap; padding: 3px 8px; border-radius: 6px;
+    background: light-dark(rgba(255,255,255,.82), rgba(18,21,26,.78)); backdrop-filter: blur(4px); }
   .comp + .comp { margin-top: 18px; }
   .comp .cap { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-2); margin-bottom: 6px; }
   .stack { display: flex; height: 30px; border-radius: 7px; overflow: hidden; background: var(--card-2); }
@@ -409,6 +421,133 @@ function buildModelColors() {
   [...names].sort().forEach((m, i) => { MODEL_COLOR[m] = MODEL_C[i % MODEL_C.length]; });
 }
 const colorFor = (m) => MODEL_COLOR[m] || MODEL_C[0];
+// Legend without the stacked bar — the flow canvas carries the shape, the
+// legend keeps the exact numbers next to it.
+function legendOnly(items, total) {
+  return `<div class="legend">${items.map(x => `<span class="it" data-k="${x.k}"><span class="d" style="background:${x.c}"></span>${x.lab}&nbsp;<b>${x.fmt}</b> <span class="pct">${total>0?Math.round((x.v/total)*100):0}%</span></span>`).join('')}</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// The token flow. Each class is a horizontal current: its band height is its
+// share of the tokens, while the speed and opacity of the streaks in it come
+// from its share of the ENERGY. Cache reads are 96% of the volume but a slow,
+// dim river; output is a sliver, but bright and quick. That contrast is the
+// product's central point, drawn rather than explained.
+// ---------------------------------------------------------------------------
+let flowRAF = null;
+function startFlow(t) {
+  if (flowRAF) cancelAnimationFrame(flowRAF);
+  const cv = $('flow');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // The palette vars are light-dark() pairs, which CSS resolves but canvas
+  // cannot parse — feeding one to strokeStyle silently yields black. Bounce
+  // each through a probe element so we get the concrete rgb() for this theme.
+  const probe = document.createElement('span');
+  probe.style.display = 'none';
+  cv.parentElement.appendChild(probe);
+  const resolve = (cssVar) => {
+    probe.style.color = cssVar;
+    const c = getComputedStyle(probe).color;
+    return c && c !== 'rgba(0, 0, 0, 0)' ? c : '#888';
+  };
+
+  const tot = t.tok.in + t.tok.cw + t.tok.cr + t.tok.out;
+  // energy weight per token class, straight from the factor table
+  const w = { in: A.inputTokenEnergyRatio, cw: A.inputTokenEnergyRatio, cr: A.cacheReadEnergyRatio, out: A.whPer1kOutputTokens };
+  const energy = {}; let eTot = 0;
+  for (const [k] of TOK.map(x => [x[0]])) { energy[k] = t.tok[k] * w[k]; eTot += energy[k]; }
+
+  // Equal lanes, not proportional heights. Sizing bands by share would give
+  // cache reads 97% of the canvas and squash the other three into invisible
+  // slivers — the very disproportion worth showing would erase itself. So each
+  // class gets an equal, readable lane and carries its share as DENSITY: the
+  // cache lane is crowded with slow dim streaks, the output lane has a couple
+  // of fast bright ones. Volume and cost, side by side.
+  const bands = TOK.map(([k, lab, cvar]) => {
+    const share = t.tok[k] / tot;
+    const eShare = eTot > 0 ? energy[k] / eTot : 0;
+    return {
+      k, lab, share, eShare,
+      color: resolve(cvar),
+      // compress the 200x energy-per-token span into a legible speed range
+      speed: 0.2 + Math.pow(eShare, 0.35) * 1.7,
+      alpha: 0.3 + Math.pow(eShare, 0.4) * 0.7,
+    };
+  }).filter(b => b.share > 0);
+
+  let streaks = [];
+  function seed(W, H) {
+    streaks = [];
+    const lane = H / bands.length;
+    bands.forEach((b, i) => {
+      b.y = i * lane; b.h = lane;
+      const n = 1 + Math.round(b.share * 46); // density carries the volume
+      for (let j = 0; j < n; j++) {
+        streaks.push({ b, x: Math.random() * W, y: b.y + 6 + Math.random() * (lane - 12), len: 16 + Math.random() * 52, a: 0.4 + Math.random() * 0.6 });
+      }
+    });
+  }
+
+  let W = 0, H = 0;
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.max(1, Math.round(W * dpr));
+    cv.height = Math.max(1, Math.round(H * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    seed(W, H);
+    placeLabels();
+  }
+
+  // Name the two ends of the story directly on the canvas: the widest band and
+  // the one carrying the most energy (usually not the same band).
+  function placeLabels() {
+    const wrap = cv.parentElement;
+    wrap.querySelectorAll('.flowlab').forEach((n) => n.remove());
+    // Every lane is named, with both of its shares, so the contrast between
+    // volume and cost can be read straight off rather than inferred.
+    for (const b of bands) {
+      const el = document.createElement('div');
+      el.className = 'flowlab';
+      el.style.top = `${Math.round(b.y + b.h / 2 - 7)}px`;
+      el.style.color = b.color;
+      const pct = (v) => (v > 0 && v < 0.01 ? '<1' : Math.round(v * 100));
+      el.innerHTML = `${b.lab} &nbsp;<span style="opacity:.75">${pct(b.share)}% of tokens · ${pct(b.eShare)}% of energy</span>`;
+      wrap.appendChild(el);
+    }
+  }
+
+  function frame(ts) {
+    ctx.clearRect(0, 0, W, H);
+    for (const b of bands) {
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = b.color;
+      ctx.fillRect(0, b.y, W, b.h);
+    }
+    ctx.lineCap = 'round';
+    for (const s of streaks) {
+      if (!reduce) s.x += s.b.speed;
+      if (s.x - s.len > W) s.x = -s.len - Math.random() * 60;
+      ctx.globalAlpha = s.b.alpha * s.a;
+      ctx.strokeStyle = s.b.color;
+      ctx.lineWidth = Math.min(2.5, Math.max(1, s.b.h / 14));
+      ctx.beginPath();
+      ctx.moveTo(s.x - s.len, s.y);
+      ctx.lineTo(s.x, s.y);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    if (!reduce) flowRAF = requestAnimationFrame(frame);
+  }
+
+  resize();
+  addEventListener('resize', resize, { once: true });
+  frame(0);
+}
+
 function stackBar(items, total) {
   const seg = items.filter(x => x.v>0).map(x => { const pct = (x.v/total)*100;
     return `<span style="flex:${x.v};background:${x.c}" data-k="${x.k}">${pct>9?`<b>${Math.round(pct)}%</b>`:''}</span>`; }).join('');
@@ -418,8 +557,12 @@ function stackBar(items, total) {
 function renderComposition(t) {
   const tokTotal = t.tok.in + t.tok.cw + t.tok.cr + t.tok.out;
   const items = TOK.map(([k,lab,c]) => ({ k, lab, c, v: t.tok[k], fmt: fmtTok(t.tok[k]) }));
-  $('compTokens').innerHTML = `<div class="cap"><span>Where the tokens go</span><span>${fmtTok(tokTotal)} tokens processed</span></div>` + (tokTotal > 0 ? stackBar(items, tokTotal) : '<div class="conf">No measured tokens in this range yet.</div>');
+  $('compTokens').innerHTML = `<div class="cap"><span>Where the tokens go</span><span>${fmtTok(tokTotal)} tokens processed</span></div>`
+    + (tokTotal > 0
+        ? `<div class="flowwrap"><canvas id="flow"></canvas></div><div class="flowcap">One lane per token class · how crowded = share of tokens · how fast and bright = share of the energy</div>${legendOnly(items, tokTotal)}`
+        : '<div class="conf">No measured tokens in this range yet.</div>');
   $('compTokens').querySelectorAll('[data-k]').forEach(el => el.onclick = () => openDrawer('tokens'));
+  if (tokTotal > 0) startFlow(t);
 
   const modelWh = Object.entries(t.byModelTok).map(([m, tk]) => ({ k:m, lab:pretty(m), c:colorFor(m), v:whOf(m, tk), fmt:scaleE(whOf(m, tk)).join(' ') })).sort((a,b)=>b.v-a.v);
   const mTotal = modelWh.reduce((s,x)=>s+x.v,0);
