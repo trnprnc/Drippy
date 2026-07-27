@@ -8,11 +8,12 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 VERSION=$(node -p "require('../package.json').version")
-ZIP="../dist/Drippy-$VERSION-mac-arm64.zip"
-[ -f "$ZIP" ] || { echo "Missing $ZIP — run 'npm run dist' first."; exit 1; }
-
-cp "$ZIP" Drippy-mac-arm64.zip
-echo "Bundled Drippy v$VERSION ($(du -h Drippy-mac-arm64.zip | cut -f1)) into the site."
+# The binary is NOT bundled here any more: it is a GitHub release asset, and
+# the site links to /releases/latest/download/Drippy-mac-arm64.zip. That keeps
+# the deploy tiny (Vercel Hobby caps static uploads at 100MB, and the app is
+# already past it) and gives every build a permanent, versioned download URL.
+echo "Deploying the Drippy site (v$VERSION). Binary is served from GitHub releases."
+rm -f Drippy-mac-arm64.zip
 
 STAGE=$(mktemp -d /tmp/drippy-site.XXXXXX)
 trap 'rm -rf "$STAGE"' EXIT
