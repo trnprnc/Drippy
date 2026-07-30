@@ -4,6 +4,14 @@
 that meters what your AI work actually costs: energy, water, carbon, and the
 API-rate value behind it. Pro-transparent-AI, not anti-AI.
 
+> **Built for Claude Code.** Exact measurement reads Claude Code's own local
+> session records, so that is where Drippy is precise and where every feature
+> works. Claude Desktop and browser Claude are still metered, but only estimated
+> from network traffic (±3×) and never priced. If you do not use Claude Code, you
+> will see two fuzzy numbers and no spend figure.
+
+[![Drippy — built for Claude Code](https://drippy-ten.vercel.app/badge.svg)](https://github.com/trnprnc/Drippy)
+
 [**Download for macOS**](https://github.com/trnprnc/Drippy/releases/latest) ·
 [Privacy design](PRIVACY.md) · [Methodology](METHODOLOGY.md) · [User guide](USER-GUIDE.md)
 
@@ -135,6 +143,24 @@ Optional sync ingest (off by default, see [DATA-STORAGE.md](DATA-STORAGE.md)):
 
 ```sh
 cd server && npm run dev   # memory store on :8787; the dev app points here
+```
+
+## The badge
+
+If Drippy meters your project's AI work and you want to say so:
+
+[![Drippy — built for Claude Code](https://drippy-ten.vercel.app/badge.svg)](https://github.com/trnprnc/Drippy)
+
+**Markdown**
+
+```markdown
+[![Drippy — built for Claude Code](https://drippy-ten.vercel.app/badge.svg)](https://github.com/trnprnc/Drippy)
+```
+
+**HTML**
+
+```html
+<a href="https://github.com/trnprnc/Drippy"><img src="https://drippy-ten.vercel.app/badge.svg" alt="Drippy — built for Claude Code" height="28"></a>
 ```
 
 ## Licence
