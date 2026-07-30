@@ -84,7 +84,7 @@
     <h2>Install in three steps</h2>
     <ol class="steps">
       <li><b>Download and unzip</b>, then drag <code>Drippy.app</code> into Applications.</li>
-      <li><b>First launch:</b> this test build is fresh from the workshop and not yet notarised, so macOS asks once. Open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. (On older macOS: right-click the app, choose Open, then Open again.)</li>
+      <li><b>Clear the download flag once.</b> This build is not yet notarised, so macOS blocks it. Open Terminal and paste:<br><code>xattr -dr com.apple.quarantine /Applications/Drippy.app</code><br>Then open Drippy normally. (<b>System Settings → Privacy &amp; Security → Open Anyway</b> works on some macOS versions too, but the command is reliable.)</li>
       <li><b>Say hello.</b> Drippy slides into your menu bar and gives you a quick tour. He starts with you at login and settles wherever you drag him along the bar.</li>
     </ol>
     <p class="cta-note">No permissions to grant: Drippy needs no Accessibility or Automation access.</p>

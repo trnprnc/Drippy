@@ -34,11 +34,23 @@ Requires an Apple silicon Mac, macOS 13 or later.
 
 1. Download the [latest release](https://github.com/trnprnc/Drippy/releases/latest)
    and unzip it, then drag **Drippy.app** into Applications.
-2. First launch: this build is signed ad-hoc but not yet notarised, so macOS asks
-   once. Open **System Settings → Privacy & Security**, scroll down and click
-   **Open Anyway**.
+2. This build is signed ad-hoc but **not notarised**, so macOS blocks it on first
+   open. Clear the download flag once, in Terminal:
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Drippy.app
+   ```
+
+   Then open it normally. (**System Settings → Privacy & Security → Open Anyway**
+   also works on some macOS versions, but the command above is reliable.)
 3. Drippy appears as a small dark pill in the menu bar and starts at login. Drag
    it along the bar; it remembers where.
+
+Yes, that step is friction, and it is honest about where the project is: proper
+Developer ID signing and notarisation remove it entirely and are the next thing
+on the list. If you see **"Drippy is damaged and can't be opened"**, you have a
+build from before 27 July 2026, when the bundle was being modified after signing
+and shipped with an invalid signature. Download again.
 
 **Drippy requires no macOS permissions.** No Accessibility, no Automation.
 

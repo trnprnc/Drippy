@@ -25,7 +25,7 @@
     <h2>Installing</h2>
     <ol class="steps">
       <li>Download <a href="https://github.com/trnprnc/Drippy/releases/latest">the latest release</a> and unzip it, then drag <code>Drippy.app</code> into your Applications folder.</li>
-      <li>Open it. Because this test build is not yet notarised, macOS asks the first time: on macOS 15 or later, open System Settings → Privacy &amp; Security, scroll down and click <b>Open Anyway</b>, then confirm. On earlier macOS, right-click <code>Drippy.app</code> and choose Open, then Open again.</li>
+      <li>Clear the download flag once. This build is not yet notarised, so macOS blocks it on first open. In Terminal, paste <code>xattr -dr com.apple.quarantine /Applications/Drippy.app</code> and press return, then open Drippy normally. On some macOS versions System Settings → Privacy &amp; Security → <b>Open Anyway</b> works instead, but the command is reliable. If you ever see "Drippy is damaged", you have a build from before 27 July 2026: download again.</li>
       <li>Drippy slides into your menu bar as a small dark pill and gives you a quick tour. He starts with you at login.</li>
     </ol>
 
