@@ -145,6 +145,12 @@ Optional sync ingest (off by default, see [DATA-STORAGE.md](DATA-STORAGE.md)):
 cd server && npm run dev   # memory store on :8787; the dev app points here
 ```
 
+The landing site in `site/` deploys itself: Vercel is connected to this repo and
+`vercel.json` points `outputDirectory` at `site`, so **pushing to `main` publishes
+the site**. There is deliberately no second deploy script; having one alongside
+the Git integration meant each push replaced the manually-deployed site with an
+empty build of the repository root.
+
 ## The badge
 
 If Drippy meters your project's AI work and you want to say so:
