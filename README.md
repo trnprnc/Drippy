@@ -10,7 +10,7 @@ API-rate value behind it. Pro-transparent-AI, not anti-AI.
 > from network traffic (±3×) and never priced. If you do not use Claude Code, you
 > will see two fuzzy numbers and no spend figure.
 
-[![Drippy — built for Claude Code](https://drippy-ten.vercel.app/badge.svg)](https://github.com/trnprnc/Drippy)
+[![Drippy — built for Claude Code](https://raw.githubusercontent.com/trnprnc/Drippy/main/site/badge.svg)](https://github.com/trnprnc/Drippy)
 
 [**Download for macOS**](https://github.com/trnprnc/Drippy/releases/latest) ·
 [Privacy design](PRIVACY.md) · [Methodology](METHODOLOGY.md) · [User guide](USER-GUIDE.md)
@@ -149,18 +149,18 @@ cd server && npm run dev   # memory store on :8787; the dev app points here
 
 If Drippy meters your project's AI work and you want to say so:
 
-[![Drippy — built for Claude Code](https://drippy-ten.vercel.app/badge.svg)](https://github.com/trnprnc/Drippy)
+[![Drippy — built for Claude Code](https://raw.githubusercontent.com/trnprnc/Drippy/main/site/badge.svg)](https://github.com/trnprnc/Drippy)
 
 **Markdown**
 
 ```markdown
-[![Drippy — built for Claude Code](https://drippy-ten.vercel.app/badge.svg)](https://github.com/trnprnc/Drippy)
+[![Drippy — built for Claude Code](https://raw.githubusercontent.com/trnprnc/Drippy/main/site/badge.svg)](https://github.com/trnprnc/Drippy)
 ```
 
 **HTML**
 
 ```html
-<a href="https://github.com/trnprnc/Drippy"><img src="https://drippy-ten.vercel.app/badge.svg" alt="Drippy — built for Claude Code" height="28"></a>
+<a href="https://github.com/trnprnc/Drippy"><img src="https://raw.githubusercontent.com/trnprnc/Drippy/main/site/badge.svg" alt="Drippy — built for Claude Code" height="28"></a>
 ```
 
 ## Licence
